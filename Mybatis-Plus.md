@@ -1,5 +1,7 @@
 # Mybatis-Plus
 
+![图片1](img_Mybatis-Plus/图片1.png)
+
 ## 依赖
 
 ```java
@@ -19,6 +21,8 @@
     <version>1.18.10</version>
 </dependency>
 ```
+
+
 
 ## 配置日志
 
@@ -323,15 +327,15 @@ public void insertFill(MetaObject metaObject) {
 
 **原始操作：**
 
-![img](img/17eff5fbefe372d5a55e36f489c9560e_b.jpg)
+![17eff5fbefe372d5a55e36f489c9560e_b](img_Mybatis-Plus/17eff5fbefe372d5a55e36f489c9560e_b.jpg)
 
 **悲观锁：**
 
-![img](img/v2-c44347899f7b15405b425a4f081ad75f_720w.jpg)
+![v2-c44347899f7b15405b425a4f081ad75f_720w](img_Mybatis-Plus/v2-c44347899f7b15405b425a4f081ad75f_720w.jpg)
 
 **乐观锁：**
 
-![img](img/v2-5ffdbd52de8e8cf78246b14a2dc8c516_720w.jpg)
+![v2-5ffdbd52de8e8cf78246b14a2dc8c516_720w](img_Mybatis-Plus/v2-5ffdbd52de8e8cf78246b14a2dc8c516_720w.jpg)
 
 
 
