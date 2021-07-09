@@ -1,7 +1,5 @@
 # Mybatis-Plus
 
-![图片1](img_Mybatis-Plus/图片1.png)
-
 ## 依赖
 
 ```java
