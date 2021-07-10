@@ -296,23 +296,34 @@ $ git show [commit]:[filename]
 
 $ git reflog
 
+```java
+$ git reflog
+版本号	  版本记录											
+43156bc (HEAD -> master) HEAD@{0}: commit: 注释
+a2123c2 HEAD@{1}: commit: 注释
+a65616d HEAD@{2}: initial pull
 
+```
 
 
 
 ### 撤销
 
-恢复暂存区的指定文件到工作区
+恢复暂存区的指定文件到工作区，撤销工作区修改
 
-$ git checkout [file]
+**$ git checkout [file]**
 
-恢复某个commit的指定文件到暂存区和工作区
+恢复暂存区的所有文件到工作区，撤销工作区修改
+
+**$ git checkout .**
+
+恢复暂存区的所有文件到工作区，撤销工作区修改
+
+**$ git restore .**
+
+恢复某个commit的指定文件到暂存区和工作区，撤销暂存区和工作区修改
 
 $ git checkout [commit] [file]
-
-恢复暂存区的所有文件到工作区
-
-$ git checkout .
 
 重置暂存区的指定文件，与上一次commit保持一致，但工作区不变
 
@@ -326,9 +337,21 @@ $ git reset --hard
 
 $ git reset [commit]
 
-重置当前分支的HEAD为指定commit，同时重置暂存区和工作区，与指定commit一致
+重置当前分支的HEAD为指定commit，同时重置暂存区和工作区，与指定commit一致，[commit]即是版本号
 
-$ git reset --hard [commit]
+**$ git reset --hard [commit]**
+
+如：回退到a2123c2版本
+
+**$git reset --hard a2123c2**
+
+如：回退到上一个版本
+
+**$git reset --hard HEAD^**
+
+如：回退到上一个版本
+
+**$git reset --hard HEAD@{1}**
 
 重置当前HEAD为指定commit，但保持暂存区和工作区不变
 
