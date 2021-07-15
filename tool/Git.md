@@ -184,7 +184,7 @@ $ git mv [file-original] [file-renamed]
 
 提交暂存区的指定文件到仓库区
 
-$ git commit [file1] [file2] ... -m [message]
+**$ git commit [file1] [file2] ... -m [message]**
 
 提交工作区自上次commit之后的变化，直接到仓库区
 
@@ -218,7 +218,7 @@ $ git fetch [remote]
 
 显示所有远程仓库
 
-$ git remote -v
+**$ git remote -v**
 
 显示某个远程仓库的信息
 
@@ -234,7 +234,7 @@ $ git remote add [shortname] [url]
 
 上传本地指定分支到远程仓库
 
-$ git push [remote] [branch]
+**$ git push [remote] [branch]**
 
 强行推送当前分支到远程仓库，即使有冲突
 
@@ -415,7 +415,7 @@ $ git stash pop
 
 列出所有远程分支
 
-$ git branch -r
+**$ git branch -r**
 
 列出所有本地分支和远程分支
 
