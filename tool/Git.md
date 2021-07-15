@@ -103,6 +103,28 @@ git push origin master -f
 
 参考：[Git使用教程,最详细，最傻瓜，最浅显，真正手把手教](https://blog.csdn.net/qq_36150631/article/details/81038485)
 
+
+
+### 新建远程分支并推送
+
+```java
+//其中local-branch本地分支	remote-branch远程分支	origin远程仓库别名
+$ git checkout local-branch    		//切换到本地分支
+$ git push -u origin local-branch	//推送本地分支到远程同名分支，并且相互关联
+
+//关联之后可以直接使用如下推送拉取    
+$ git push
+$ git pull    
+```
+
+```java
+//其中$ git push -u origin local-branch相当于
+$ git push origin local-branch		//远程库无local-branch同名分支则自动创建
+$ git branch --set-upstream-to=remote-branch local-branch	//关联本地分支和远程分支 
+```
+
+
+
 ## 常用git命令
 
 ### 新建代码库
@@ -230,11 +252,23 @@ $ git remote add [shortname] [url]
 
 取回远程仓库的变化，并与本地分支合并
 
-**$ git pull [remote] [branch]**
+**$ git pull [remote] [local-branch]**
 
 上传本地指定分支到远程仓库
 
-**$ git push [remote] [branch]**
+**$ git push [remote] [local-branch]**
+
+如果当前分支与多个分支存在追踪关系，`-u`指定[remote] [local-branch]为默认分支，后面就可以不加任何参数使用`git push`
+
+**$ git push -u [remote] [local-branch]**
+
+如：
+
+```java
+$ git push -u origin master
+```
+
+
 
 强行推送当前分支到远程仓库，即使有冲突
 
@@ -451,7 +485,7 @@ $ git checkout -
 
 建立追踪关系，在现有分支与指定的远程分支之间
 
-**$ git branch --set-upstream [branch] [remote-branch]**
+**$ git branch --set-upstream [remote-branch] [local-branch]**
 
 合并指定分支到当前分支
 
