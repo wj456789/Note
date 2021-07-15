@@ -11,9 +11,9 @@ Remote：远程仓库
 
 
 
+## 应用场景
 
-
-## 使用Git和Github管理流程
+### 使用Git和Github同步文件
 
 1. 在Github上创建仓库Note
 
@@ -62,9 +62,46 @@ Remote：远程仓库
 
 12. 输入`git add .`添加所有文件到暂存区
     		`git commit –m .`提交所有文件到本地仓库
-    		`git push git@github.com:wj456789/Note.git`推送所有文件到远程仓库	
+    		`git push -u origin master  `推送本地仓库分支master所有文件到远程仓库origin 	
+    
+13. 之后就可以输入`git push origin master`和`git pull origin master`来推送和拉取文件
 
 参考：[使用git和github进行文件同步](https://blog.csdn.net/u011622208/article/details/80637661)
+
+### 代码出现冲突
+
+**git提交时报错:Updates were rejected because the tip of your current branch is behind**
+
+**git合并时报错**
+
+```java
+//如：冲突文件为test.txt
+//当前分支内容为
+1111111111111
+2222222222222
+    
+//冲突分支内容为
+1111111111111
+3333333333333
+    
+$git status查看冲突状态，
+$cat test.txt查看冲突代码
+1111111111111
+<<<<<<<HEAD
+2222222222222
+=======
+3333333333333
+>>>>>>>REMOTE    
+修改冲突之后重新操作    
+```
+
+```java
+先将远程repository修改pull下来再使用强制push
+git pull origin master
+git push origin master -f
+```
+
+参考：[Git使用教程,最详细，最傻瓜，最浅显，真正手把手教](https://blog.csdn.net/qq_36150631/article/details/81038485)
 
 ## 常用git命令
 
@@ -115,7 +152,7 @@ $ git add [dir]
 
 添加当前目录的所有文件到暂存区
 
-$ git add .
+**$ git add .**
 
 添加每个变化前，都会要求确认
 
@@ -143,7 +180,7 @@ $ git mv [file-original] [file-renamed]
 
 提交暂存区到仓库区，message是注释
 
-$ git commit -m [message]
+**$ git commit -m [message]**
 
 提交暂存区的指定文件到仓库区
 
@@ -193,7 +230,7 @@ $ git remote add [shortname] [url]
 
 取回远程仓库的变化，并与本地分支合并
 
-$ git pull [remote] [branch]
+**$ git pull [remote] [branch]**
 
 上传本地指定分支到远程仓库
 
@@ -372,9 +409,9 @@ $ git stash pop
 
 ### 分支
 
-列出所有本地分支
+列出所有本地分支，当前分支前面会添加一个星号
 
-$ git branch
+**$ git branch**
 
 列出所有远程分支
 
@@ -386,15 +423,15 @@ $ git branch -a
 
 新建一个分支，但依然停留在当前分支
 
-$ git branch [branch-name]
+**$ git branch [branch-name]**
 
 新建一个分支，并切换到该分支
 
-$ git checkout -b [branch]
+**$ git checkout -b [branch]**
 
 将远程git仓库里的指定分支拉取到本地，同时在本地新建了一个分支，并和指定的远程分支关联了起来。
 
-$ git checkout -b 本地分支名 origin/远程分支名
+**$ git checkout -b 本地分支名 origin/远程分支名**
 
 新建一个分支，指向指定commit
 
@@ -406,7 +443,7 @@ $ git branch --track [branch] [remote-branch]
 
 切换到指定分支，并更新工作区
 
-$ git checkout [branch-name]
+**$ git checkout [branch-name]**
 
 切换到上一个分支
 
@@ -414,11 +451,11 @@ $ git checkout -
 
 建立追踪关系，在现有分支与指定的远程分支之间
 
-$ git branch --set-upstream [branch] [remote-branch]
+**$ git branch --set-upstream [branch] [remote-branch]**
 
 合并指定分支到当前分支
 
-$ git merge [branch]
+**$ git merge [branch]**
 
 选择一个commit，合并进当前分支
 
@@ -426,7 +463,7 @@ $ git cherry-pick [commit]
 
 删除分支
 
-$ git branch -d [branch-name]
+**$ git branch -d [branch-name]**
 
 删除远程分支
 

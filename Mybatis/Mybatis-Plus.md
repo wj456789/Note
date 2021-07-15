@@ -235,18 +235,31 @@ public class MyMetaObjectHandler implements MetaObjectHandler {
 }
 ```
 
-## 分页插件和乐观锁
+## 分页插件
+
+### 配置
 
 ```java
-MybatisPlus3.4版本后的分页和乐观锁使用方式，在配置类中进行如下编写
-@Bean
-public MybatisPlusInterceptor mybatisPlusInterceptor() {
-    MybatisPlusInterceptor interceptor = new MybatisPlusInterceptor();
-    interceptor.addInnerInterceptor(new PaginationInnerInterceptor(DbType.MYSQL));//分页插件
-    interceptor.addInnerInterceptor(new OptimisticLockerInnerInterceptor());//乐观锁插件
-    return interceptor;
+@Configuration
+@MapperScan("com.example.demo.wj.mapper")
+public class MybatisPlusConfig {
+    //MybatisPlus3.4版本后的分页插件使用方式，在配置类中进行如下编写
+    @Bean
+    public MybatisPlusInterceptor mybatisPlusInterceptor() {
+        MybatisPlusInterceptor interceptor = new MybatisPlusInterceptor();
+        //分页插件
+        PaginationInnerInterceptor paginationInnerInterceptor = new PaginationInnerInterceptor(DbType.MYSQL);
+        // 设置请求的页面大于最大页后操作， true调回到首页，false 继续请求  默认false
+        // paginationInnerInterceptor.setOverflow(false);
+        // 设置最大单页限制数量，默认 500 条，-1 不受限制
+        // paginationInnerInterceptor.setMaxLimit(500L);
+        interceptor.addInnerInterceptor(paginationInnerInterceptor);
+        return interceptor;
+    }
 }
 ```
+
+### base自带分页
 
 ```java
 @Test
@@ -254,8 +267,9 @@ public void testPage() {
     // Step1：创建一个 Page 对象，对象需要传递两个参数（当前页，每页显示的条数）。
     Page<User> page = new Page<>(2, 5);
     // Step2：调用 mybatis-plus 提供的分页查询方法
-    userService.page(page, null);
+    userService.page(page, new QueryWrapper<User>());
     // Step3：获取分页数据
+    List<User> records = page.getRecords();
     System.out.println(page.getCurrent()); // 获取当前页
     System.out.println(page.getTotal()); // 获取总记录数
     System.out.println(page.getSize()); // 获取每页的条数
@@ -263,10 +277,104 @@ public void testPage() {
     System.out.println(page.getPages()); // 获取总页数
     System.out.println(page.hasNext()); // 是否存在下一页
     System.out.println(page.hasPrevious()); // 是否存在上一页
+    
+    //也可以使用userMapper
+    Page<User> page1 = new Page<>(1, 5);
+    userMapper.selectPage(page1, new QueryWrapper<User>());
+    List<User> records = page1.getRecords();
+}
+```
+
+### XML自定义分页
+
+```java
+public interface UserMapper extends BaseMapper<User>{
+    /**
+     * <p>
+     * 查询 : 根据state状态查询用户列表，分页显示
+     * </p>
+     *
+     * @param page 分页对象,xml中可以从里面进行取值,传递参数 Page 即自动分页,必须放在第一位(你可以继承Page实现自己的分页对象)
+     * @param state 状态
+     * @return 分页对象
+     */
+    IPage<User> selectPageVo(Page<User> page, Integer state);
+} 
+
+//UserMapper.xml 等同于编写一个普通 list 查询，mybatis-plus 自动替你分页
+<select id="selectPageVo" resultType="com.baomidou.cloud.entity.UserVo">
+    SELECT id,name FROM user WHERE state=#{state}
+</select>
+```
+
+```java
+public interface UserService extends IService<User> {
+    public IPage<User> selectUserPage(Page<User> page, Integer state);
+}
+
+//UserServiceImpl.java 调用分页方法
+public IPage<User> selectUserPage(Page<User> page, Integer state) {
+    // 不进行 count sql 优化，解决 MP 无法自动优化 SQL 问题，这时候你需要自己查询 count 部分
+    // page.setOptimizeCountSql(false);
+    // 当 total 为小于 0 或者设置 setSearchCount(false) 分页插件不会进行 count 查询
+    // 要点!! 分页返回的对象与传入的对象是同一个
+    return userMapper.selectPageVo(page, state);
 }
 ```
 
 ```java
+@Test
+public void testPage(){
+    Page<User> page = new Page<>(1, 5);
+    IPage<User> userPag = UserService.selectUserPage(page, "0");
+    List<User> records = userPag.getRecords();
+}
+```
+
+### 使用PageHelper
+
+```java
+<dependency>
+    <groupId>com.github.pagehelper</groupId>
+    <artifactId>pagehelper-spring-boot-starter</artifactId>
+    <version>1.2.3</version>
+    <exclusions>
+        <exclusion>
+            <groupId>org.mybatis</groupId>
+            <artifactId>mybatis</artifactId>
+        </exclusion>
+        <exclusion>
+            <groupId>org.mybatis</groupId>
+            <artifactId>mybatis-spring</artifactId>
+        </exclusion>
+    </exclusions>
+</dependency>
+```
+
+```java
+############# 分页插件PageHelper配置 #############
+pagehelper.helper-dialect=mysql
+pagehelper.reasonable=true
+pagehelper.support-methods-arguments=true
+pagehelper.pageSizeZero=true
+pagehelper.params=count=countSql
+```
+
+最后pagehelper使用和之前相同
+
+## 乐观锁
+
+
+
+```java
+MybatisPlus3.4版本后的乐观锁使用方式，在配置类中进行如下编写
+@Bean
+public MybatisPlusInterceptor mybatisPlusInterceptor() {
+    MybatisPlusInterceptor interceptor = new MybatisPlusInterceptor();
+    interceptor.addInnerInterceptor(new OptimisticLockerInnerInterceptor());//乐观锁插件
+    return interceptor;
+}
+
 /**
  * 版本号（用于乐观锁， 默认为 1）
  */
@@ -281,7 +389,7 @@ public void insertFill(MetaObject metaObject) {
 }
 ```
 
-### 乐观锁
+### 
 
 （1）读问题、写问题
 　　操作数据库数据时，遇到的最基本问题就是 读问题与写问题。
