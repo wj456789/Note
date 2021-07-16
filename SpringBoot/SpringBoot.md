@@ -28,7 +28,7 @@ SpringBoot是一个用来简化Spring应用的初始化创建和开发的框架
 ### pom.xml解析
 
 ```java
-<!-- 
+/* 
     父项目spring-boot-starter-parent.pom的父项目是spring-boot-dependencies.pom，用来管理SpringBoot应用中依赖的版本
     <parent>
         <groupId>org.springframework.boot</groupId>
@@ -48,7 +48,7 @@ SpringBoot是一个用来简化Spring应用的初始化创建和开发的框架
       <atomikos.version>4.0.6</atomikos.version>
       ...
     </properties>
--->
+*/
 <parent>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
@@ -57,7 +57,7 @@ SpringBoot是一个用来简化Spring应用的初始化创建和开发的框架
 
 <dependencies>
 
-    <!-- 通过启动器starter添加依赖，这里是web应用场景下的依赖包-->
+    /* 通过启动器starter添加依赖，这里是web应用场景下的依赖包*/
     <dependency>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-web</artifactId>
@@ -84,9 +84,9 @@ public class SpringbootDemoApplication {
 ### **@SpringBootApplication源码**
 
 ```java
-//(1)@SpringBootConfiguration标注在类上，表示这个SpringBoot的配置类，相当于xml配置文件
+//@SpringBootConfiguration标注在类上，表示这个SpringBoot的配置类，相当于xml配置文件
 @SpringBootConfiguration
-//(2)开启自动配置功能，SpringBoot会自动完成许多配置，简化了以前的繁琐的配置
+//开启自动配置功能，SpringBoot会自动完成许多配置，简化了以前的繁琐的配置
 @EnableAutoConfiguration
 @ComponentScan(excludeFilters = { @Filter(type = FilterType.CUSTOM, classes = TypeExcludeFilter.class),
       @Filter(type = FilterType.CUSTOM, classes = AutoConfigurationExcludeFilter.class) })
@@ -623,11 +623,11 @@ public class SpringConfig {
 ```java
 //使用SpringBoot提供的devtools实现热部署
 //原理：实现监控classpath下文件的变化，如果发生变化则自动重启
-<!-- 只需要添加devtools依赖-->
+/* 只需要添加devtools依赖*/
 <dependency>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-devtools</artifactId>
-    <!-- 该依赖不传递-->
+    /* 该依赖不传递*/
     <optional>true</optional>
 </dependency>
 ```
@@ -658,7 +658,7 @@ System.out.println(jarF.getParentFile().toString());
 ## SpringBoot Test
 
 ```java
-<!-- 单元测试依赖 -->
+/* 单元测试依赖 */
 <dependency>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-test</artifactId>
@@ -679,7 +679,7 @@ import cn.yunpay.account.WebimtApplicationRunner;
 //@RunWith是Junit4提供的注解，将Spring和Junit链接了起来。
 @RunWith(SpringJUnit4ClassRunner.class)
 
-<!--
+/*
 	@SpringBootTest替代了spring-test中的@ContextConfiguration注解，目的是加载ApplicationContext，启动spring容器。
     
 	可以不指定classes启动程序类或locations配置文件的值，因为@SpringBootTest注解会自动检索程序，检索顺序是从当前包开始，逐级向上查找被@SpringBootApplication或@SpringBootConfiguration注解的类。
@@ -689,7 +689,7 @@ import cn.yunpay.account.WebimtApplicationRunner;
         RANDOM_PORT：启动一个真实的web服务，监听一个随机端口。
         DEFINED_PORT：启动一个真实的web服务，监听一个定义好的端口（从application.properties读取）。
         NONE：启动一个非web的ApplicationContext，既不提供mock环境，也不提供真实的web服务。
--->
+*/
     
 @SpringBootTest(classes=WebimtApplicationRunner.class,locations={"classpath:application.yml"},webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @EnableAutoConfiguration
