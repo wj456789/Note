@@ -61,10 +61,10 @@ Remote：远程仓库
 11. 输入`git pull git@github.com:wj456789/Note.git`同步远程仓库
 
 12. 输入`git add .`添加所有文件到暂存区
-    		`git commit –m .`提交所有文件到本地仓库
-    		`git push -u origin master  `推送本地仓库分支master所有文件到远程仓库origin 	
+    		`git commit –m 无`提交所有文件到本地仓库
+    		`git push -u origin master  `推送本地仓库分支master所有文件到远程仓库origin分支master 	
     
-13. 之后就可以输入`git push origin master`和`git pull origin master`来推送和拉取文件
+13. 之后就可以输入`git push`和`git pull`来推送和拉取文件
 
 参考：[使用git和github进行文件同步](https://blog.csdn.net/u011622208/article/details/80637661)
 
@@ -96,7 +96,7 @@ $cat test.txt查看冲突代码
 ```
 
 ```java
-先将远程repository修改pull下来再使用强制push
+先将远程repository修改pull下来再使用强制push，不推荐使用
 git pull origin master
 git push origin master -f
 ```
@@ -105,7 +105,7 @@ git push origin master -f
 
 
 
-### 新建远程分支并推送
+### 推送分支
 
 ```java
 //其中local-branch本地分支	remote-branch远程分支	origin远程仓库别名
@@ -172,7 +172,7 @@ $ git add [file1] [file2] ...
 
 $ git add [dir]
 
-添加当前目录的所有文件到暂存区
+添加当前目录的所有目录文件到暂存区
 
 **$ git add .**
 
