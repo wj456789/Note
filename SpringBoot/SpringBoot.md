@@ -13,15 +13,15 @@ SpringBoot是一个用来简化Spring应用的初始化创建和开发的框架
 
 ## **IDEA新建SpringBoot工程**
 
-![1](C:\Users\Administrator\Downloads\1.png)
+![](img_SpringBoot/1.png)
 
-![1 (2)](C:\Users\Administrator\Downloads\1 (2).png)
+![1 (2)](img_SpringBoot/1%20(2).png)
 
-![1 (3)](C:\Users\Administrator\Downloads\1 (3).png)
+![1 (3)](img_SpringBoot/1%20(3).png)
 
 项目名和所在路径
 
-![1 (4)](C:\Users\Administrator\Downloads\1 (4).png)
+![1 (4)](img_SpringBoot/1%20(4).png)
 
 ## SpringBoot应用
 
