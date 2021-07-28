@@ -263,7 +263,7 @@ public class TestController extends BaseController {
 @AllArgsConstructor
 @NoArgsConstructor
 public class ResultView<T> {
-    @ApiModelProperty(value = "返回描述",,required = true)
+    @ApiModelProperty(value = "返回描述",required = true)
     private String msg;
     @ApiModelProperty(value = "返回的状态码: 200是操作成功；其他值是错误", required = true)
     private int code;
@@ -388,10 +388,9 @@ public ResultView<List<User>> getUsers() throws Exception{
   ],
   "msg": "string"
 }
+```
 
-
-
-
+```java
 ResultView<List<User>>{
 code*	integer($int32)
 		返回的状态码: 200是操作成功；其他值是错误
@@ -412,8 +411,6 @@ msg*	string
 
 }
 ```
-
-
 
 
 

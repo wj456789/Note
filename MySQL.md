@@ -1,5 +1,12 @@
 # MySQL
 
+SQL（Structure Query Language）结构化查询语言
+
+- DQL（data query language）数据查询语言 select操作
+- DML（data manipulation language）数据操作语言，主要是数据库增删改三种操作
+- DDL（data defination language）数据库定义语言，主要是建表、删除表、修改表字段等操作
+- DCL（data control language）数据库控制语言，如commit，revoke之类的
+
 ## 数据控制语言DCL
 
 ### 用户管理
@@ -131,9 +138,7 @@ MySQL关闭权限验证后，直接通过 mysql 命令即可连接到数据库�
 
 ### 复合索引前导列特性
 
-在MySQL中，如果创建了复合索引(name, salary, dept)，就相当于创建了(name, salary, dept)、
-(name, salary)和(name)三个索引，这被称为复合索引前导列特性，因此在创建复合索引时应该将
-最常用作查询条件的列放在最左边，依次递减。
+在MySQL中，如果创建了复合索引(name, salary, dept)，就相当于创建了(name, salary, dept)、(name, salary)和(name)三个索引，这被称为复合索引前导列特性，因此在创建复合索引时应该将最常用作查询条件的列放在最左边，依次递减。
 
 ```java
 #未使用索引
@@ -161,7 +166,7 @@ MySQL关闭权限验证后，直接通过 mysql 命令即可连接到数据库�
 
 ## 视图
 
-视图是一个**虚拟表**，其内容由**select查询语句**定义。和真实的表一样，视图也包含行和列，对视图的操作与对表的操作基本一致。视图中的数据是在使用视图时动态生成，**视图中的数据都存储在基表中**。  视图表的数据变化会影响到基表，基表的数据变化也会影响视图表。  
+视图是一个**虚拟表**，其内容由**select查询语句**定义。和真实的表一样，视图也包含行和列，对视图的操作与对表的操作基本一致。视图中的数据是在使用视图时动态生成，**视图中的数据都存储在基表中**。  视图表的数据变化会影响到基表，基表的数据变化也会影响视图表。  其中单表创建的视图可以直接修改视图，数据变化会影响到原表数据，但是多表创建的视图不可以修改数据
 
 - 可读性  ：简化了复杂的查询，使复杂的查询更易于理解和使用  
 - 重用性  ：视图是对复杂查询语句的封装，对数据库重构，不会影响程序的运行  
@@ -179,6 +184,10 @@ SHOW TABLE STATUS WHERE comment='view';
 #删除视图
 DROP VIEW view_name;
 ```
+
+
+
+
 
 
 
@@ -228,13 +237,41 @@ DROP VIEW view_name;
 
 
 
+## 日志
 
+日志用于记录数据库的运行情况，以及用户对数据库执行的各类操作。当数据库发生故障时，可以根据日志分析和解决问题，从而对数据库进行恢复。
 
-## 优化
+- **重做日志（redo log）** 
+
+  重做日志是一种物理格式的日志，记录的是物理数据页面的修改的信息，其redo log是顺序写入redo log file的物理文件中去的。
+
+- **回滚日志（undo log）**
+
+  回滚日志是一种逻辑格式的日志，在执行undo的时候，仅仅是将数据从逻辑上恢复至事务之前的状态，而不是从物理页面上操作实现的，这一点是不同于redo log的。
+
+- **二进制日志（binlog）**
+
+  二进制日志是一种逻辑格式的日志，以二进制文件的形式记录了数据库中的操作，但不记录查询语句。
+
+- **错误日志（errorlog）** 
+
+  错误日志记录着mysqld启动和停止，以及服务器在运行过程中发生的错误的相关信息。
+
+- **慢查询日志（slow query log）** 
+
+  慢查询日志记录执行时间过长和没有使用索引的查询语句。
+
+- **一般查询日志（general log）**
+
+  记录了服务器接收到的每一个查询或是命令，无论这些查询或是命令是否正确甚至是否包含语法错误，general log都会将其记录下来。
+
+- **中继日志（relay log）** 
+
+  中继日志类似二进制；可用于复制架构中，使从服务器和主服务器的数据保持一致
 
 ### 慢查询日志
 
-用于记录MySQL数据库中响应时间超过指定阈值的语句。它不仅仅只针对SELECT语句，像INSERT、UPDATE、DELETE等语句，只要响应时间超过所设定阈值都会记录在慢查询日志中。
+用于记录MySQL数据库中响应时间超过指定阈值的语句。它不仅仅只针对**SELECT**语句，像**INSERT、UPDATE、DELETE**等语句，只要响应时间超过所设定阈值都会记录在慢查询日志中。
 
 #### 日志参数
 
@@ -256,6 +293,48 @@ DROP VIEW view_name;
 #慢查询日志文件所在位置
 >show variables like '%datadir%';
 ```
+
+### binlog日志
+
+MySQL的二进制日志binlog可以说是MySQL最重要的日志，它记录了所有的DDL和DML语句（除了数据查询语句select），以事件形式记录，还包含语句所执行的消耗的时间，MySQL的二进制日志是事务安全型的。
+
+万一遇到数据丢失的紧急情况下，可以使用binlog日志进行数据恢复（定时全备份+binlog日志恢复增量数据部分）。
+
+```java
+#查看binlog日志参数
+>show variables like 'log_bin%'  
+log_bin								ON
+log_bin_basename  					/usr/...	
+log_bin_index						/usr/...
+log_bin_trust_function_creators		OFF
+log_bin_use_v1_row_events			OFF
+```
+
+
+
+```java
+#查看所有二进制日志列表
+show master logs;
+#查看正在使用的二进制日志
+show master status;
+#刷新日志（重新开始新的binlog日志文件）
+flush logs
+
+#binlog日志是二进制文件不能直接打开，需要用如下方式查看    
+#查询指定的binlog
+show binlog events in 'WQ-20160826MDKU-bin.000050' from 10668\G;
+
+#导出sql在查看，同时可以用sql文件恢复误删数据
+#(半夜备份文件，先找到日志中半夜行数到当前行数，导出sql文件，在使用source命令导入)    
+
+mysqlbinlog "C:\ProgramData\MySQL\MySQL Server 8.0\Data\WQ-20160826MDKU-bin.000057" --
+start-position 528 --stop-position 1191 > d:\backup\test.sql
+#sql文件本质上就是数据库语句集    
+```
+
+
+
+## 优化
 
 ### 查询分析器explain
 
@@ -544,43 +623,401 @@ END
 delimiter ;
 ```
 
+## 表常用操作
+
+### 复制表
+
+```java
+#只复制表结构，包括主键、索引，但不会复制表数据
+create table tableName like someTable;
+#复制表的大体结构及全部数据，不会复制主键、索引等
+create table tableName select * from someTable;
+#完整复制，分两步完成，先复制表结构，再插入数据
+create table tableName like someTable;
+insert into tableName select * from someTable;
+```
+
+### 导出数据
+
+#### SELECT...INTO OUTFILE
+
+在MySQL中，可以使用SELECT...INTO OUTFILE语句将查询结果数据导出到文本文件。
+
+```java
+#文件存储路径
+SELECT * FROM employee INTO OUTFILE 'D:\\employee.txt' 
+#字段间分隔符
+FIELDS TERMINATED BY ','  
+#值用双引号引起
+ENCLOSED BY '"' 
+#行间分隔符,\r\n在mysql中表示换行
+LINES TERMINATED BY '\r\n';
+```
+
+```java
+#mysql中secure_file_priv参数控制导出
+#null 表示不允许导入导出		空 表示没有任何限制		指定路径 表示导入导出只能在指定路径下完成    
+show variables like "secure_file_priv";    
+```
+
+#### mysql命令
+
+通常，我们使用mysql命令连接数据库，mysql命令有一个-e选项，可以执行指定的SQL语句，再结合DOS的重定向操作符”>”可以将查询结果导出到文件
+
+```java
+mysql -h localhost -u root -p -D mydb -e "select * from employee" > E:\employee.txt
+```
+
+#### mysqldump命令
+
+mysqldump是MySQL用于转存储数据库的实用程序，它主要产生一个SQL脚本，其中包含创建数据库、创建数据表、插入数据所必需的SQL语句。
+
+```java
+# 导出mydb数据库（含数据）
+mysqldump -h localhost -u root -p mydb > d:/mydb.sql
+# 导出mydb数据库（不含数据）
+mysqldump -h localhost -u root -p mydb --no-data > d:/mydb.sql
+# 导出mydb.employee数据表
+mysqldump -h localhost -u root -p mydb employee > d:/employee.sql
+# 导出mydb数据库，忽略contacts表
+mysqldump -h localhost -u root -p mydb --ignore-table mydb.contacts > d:/employee.sql
+```
+
+### 定时备份数据库
+
+定时调度器-->数据库备份脚本
+
+定时调度器有：
+
+- Windows的定时计划
+- Linux的Crontab
+- 编程语言的Timer
+
+数据库备份脚本有：
+
+- DOS批处理脚本
+- Linux Shell脚本
+
+#### Windows
+
+schtasks.exe用于安排命令和程序在指定时间内运行或定期运行，它可以从计划表中添加和删除任务、按需要启动和停止任务、显示和更改计划任务。
+
+```java
+#备份数据库的脚本mysql_mydb_backup.bat
+mysqldump -h localhost -uroot -p123456 mydb > d:\backup\mydb.sql
+#创建计划任务（每隔指定时间备份一次MySQL）
+schtasks /create /sc minute /mo 1 /tn 定期备份MySQL /tr d:\backup\mysql_mydb_backup.bat
+#删除计划任务
+schtasks /delete /tn 定期备份MySQL
+```
+
+#### Linux
+
+```java
+#!/bin/bash
+#备份目录
+backup_dir=/home/liufeng/backup
+#备份文件名
+backup_filename=“mydb-`date +%Y%m%d`.sql“
+#进入备份目录
+cd $backup_dir
+#备份数据库
+mysqldump -h localhost -uroot -p123456 mydb > ${backup_dir}/${backup_filename}
+#删除7天以前的备份
+find ${backup_dir} -mtime +7 -name "*.sql" -exec rm -rf {} \;
+```
+
+crontab是一个命令，常见于Unix和类Unix的操作系统之中，用于周期性执行任务。
+
+```java
+#每天凌晨01:30执行shell脚本（备份数据库）
+30 1 * * * bash /home/liufeng/backup/mysql_mydb_backup.sh
+```
+
+### 导入数据
+
+#### LOAD DATA
+
+在MySQL中，可以使用LOAD DATA语句将文本文件数据导入到对应的数据库表中，可以将LOAD DATA语句看成是SELECT…INTO OUTFILE的反操作
+
+```java
+#数据文件位置
+>LOAD DATA INFILE 'D:\\employee.txt' INTO TABLE employee character set utf8 
+#字段间分隔符
+>FIELDS TERMINATED BY ',' 
+#值用双引号引起    
+>ENCLOSED BY '"' 
+#行间分隔符    
+>LINES TERMINATED BY '\r\n';
+```
+
+#### source命令
+
+在MySQL中，可以使用source命令导入较大的SQL文件。source命令可以导入使用mysqldump备份的sql文件。
+
+```java
+>source d:/mydb.sql
+```
+
+## 字符集
+
+**字符（Character）**是各种文字和符号的总称，包括各国家文字、标点符号、图形符号、数字等。
+**字符集（Character set）**是多个字符的集合，字符集种类较多，每个字符集包含的字符个数不同，常见的字符集有ASCII、GB2312、GBK、 GB18030、Unicode等。计算机要准确的处理各种字符集文字，就需要进行字符编码，以便计算机能够识别和存储各种文字。
+
+- **ASCII** 最简单的西文编码方案，主要用于显示现代英语和其他西欧语言。
+
+  使用1个字节表示，可表示128个字符。
+
+- **GB2312** 国家标准简体中文字符集，兼容ASCII。
+
+  使用2个字节表示，能表示7445个符号，包括6763个汉字，几乎覆盖所有高频率汉字。
+
+- **GBK** GB2312的扩展，加入对繁体字的支持，兼容GB2312。
+
+  使用2个字节表示，可表示21886个字符。
+
+- **GB18030** 解决了中文、日文、朝鲜语等的编码，兼容GBK。
+
+  采用变字节表示(1 ASCII，2，4字节)。可表示27484个文字。
+
+- **Unicode** Unicode是国际标准编码字符集，为世界650种语言进行统一编码，兼容ISO-8859-1。
+  Unicode字符集有多个编码方式，分别是UTF-8，UTF-16和UTF-32。
+
+```java
+#查看mysql数据库支持的字符集
+>show character set;
+```
+
+### 设置字符集
+
+```java
+1、数据库
+# 创建数据库时指定字符集,COLLATE为排序使用的字符集
+CREATE DATABASE databaseName CHARSET utf8 COLLATE utf8_general_ci;
+# 查看数据库的字符集
+SHOW CREATE DATABASE databaseName;
+2、表
+# 创建表时指定字符集
+CREATE TABLE tableName(…) DEFAULT CHARSET=utf8;
+# 查看数据库的字符集
+SHOW CREATE TABLE tableName;
+3、字段
+CREATE TABLE tableName(…, name varchar(50) not null CHARSET utf8, …);
+```
+
+```java
+#举例
+>create table t1(name varchar(30)) default charset=gb2312
+#gb2312不支持繁体字，这里会报错，需要换成gbk或者unicode编码等    
+>insert into t1 values('陶喆')    
+```
+
+## 预处理
+
+从MySQL 4.1开始，就支持预处理语句（Prepared statement），这大大提高了客户端和服务器端数据传输的效率。当创建一个预定义SQL时，客户端向服务器发送一个SQL语句的原型；服务器端接收到这个SQL语句后，解析并存储这个SQL语句的**部分执行计划**，返回给客户端一个SQL语句处理句柄，以后每次执行这条SQL，客户端都指定使用这个句柄。
+
+- **高效执行重复SQL**  在服务器端只需要解析一次SQL，在服务器端某些优化器的工作只需要执行一次，它会缓存一部分执行计划
+- **减少网络开销** 对于重复执行的SQL，后续只需要将参数发送到服务器端，而不是整个SQL语句，因此网络开销会更小。
+- **更加安全** 使用预处理语句，无须在应用程序中处理转义，也大大减少了SQL注入和攻击的风险
+
+### 基本使用
+
+MySQL支持SQL接口的预处理，即不使用二进制传输协议也可以直接以SQL的方式使用预处理。预处理的语法如下。
+
+```java
+# 定义预处理语句
+PREPARE stmt_name FROM preparable_stmt;
+# 执行预处理语句
+EXECUTE stmt_name [USING @var_name [, @var_name] ...];
+# 删除(释放)定义
+{DEALLOCATE | DROP} PREPARE stmt_name;
+```
+
+```java
+>prepare pre_employee from 'select * from employee where name=?';
+>set @name1='张三'
+>execute pre_employee using @name1;    
+```
+
+## 查询缓存(过期)
+
+很多数据库产品都能够缓存查询的执行计划，对于相同类型的SQL就可以跳过SQL解析和执行计划分成阶段。MySQL在某种场景下也可以实现，但是MySQL还有另一种不同的缓存类型：**缓存完成的SELECT查询结果**，也就是查询缓存。
+MySQL将缓存存放在一个引用表中，类似于HashMap的数据结构，Key查询SQL语句，Value则是查询结果。当发起查询时，会使用SQL语句去缓存中查询，如果命中则立即返回缓存的结果集
+
+```java
+# 查询缓存参数，8.0中数值为no表示已弃用
+show variables like "%query_cache%";
+```
+
+- 可以使用 SQL_NO_CACHE 在 SELECT 中禁止缓存查询结果，例如：SELECT SQL_NO_CACHE ...
+- MySQL 8.0已删除查询缓存功能
+
+## SQL注入
+
+SQL注入（SQL Injection）是指应用程序对用户输入数据的合法性没有判断、没有过滤，攻击者可以在应用程序中通过表单提交特殊的字符串，该特殊字符串会改变SQL的运行结果，从而在管理员毫不知情的情况下实现非法操作，以此来实现欺骗数据库执行非授权的任意查询。
+
+**广泛性** 任何一个基于SQL语言的数据库都可能受到SQL注入攻击。很多开发人员都为了省事不对表单参数进行校验。
+
+**隐蔽性** SQL注入语句一般都嵌入在普通的HTTP请求中，很难与正常语句区分开，SQL注入也有很多变种。
+
+**操作简单** 互联网上有很多SQL注入工具，简单易懂，攻击过程简单，不需要太多专业知识
+
+**危害大** 攻击者通过SQL注入能够获取到更多数据，如管理员密码、整个系统的用户数据、他人的隐私数据、完整的数据库。
+
+```java
+#账号密码：adc/' or '1'='1，如下会查出所有数据
+select * from user where username='abc' and password='' or '1'='1';
+```
+
+## 文件编码
+
+在Windows中，MySQL 8.0的配置文件my.ini的编码为ANSI，但是修改配置文件后默认保存的编码为UTF-8，这会导致MySQL解析配置文件错误，无法启动。只需要将配置文件另存为ANSI编码即可。
+
+## 文档存储
+
+在关系数据库中，需要先定义表才能存储数据。文档存储更加灵活，不需要事先定义数据结构、数据约束等就可以直接存储数据。将MySQL用作文档存储时，集合是容器，集合包含可以添加、查找、更新和删除的JSON文档
+
+| 关系数据库 | MySQL文档存储 | 说明    |
+| ---------- | ------------- | ------- |
+| database   | database      | 数据库  |
+| table      | collection    | 表/集合 |
+| row        | document      | 行/文档 |
 
 
 
+表中
+
+| id   | name | age  |
+| ---- | ---- | ---- |
+| 1    | 张三 | 10   |
+
+文档中
+
+{
+    "id":1,
+    "name":"张三",
+    "age":"10"
+}
+
+```java
+#使用MySQL Shell连接数据库（支持文档存储）
+mysqlsh root@localhost:33060/mydb
+#查看当前数据库
+db
+#查看当前数据库有哪些集合
+db.getCollections()
+#创建集合
+db.createCollection("employee_doc")
+#删除集合
+db.dropCollection("employee_doc")
+#添加文档
+db.employee_doc.add({
+    "id":1,
+    "name":"张三",
+    "sex":"男",
+    "salary":5500,
+    "dept":"部门A"
+})
+#查询文档
+db.employee_doc.find("name='张三'")
+#删除文档
+db.employee_doc.remove("name='张三'")
+#删除所有文档
+db.employee_doc.remove("true")
+```
 
 
 
+## MySQL8.0的新特性
+
+| 新特性/改进                | 描述                                                         |
+| -------------------------- | ------------------------------------------------------------ |
+| 默认字符集变为utf8mb4      | 移动端有大量的表情符号需要存储，默认的字符集从 latin-1 转为 utf8mb4。 |
+| 系统表存储引擎全部为InnoDB | 不再采用MyISAM。                                             |
+| DDL原子化                  | 在MySQL 8.0之前，DDL操作是非原子型操作，在执行过程中遇到实例故障重启，可能导<br/>致DDL没有完成也没有回滚。 |
+| 持久化系统参数             | 可以用 SET PERSIST 来设置持久性的全局变量，即便服务器重启也会保持 |
+| 不可见索引                 | 可以将一些索引设置为不可见，这样 SQL 优化器就不会用到它，但是它会继续在后台保持更新。当有需要时，可以随时恢复可见。不可见的索引可以测试删除索引对查询性能的影响，而无需进行破坏性的更改 |
+| 全新的身份认证方式         | 身份认证方式由以前的mysql_native_password改为caching_sha2_password |
+| 通用表表达式               | 通用表表达式（CTE）是一个在语句级别定义的临时结果集。定义之后，可以在当前语句中多次引用该 CTE。CTE有两种用法，非递归的CTE和递归的CTE。 |
+| 窗口函数                   | 类似于聚合函数，可降低代码复杂性并帮助开发人员提高工作效率   |
+| JSON扩展                   | 从版本5.7.8开始，MySQL开始支持JSON数据类型。MySQL8.0新增了JSON_TABLE()函数，可以将JSON数据转换成表 |
+| GIS增强                    | GIS得到了增强，可支持地理和空间参考系统（SRS）。             |
+| 文档存储                   | 可以使用同一种解决方案处理 SQL 和 NoSQL，也可以将两种的优势结合起来 |
+
+### 问题
+
+#### 身份认证方式
+
+老版本的Navicat连接能正常连接MySQL 5.x，但是连接MySQL 8.0却报错，错误提示：
+
+```java
+Client does not support authentication protocol requested by server;consider upgrading MySQL client
+客户端不支持服务器请求的身份验证协议；请考虑升级MySQL客户端    
+```
+
+MySQL 5.x的身份认证方式为 mysql_native_password，也就是Navicat客户端支持的认证方式。但是MySQL 8.0升级了身份认证方式，默认为 caching_sha2_password。因此，在不升级Navicat版本的情况下，可以将MySQL 8.0的身份认证方式修改为 mysql_native_password。
+
+```java
+ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '123456';
+flush privileges;
+```
+
+#### 编码格式
+
+MySQL 8.0将utf8mb4作为默认字符集，mb4是most bytes 4的缩写，专门用于兼容四字节字符，如Emoji表情。MySQL中的utf8是utf8mb3的别名，utf8mb4兼容utf8。
+
+### 原子DDL
+
+MySQL 8.0 开始支持原子性的数据定义语言（DDL），也称为原子 DDL。一个原子 DDL 语句将相关的数据字典更新、存储引擎操作以及写入二进制日志组合成单一的原子事务。当事务正在处理时出现服务器故障，该事务可能被提交，相应的变更会保存到数据字典更新、存储引擎更改以及二进制日志中；也可能被整体回滚。目前，只有 InnoDB 存储引擎支持原子 DDL。
+
+支持原子DDL
+1. 数据库、表空间、表、索引的 CREATE、ALTER 以及 DROP 语句，以及 TRUNCATE TABLE 语句
+2. 存储过程、触发器、视图以及用户定义函数（UDF）的 CREATE 和 DROP 语句，以及适用的 ALTER 语句
+3. 用户和角色的 CREATE、ALTER、DROP 语句，以及 GRANT 和 REVOKE 语句
+
+不支持原子DDL
+
+1. 非 InnoDB 存储引擎上的表相关 DDL 语句
+2. INSTALL PLUGIN 和 UNINSTALL PLUGIN 语句
+3. INSTALL COMPONENT 和 UNINSTALL COMPONENT 语句
+4. CREATE SERVER、ALTER SERVER 以及 DROP SERVER 语句
 
 
 
+任何 DDL 语句，包括原子性或其他的 DDL，都会隐式地结束当前事务，就像在执行语句之前执行了COMMIT 操作一样。这就意味着 DDL 语句不能位于其他事务之中，不能位于事务控制语句（如START TRANSACTION … COMMIT）之中，也不能与同一个事务中的其他语句组合使用。
 
+```java
+#只创建一张表
+>create table test1(id int)
+#无test2表报错，回退test1表未删除    
+>drop table test1,test2;
+```
 
+# NoSQL
 
+NoSQL是Not Only SQL的简称，意思是“不仅仅是SQL”。
 
+NoSQL，指的是非关系型的数据库，它是对不同于传统的关系型数据库的数据库管理系统的统称。
 
+NoSQL用于超大规模数据的存储。
 
+- **键值存储**
+  - Tokyo Cabinet/Tyrant
+  - Berkeley DB
+  - MemcacheDB
+  - Redis
 
+- **列存储**
+  - Hbase
+  - Cassandra
+  - Hypertable
 
+- **文档存储**
 
+  - MongoDB
 
+  - CouchDB
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+- **图形存储**
+  - Neo4J
+  - FlockDB
