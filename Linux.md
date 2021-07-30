@@ -493,6 +493,158 @@ expect eof               //等待结束
 
 ## sed
 
+通过sed命令可以处理、编辑文本文件
+
+### 语法
+
+```java
+sed [-hnVi][-e<script>][-f<script文件>][文本文件]
+```
+
+- **-e<script>** 以选项中指定的script来处理输入的文本，可省略
+- **-f<script文件>** 以选项中指定的script文件来处理输入的文本
+- **-n** 仅显示script处理后的结果。
+- **-i** 可以直接修改原始文件的内容，如`sed -i '$a # This is a test' test.txt`，在`test.txt`文件最后一行添加`# This is a test`，其中`$`表示最后一行
+
+
+
+### 文本动作
+
+- **a ：**新增， a 的后面可以接字串，而这些字串会在新的一行出现(目前的下一行)
+- **i ：**插入， i 的后面可以接字串，而这些字串会在新的一行出现(目前的上一行)
+- **s ：**取代字符串，可以搭配正规表达式，例如 1,20s/old/new/g 
+- **c ：**取代行， c 的后面可以接字串，这些字串可以取代 n1,n2 之间的行
+- **p ：**打印，亦即将某个选择的数据印出。通常 p 会与参数 sed -n 一起运行
+- **d ：**删除， d 后面通常不接任何
+
+
+
+### 实例
+
+#### 新增
+
+```java
+//在testfile文件的第四行后添加一行，并将结果输出
+#sed -e 4a\newLine testfile 
+#sed -e '4a\newLine' testfile   
+#sed -e '4a newLine' testfile
+#sed -e '4anewLine' testfile    
+#sed '4a newLine' testfile   
+    
+HELLO LINUX!
+Linux is a free unix-type opterating system.  
+This is a linux testfile!  
+Linux test  
+newline
+```
+
+#### 插入
+
+```java
+//在第二行前插入
+# nl /etc/passwd | sed '2i drink tea' 
+1  root:x:0:0:root:/root:/bin/bash
+drink tea
+2  bin:x:1:1:bin:/bin:/sbin/nologin
+3  daemon:x:2:2:daemon:/sbin:/sbin/nologin 
+```
+
+#### 取代字符串
+
+```java
+sed 's/要被取代的字串/新的字串/g'
+```
+
+```java
+//原始信息，利用 /sbin/ifconfig 查询 IP
+# /sbin/ifconfig eth0
+eth0 Link encap:Ethernet HWaddr 00:90:CC:A6:34:84
+inet addr:192.168.1.100 Bcast:192.168.1.255 Mask:255.255.255.0
+inet6 addr: fe80::290:ccff:fea6:3484/64 Scope:Link
+UP BROADCAST RUNNING MULTICAST MTU:1500 Metric:1
+
+//将 IP 前面的部分予以删除
+# /sbin/ifconfig eth0 | grep 'inet addr' | sed 's/^.*addr://g'
+192.168.1.100 Bcast:192.168.1.255 Mask:255.255.255.0
+
+//将 IP 后面的部分予以删除
+# /sbin/ifconfig eth0 | grep 'inet addr' | sed 's/^.*addr://g' | sed 's/Bcast.*$//g'
+192.168.1.100
+```
+
+```java
+//删除/etc/passwd第三行到末尾的数据，并把bash替换为blueshell
+# nl /etc/passwd | sed -e '3,$d' -e 's/bash/blueshell/'
+1  root:x:0:0:root:/root:/bin/blueshell
+2  daemon:x:1:1:daemon:/usr/sbin:/bin/sh
+```
+
+
+
+#### 取代行
+
+```java
+//将第2-5行的内容取代成为"No 2-5 number"
+# nl /etc/passwd | sed '2,5c No 2-5 number'    
+1 root:x:0:0:root:/root:/bin/bash
+No 2-5 number
+6 sync:x:5:0:sync:/sbin:/bin/sync
+```
+
+#### 打印
+
+```java
+//仅列出 /etc/passwd 文件内的第 5-7 行
+# nl /etc/passwd | sed -n '5,7p'
+5 lp:x:4:7:lp:/var/spool/lpd:/sbin/nologin
+6 sync:x:5:0:sync:/sbin:/bin/sync
+7 shutdown:x:6:0:shutdown:/sbin:/sbin/shutdown
+    
+    
+    
+//搜索 /etc/passwd有root关键字的行,如果root找到，除了输出所有行，还会输出匹配行。
+# nl /etc/passwd | sed '/root/p'
+1  root:x:0:0:root:/root:/bin/bash
+1  root:x:0:0:root:/root:/bin/bash
+2  daemon:x:1:1:daemon:/usr/sbin:/bin/sh
+3  bin:x:2:2:bin:/bin:/bin/sh
+4  sys:x:3:3:sys:/dev:/bin/sh
+5  sync:x:4:65534:sync:/bin:/bin/sync
+
+//使用-n的时候将只打印包含模板的行。
+#nl /etc/passwd | sed -n '/root/p'  
+1  root:x:0:0:root:/root:/bin/bash
+    
+//搜索/etc/passwd,找到root对应的行，执行后面花括号中的一组命令，每个命令之间用分号分隔，这里把bash替换为blueshell，再输出这行,最后的q是退出。
+# nl /etc/passwd | sed -n '/root/{s/bash/blueshell/;p;q}'    
+1  root:x:0:0:root:/root:/bin/blueshell   
+```
+
+
+
+#### 删除
+
+```java
+//将/etc/passwd的内容列出并且列印行号，同时，请将第 2~5 行删除
+#nl /etc/passwd | sed '2,5d'    
+1 root:x:0:0:root:/root:/bin/bash
+6 sync:x:5:0:sync:/sbin:/bin/sync
+7 shutdown:x:6:0:shutdown:/sbin:/sbin/shutdown
+   
+//删除第 2 行
+#nl /etc/passwd | sed '2d'   
+
+//删除第 3 到最后一行
+#nl /etc/passwd | sed '3,$d'   
+    
+//删除/etc/passwd所有包含root的行，其他行输出
+#nl /etc/passwd | sed  '/root/d'    
+2  daemon:x:1:1:daemon:/usr/sbin:/bin/sh
+3  bin:x:2:2:bin:/bin:/bin/sh    
+```
+
+
+
 ## top
 
 #top
