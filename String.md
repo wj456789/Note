@@ -67,8 +67,6 @@ boolean flag = matcher.matches();
 boolean flag = Pattern.matches("正则表达式", "匹配字符串");
 ```
 
-参考：[Java学习笔记之Pattern类的用法详解(正则表达式)](https://www.cnblogs.com/sparkbj/articles/6207103.html)
-
 
 
 

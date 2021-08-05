@@ -7,6 +7,14 @@ SQL（Structure Query Language）结构化查询语言
 - DDL（data defination language）数据库定义语言，主要是建表、删除表、修改表字段等操作
 - DCL（data control language）数据库控制语言，如commit，revoke之类的
 
+## 数据查询语言DQL
+
+### GROUP BY和HAVING的使用
+
+group by key 分组相当于根据字段key分为一组数，但是select后面只能放上key字段或聚合函数，查出一条数据
+
+
+
 ## 数据控制语言DCL
 
 ### 用户管理
