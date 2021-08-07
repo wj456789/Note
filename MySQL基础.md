@@ -82,6 +82,7 @@ distinct用于在查询中返回列的唯一不同值（去重复），支持单
 #### 语法
 
 ```java
+//DISTINCT直接放在SELECT后面且DISTINCT后面跟的所有列都会加入去重，此时当column_name1, column_name2,...有任何一个不一样都会查出一行数据
 SELECT DISTINCT column_name1, column_name2,... FROM table_name;
 ```
 

@@ -188,8 +188,8 @@ select A.name, '数学' as 'key', A.math as 'value' from sql_h A;
 select
     A.name, 
 	max(case when A.key='性别' then A.value end) as sex, 
-	sum(case when A.key='语文' then A.value end) as chinese, 
-	sum(case when A.key='数学' then A.value end) as math 
+	max(case when A.key='语文' then A.value end) as chinese, 
+	max(case when A.key='数学' then A.value end) as math 
 from sql_v A group by A.name;
 ```
 
