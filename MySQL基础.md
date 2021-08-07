@@ -1,4 +1,4 @@
-# MySQL
+# MySQL基础
 
 SQL（Structure Query Language）结构化查询语言
 
@@ -7,11 +7,138 @@ SQL（Structure Query Language）结构化查询语言
 - DDL（data defination language）数据库定义语言，主要是建表、删除表、修改表字段等操作
 - DCL（data control language）数据库控制语言，如commit，revoke之类的
 
+## 数据定义语言DDL
+
+```java
+create table score(
+    id int not null auto_increment primary key, 
+    name varchar(30) not null comment '学生姓名', 
+    course varchar(50) comment '课程名称', 
+    grade int comment '成绩' 
+)engine=InnoDB default charset=utf8;
+```
+
+## 数据操作语言DML
+
+```java
+insert into score(name, course, grade) values('张三', '语文', 89);
+```
+
+
+
 ## 数据查询语言DQL
 
 ### GROUP BY和HAVING的使用
 
-group by key 分组相当于根据字段key分为一组数，但是select后面只能放上key字段或聚合函数，查出一条数据
+#### 语法
+
+```java
+//aggregate_function表示聚合函数
+SELECT column_name, aggregate_function(column_name)
+FROM table_name
+WHERE column_name operator value
+GROUP BY column_name1,column_name2,...
+HAVING aggregate_function(column_name) operator value
+```
+
+#### 说明
+
+1. group by可以对一列或多列进行分组
+
+2. SELECT一般只能跟上分组字段和聚合函数
+3. WHERE 关键字无法与聚合函数一起使用，HAVING 子句可以对分组后的各组数据进行筛选，也可以对聚合函数进行判断
+
+### group_concat
+
+group_concat配合group by一起使用，用于将某一列的值按指定的分隔符进行拼接，MySQL默认的分隔符为逗号。
+
+#### 语法
+
+```java
+group_concat([distinct] column_name [order by column_name asc/desc ] [separator '分隔符'])
+```
+
+#### 实例
+
+```java
+>select * from employee;
+id name dept
+1 张三 部门A
+2 李洁 部门C
+3 李小梅 部门A
+4 欧阳辉 部门C
+5 李芳 部门A
+
+>select dept,group_concat(name) from employee group by dept;
+dept group_concat(name)
+部门A  张三,李小梅,李芳   
+部门C  李洁,欧阳辉
+```
+
+### distinct
+
+distinct用于在查询中返回列的唯一不同值（去重复），支持单列或多列。
+
+#### 语法
+
+```java
+SELECT DISTINCT column_name1, column_name2,... FROM table_name;
+```
+
+### 表连接
+
+#### 语法
+
+```java
+//where
+SELECT table1.column, table2.column 
+FROM table1, table2 
+WHERE table1.column1 = table2.column2;
+```
+
+#### 分类
+
+- 内连接：使用where或 join、inner join，只连接匹配的行
+- 外连接：
+  - 左外连接，left join，包含左表的全部行（不管右表是否存在与之匹配的行），以及右表中全部匹配的行
+  - 右外连接，right join，包含右表的全部行（不管左表是否存在与之匹配的行），以及左表中全部匹配的行
+  - 全外连接，full join，包含左右两个表的全部行（不管在另一个表中是否存在与之匹配的行）
+- 自连接：同一张表内的连接，相互连接的表在物理上同为一张表，但是逻辑上是多张表
+
+交叉连接（cross join）：没有用where子句的交叉连接将产生笛卡尔积，第一个表的行数乘以第二个表的行数等于笛卡尔积
+和结果集的大小。这种连接需要尽量避免。比如：`SELECT table1.column, table2.column FROM table1, table2; `
+
+### 子查询
+
+#### 子查询in
+
+```java
+//子查询in语法
+SELECT column_name FROM table_name 
+WHERE column_name IN(
+ SELECT column_name FROM table_name [WHERE]
+);
+```
+
+#### 子查询exists
+
+EXISTS是子查询中用于测试内部查询是否返回任何行的布尔运算符。将主查询的数据放到子查询中做条件验证，根据验证结果（TRUE 或 FALSE）来决定主查询的数据结果是否保留。
+
+```java
+//where子句使用exists语法
+SELECT t1.* 
+FROM table_name1 t1
+WHERE EXISTS (SELECT * FROM table_name2 t2 WHERE t1.column_name=t2.column_name);
+```
+
+```java
+//查找有成绩的学生
+>select A.* from student A where exists(select * from score B where A.stu_id=B.stu_id);
+
+stu_id name address
+ 1     张三	贵州
+ 2     李四	陕西
+```
 
 
 
@@ -241,6 +368,28 @@ DROP VIEW view_name;
 #默认情况下，autocommit的值为1，表示自动提交事务
 >select @@autocommit;
 >set autocommit=0;
+```
+
+### 隔离级别
+
+- Read Uncommitted（未提交读）
+- Read Committed（已提交读）
+- Repeatable Read（可重复读）：MySQL的默认事务隔离级别
+- Serializable（可串行化）
+
+#### 问题
+
+-  脏读(Drity Read)
+- 不可重复读(Non-repeatable read)
+- 幻读(Phantom Read)
+
+#### 操作
+
+```java
+//设定隔离级别为READ-UNCOMMITTED
+>SET tx_isolation='READ-UNCOMMITTED';
+//查询隔离级别
+>select @@tx_isolation;    
 ```
 
 

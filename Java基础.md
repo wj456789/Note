@@ -76,7 +76,9 @@ public @interface MetaAnnotation {
 @MyAnnotation(color="red",arrayAttr={2,4,5},lamp=EumTrafficLamp.GREEN,annotationAttr=@MetaAnnotation("gacl"))
 //@MyAnnotation("xxx")等价于@MyAnnotation(value="xxx")
 //如果数组属性只有一个值，这时候属性值部分可以省略大括号，如：@MyAnnotation(arrayAttr=2)
-public class AnnotationUse{}
+public class AnnotationUse{
+    ...
+}
 ```
 
 ### 反射类
@@ -206,13 +208,268 @@ public static void main(String[] args){
 
 ## 浅拷贝和深拷贝
 
-### 使用序列化的方式来实现对象的深拷贝
+Java 中的数据类型分为基本数据类型和引用数据类型。对于这两种数据类型，在进行赋值操作、用作方法参数或返回值时，会有值传递和引用（地址）传递的差别。
 
-对象必须是实现了Serializable接口才可以。比如Map本身没有实现 Serializable 这个接口，所以这种方式不能序列化Map，也就是不能深拷贝Map。但是HashMapMap实现 Serializable 这个接口，所以可以通过HashMap深拷贝。
+### 浅拷贝
+
+浅拷贝会创建一个新对象
+
+- 如果属性是基本类型，值传递，拷贝的就是基本类型的值，其中一个对象修改该值，不会影响另外一个。
+- 如果属性是内存地址（引用类型），引用传递，拷贝的就是内存地址，因为指向了同一内存空间，所以改变其中一个，会对另外一个也产生影响。
+
+实现对象拷贝的类，需要实现 `Cloneable` 接口，并覆写 `clone()` 方法。
 
 ```java
-HashMap<String,Object> map = new HashMap<String,Object>();
-HashMap<String,Object> mapNew = new HashMap<String,Object>();
-mapNew = CloneUtils.clone(map);
+@Data
+@AllArgsConstructor
+public class Subject {
+    
+    private String name;
+
+    @Override
+    public String toString() {
+        return "[Subject: " + this.hashCode() + ",name:" + name + "]";
+    }
+}
 ```
 
+```java
+@Data
+public class Student implements Cloneable {
+
+    private Subject subject;
+    private String name;
+    private int age;
+
+
+    /**
+     *  重写clone()方法
+     * @return
+     */
+    @Override
+    public Object clone() {
+        //浅拷贝
+        try {
+            // 直接调用父类的clone()方法
+            return super.clone();
+        } catch (CloneNotSupportedException e) {
+            return null;
+        }
+    }
+
+    @Override
+    public String toString() {
+        return "[Student: " + this.hashCode() + ",subject:" + subject + ",name:" + name + ",age:" + age + "]";
+    }
+}
+```
+
+```java
+public class ShallowCopy {
+    public static void main(String[] args) {
+        Subject subject = new Subject("yuwen");
+        Student studentA = new Student();
+        studentA.setSubject(subject);
+        studentA.setName("Lynn");
+        studentA.setAge(20);
+        
+        Student studentB = (Student) studentA.clone();
+        studentB.setName("Lily");
+        studentB.setAge(18);
+        Subject subjectB = studentB.getSubject();
+        subjectB.setName("lishi");
+        
+        System.out.println("studentA:" + studentA.toString());
+        System.out.println("studentB:" + studentB.toString());
+    }
+}
+
+输出结果：
+studentA:[Student: 460141958,subject:[Subject: 1163157884,name:lishi],name:Lynn,age:20]
+studentB:[Student: 1956725890,subject:[Subject: 1163157884,name:lishi],name:Lily,age:18]
+
+浅拷贝创建了新的对象，其中基础数据类型的修改互不影响，而引用类型修改后是会有影响的。
+```
+
+#### 对象拷贝
+
+```java
+public static void main(String[] args) {
+    Subject subject = new Subject("yuwen");
+    Student studentA = new Student();
+    studentA.setSubject(subject);
+    studentA.setName("Lynn");
+    studentA.setAge(20);
+
+    Student studentB = studentA;
+    studentB.setName("Lily");
+    studentB.setAge(18);
+    Subject subjectB = studentB.getSubject();
+    subjectB.setName("lishi");
+
+    System.out.println("studentA:" + studentA.toString());
+    System.out.println("studentB:" + studentB.toString());
+}
+
+输出结果：
+studentA:[Student: 460141958,subject:[Subject: 1163157884,name:lishi],name:Lily,age:18]
+studentB:[Student: 460141958,subject:[Subject: 1163157884,name:lishi],name:Lily,age:18]    
+
+对象拷贝后没有生成新的对象，二者的对象地址完全一样
+```
+
+### 深拷贝
+
+深拷贝，在拷贝引用类型成员变量时，为引用类型的数据成员另辟了一个独立的内存空间，实现真正内容上的拷贝。
+
+- 如果属性是基本类型，值传递，拷贝的就是基本类型的值，其中一个对象修改该值，不会影响另外一个。
+- 如果属性是引用类型，深拷贝会新建一个对象空间，然后拷贝里面的内容，所以它们指向了不同的内存空间。改变其中一个，不会对另外一个也产生影响。
+- 对于有多层对象的，每个对象都需要实现 `Cloneable` 并重写 `clone()` 方法，进而实现了对象的串行层层拷贝。
+- 深拷贝相比于浅拷贝速度较慢并且花销较大。
+
+```java
+@Data
+@AllArgsConstructor
+public class Subject implements Cloneable {
+
+    private String name;
+    protected Object clone() throws CloneNotSupportedException {
+        //Subject 如果也有引用类型的成员属性，也应该和 Student 类一样实现
+        return super.clone();
+    }
+    @Override
+    public String toString() {
+        return "[Subject: " + this.hashCode() + ",name:" + name + "]";
+    }
+}
+```
+
+```java
+@Data
+public class Student implements Cloneable {
+    private Subject subject;
+    private String name;
+    private int age;
+
+    public Object clone() {
+        //深拷贝
+        try {
+            // 直接调用父类的clone()方法
+            Student student = (Student) super.clone();
+            student.subject = (Subject) subject.clone();
+            return student;
+        } catch (CloneNotSupportedException e) {
+            return null;
+        }
+    }
+
+    @Override
+    public String toString() {
+        return "[Student: " + this.hashCode() + ",subject:" + subject + ",name:" + name + ",age:" + age + "]";
+    }
+}
+```
+
+```java
+public class ShallowCopy {
+    public static void main(String[] args) {
+        Subject subject = new Subject("yuwen");
+        Student studentA = new Student();
+        studentA.setSubject(subject);
+        studentA.setName("Lynn");
+        studentA.setAge(20);
+        
+        Student studentB = (Student) studentA.clone();
+        studentB.setName("Lily");
+        studentB.setAge(18);
+        Subject subjectB = studentB.getSubject();
+        subjectB.setName("lishi");
+        
+        System.out.println("studentA:" + studentA.toString());
+        System.out.println("studentB:" + studentB.toString());
+    }
+}
+
+输出结果：
+studentA:[Student: 460141958,subject:[Subject: 1163157884,name:yuwen],name:Lynn,age:20]
+studentB:[Student: 1956725890,subject:[Subject: 356573597,name:lishi],name:Lily,age:18]  
+
+深拷贝后，不管是基础数据类型还是引用类型的成员变量，修改其值都不会相互造成影响。
+```
+
+参考： [Java浅拷贝和深拷贝](https://www.jianshu.com/p/94dbef2de298)
+
+### CloneUtils
+
+```java
+//两个方法
+T cloneObject(final T obj)
+Object clone(final Object obj)
+```
+
+底层也是调用了拷贝对象中的`clone()`方法，所以拷贝对象也需要实现 `Cloneable` 接口，并覆写 `clone()` 方法。
+
+比如拷贝HashMap对象
+
+```java
+public static void main(String[] args) throws Exception {
+    Subject subject = new Subject("张三");
+    Student studentA = new Student();
+    studentA.setSubject(subject);
+    studentA.setName("Lynn");
+    studentA.setAge(20);
+    Map<String,Student> mapA=new HashMap<>();
+    mapA.put("1",studentA);
+
+    Map<String,Student> mapB = CloneUtils.cloneObject(mapA);
+    Student studentB = mapB.get("1");
+    studentB.setName("Lily");
+    studentB.setAge(18);
+    Subject subjectB = studentB.getSubject();
+    subjectB.setName("李四");
+
+    System.out.println("studentA:" + studentA.toString());
+    System.out.println("studentB:" + studentB.toString());
+    /*
+    输出结果：
+    studentA:[Student: -1223601269,subject:[Subject: 842120,name:李四],name:Lily,age:18]
+    studentB:[Student: -1223601269,subject:[Subject: 842120,name:李四],name:Lily,age:18]
+    
+    mapA和mapB中存放的student是同一个对象
+    */
+
+    Student studentC = new Student();
+    studentC.setSubject(subject);
+    studentC.setName("wangwu");
+    studentC.setAge(50);
+    mapB.put("2",studentC);
+    System.out.println(mapA.get("2"));
+    System.out.println(mapB.get("2"));
+    /*
+    输出结果：
+    null
+    [Student: -1031784360,subject:[Subject: 842120,name:李四],name:wangwu,age:50]
+    
+    mapA和mapB是不同的对象
+    */
+}
+```
+
+```java
+//HashMap默认只能浅拷贝，否则需要重写HashMap中的clone()方法
+//HashMap相关源码
+public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneable, Serializable {
+    @Override
+    public Object clone() {
+        HashMap<K,V> result;
+        try {
+            result = (HashMap<K,V>)super.clone();
+        } catch (CloneNotSupportedException e) {
+            throw new InternalError(e);
+        }
+        result.reinitialize();
+        result.putMapEntries(this, false);
+        return result;
+    }
+}
+```
