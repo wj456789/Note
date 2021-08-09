@@ -364,8 +364,6 @@ pagehelper.params=count=countSql
 
 ## 乐观锁
 
-
-
 ```java
 MybatisPlus3.4版本后的乐观锁使用方式，在配置类中进行如下编写
 @Bean
