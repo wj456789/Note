@@ -193,3 +193,4 @@ select
 from sql_v A group by A.name;
 ```
 
+https://www.cs.usfca.edu/~galles/visualization/Algorithms.html
