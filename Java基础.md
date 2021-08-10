@@ -1,5 +1,172 @@
 # Java基础
 
+## 集合
+
+Vector与ArrayList一样，也是通过数组实现的，不同的是它支持线程的同步，并且当Vector或ArrayList中的元素超过它的初始大小时，Vector会将容量翻倍，ArrayList只增加50%的大小。
+
+### Iterator（迭代器）
+
+```java
+//获取集合对应的迭代器，用来遍历集合中的元素。
+public Iterator iterator()
+```
+
+```java
+public E next() 			返回迭代的下一个元素。
+public boolean hasNext() 	如果仍有元素可以迭代，则返回 true。
+```
+
+```java
+List<String> list = new ArrayList<String>();     
+Iterator<String> it = list.iterator();    //获取迭代类的实现对象，并将指针指向 -1 索引    
+
+while(it.hasNext()){         //判断是否有下一个元素
+    String s = it.next();    //获取下一个出的元素，并将指针向后移动一位
+    System.out.println(s);
+}
+```
+
+### 增强 for 循环
+
+专门用来遍历数组和集合的，它的内部原理其实是个Iterator迭代器。
+
+### ConcurrentModificationException
+
+使用迭代器对集合遍历的过程中，不能对集合中的元素进行增删操作，否则会抛出`java.util.ConcurrentModificationException`异常,如：
+
+```java
+public class Test {
+    public static void main(String[] args)  {
+        List<Integer> list = new ArrayList<Integer>();
+        list.add(2);
+        Iterator<Integer> iterator = list.iterator();
+        while(iterator.hasNext()){
+            Integer integer = iterator.next();
+            if(integer==2)
+                list.remove(integer);
+        }
+    }
+}
+```
+
+#### 在单线程环境下的解决办法
+
+```java
+//1、使用Iterator提供的remove方法，用于删除当前元素
+for (Iterator<string> it = myList.iterator(); it.hasNext();) {
+    String value = it.next();
+    if (value.equals( "3")) {
+    	it.remove();
+    }
+}
+System.out.println( "List Value:" + myList.toString());
+ 
+//2、建一个集合，记录需要删除的元素，之后统一删除             
+List<string> templist = new ArrayList<string>();
+    for (String value : myList) {
+        if (value.equals( "3")) {
+            templist.add(value);
+        }
+    }
+}
+//可以查看removeAll源码，其中使用Iterator进行遍历
+myList.removeAll(templist);
+System. out.println( "List Value:" + myList.toString());        
+ 
+//3、使用线程安全CopyOnWriteArrayList进行删除操作
+List<string> myList = new CopyOnWriteArrayList<string>();
+myList.add( "1");
+myList.add( "2");
+myList.add( "3");
+myList.add( "4");
+myList.add( "5");
+Iterator<string> it = myList.iterator();
+while (it.hasNext()) {
+    String value = it.next();
+    if (value.equals( "3")) {
+        myList.remove( "4");
+        myList.add( "6");
+        myList.add( "7");
+    }
+}
+System.out.println("List Value:" + myList.toString());
+ 
+//4、不使用Iterator进行遍历，需要注意的是自己保证索引正常
+for ( int i = 0; i < myList.size(); i++) {
+    String value = myList.get(i);
+    System.out.println( "List Value:" + value);
+    if (value.equals( "3")) {
+        myList.remove(value);
+        i--; // 因为位置发生改变，所以必须修改i的位置
+    }
+}
+System.out.println( "List Value:" + myList.toString());
+```
+
+#### 在多线程环境下的解决方法
+
+```java
+List<string> myList = new CopyOnWriteArrayList<string>();
+myList.add( "1");
+myList.add( "2");
+myList.add( "3");
+myList.add( "4");
+myList.add( "5");
+
+new Thread(new Runnable() {
+     @Override
+     public void run() {
+          for (String string : myList) {
+               System.out.println("遍历集合 value = " + string);
+               try {
+                    Thread.sleep(100);
+               } catch (InterruptedException e) {
+                    e.printStackTrace();
+               }
+          }
+     }
+}).start();
+
+new Thread(new Runnable() {
+    @Override
+    public void run() {
+        //使用迭代器获取list里的值
+        Iterator<String> it = myList.iterator();
+        while (it.hasNext()){
+            String value=it.next();
+            System.out.println("删除元素 value = " + value);
+            if (value.equals( "3")) {
+                myList.remove(value);
+                myList.add( "7");
+        		myList.add( "8");
+            }
+            try {
+                Thread.sleep(100);
+            } catch (Exception e){
+                e.printStackTrace();
+            }
+        }
+        
+        //也可以直接使用for循环
+        /*for (int i = 0; i < myList.size(); i++) {
+            String value = myList.get(i);
+            System.out.println("删除元素 value = " + value);
+            if (value.equals( "3")) {
+                myList.remove(value);
+                i--; // 注意                           
+            }
+            try {
+            	Thread.sleep(100);
+            } catch (InterruptedException e) {
+            	e.printStackTrace();
+            }
+        }*/
+    }
+}).start();
+```
+
+参考：[Java ConcurrentModificationException异常原因和解决方法](https://www.cnblogs.com/zhuyeshen/p/10956822.html)
+
 ## 变量
 
 类中定义的变量称为成员变量，成员变量分为静态变量(全局变量)和实例变量，方法中定义的变量称为局部变量

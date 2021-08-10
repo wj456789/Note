@@ -333,7 +333,7 @@ DROP VIEW view_name;
 
 - 在MySQL中，只有使用了Innodb存储引擎的数据库或表才支持事务。
 - 事务用于维护数据库的完整性，保证成批的sql语句要么都执行，要么都不执行。
-- 事务用于管理INSERT、UPDATE和DELETE语句。
+- 事务用于管理INSERT、UPDATE和DELETE语句，不会管理SELECT语句。
 
 
 
@@ -374,15 +374,19 @@ DROP VIEW view_name;
 ### 隔离级别
 
 - Read Uncommitted（未提交读）
-- Read Committed（已提交读）
+- Read Committed（已提交读）：大多数据库默认事务隔离级别，比如oracle、sqlserver
 - Repeatable Read（可重复读）：MySQL的默认事务隔离级别
 - Serializable（可串行化）
 
-#### 问题
+事务一般隔离级别使用已提交读，代码中个别问题使用悲观锁和乐观锁处理，但是事务不会管理SELECT语句，所以即便是可串行化，也不能保证读取数据更新数据操作的原子性
+
+#### 读取数据问题
 
 -  脏读(Drity Read)
 - 不可重复读(Non-repeatable read)
 - 幻读(Phantom Read)
+
+参考：[脏读、幻读、不可重复读](https://www.cnblogs.com/l-y-h/p/12458777.html#_label0_3)
 
 #### 操作
 
