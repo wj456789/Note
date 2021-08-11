@@ -193,4 +193,190 @@ select
 from sql_v A group by A.name;
 ```
 
-https://www.cs.usfca.edu/~galles/visualization/Algorithms.html
+
+
+
+
+
+
+
+
+![image-20210811230645227](img_MYSQL%E8%BF%9B%E9%98%B6/image-20210811230645227.png)
+
+![image-20210811231405389](img_MYSQL%E8%BF%9B%E9%98%B6/image-20210811231405389.png)
+
+
+
+## MySQL索引原理之B+Tree  
+
+```java
+CREATE [UNIQUE | FULLTEXT | SPATIAL] INDEX index_name
+    [index_type]
+    ON tbl_name (key_part,...)
+    [index_option]
+    [algorithm_option | lock_option] ...
+
+key_part: {col_name [(length)] | (expr)} [ASC | DESC]
+
+index_option: {
+    KEY_BLOCK_SIZE [=] value
+  | index_type
+  | WITH PARSER parser_name
+  | COMMENT 'string'
+  | {VISIBLE | INVISIBLE}
+  | ENGINE_ATTRIBUTE [=] 'string'
+  | SECONDARY_ENGINE_ATTRIBUTE [=] 'string'
+}
+
+index_type:
+    USING {BTREE | HASH}
+
+algorithm_option:
+    ALGORITHM [=] {DEFAULT | INPLACE | COPY}
+
+lock_option:
+    LOCK [=] {DEFAULT | NONE | SHARED | EXCLUSIVE}
+```
+
+参考：[MYSQL官网8.0文档](https://dev.mysql.com/doc/refman/8.0/en/create-index.html)
+
+### 索引类型  
+
+索引是存储引擎用于快速查找记录的一种数据结构  ，不同的存储引擎支持的索引类型不一样  ，MySQL中主要使用的索引结构类型是Hash和B+Tree。  
+
+| 存储引擎    | 支持的索引类型 |
+| ----------- | -------------- |
+| InnoDB      | BTREE          |
+| MyISAM      | BTREE          |
+| MEMORY/HEAP | HASH, BTREE    |
+| NDB         | HASH, BTREE    |
+
+### 哈希索引  
+
+哈希索引基于哈希表实现，它根据给定的哈希函数Hash(Key)和处理冲突（不同索引列值有相同的哈希值）方法将每一个索引列值都映射到一个固定长度的地址，哈希索引只存储哈希值和行指针。
+【结论】
+1）哈希索引只支持等值比较，包括=、in()、<=>，查询速度非常快。
+2）哈希索引不支持范围查询。  
+
+![image-20210812071345842](img_MYSQL%E8%BF%9B%E9%98%B6/image-20210812071345842.png)
+
+### 二叉查找树  
+
+二叉查找树，也称之为二叉搜索树、二叉排序树，它的每个节点最多有两个子节点，左子树上的节点值均小于它的根节点值，右子树上的节点值均大于它的根节点值，左右子树也分别是二叉排序树  
+
+【结论】
+1）二叉查找树可以做范围查询。
+2）但是极端情况下，二叉树会退化成线性链表，二分查找也会退化成遍历查找。  
+
+![image-20210812071422258](img_MYSQL%E8%BF%9B%E9%98%B6/image-20210812071422258.png)
+
+### 红黑树
+
+二叉查找树存在不平衡的问题，因此就有了自平衡二叉树，能够自动旋转和调整，让树始终处于平衡状态，常见的自平衡二叉树有红黑树和AVL树。红黑树是一种自平衡的二叉查找树。
+【结论】
+1）通过自平衡解决了二叉查找树有可能退化成线性链表的问题。
+2）但是极端情况下，红黑树有“右倾”趋势，并没有真正解决树的平衡问题  
+
+![image-20210812071511121](img_MYSQL%E8%BF%9B%E9%98%B6/image-20210812071511121.png)
+
+
+
+### 平衡二叉树
+
+平衡二叉树，又称AVL树，指的是左子树上的所有节点的值都比根节点的值小，而右子树上的所有节点的值都比根节点的值大，且左子树与右子树的高度差最大为1。
+【结论】
+1）AVL树从根本上解决了红黑树的“右倾”问题，查找效率得到提升，无极端低效情况。
+2）数据库查询的瓶颈在磁盘I/O，数据量很大的情况下，AVL树的高度会很高，查询需要更多I/O。  
+
+![image-20210812071613266](img_MYSQL%E8%BF%9B%E9%98%B6/image-20210812071613266.png)
+
+### B-Tree
+
+B-Tree，即B树（不要读成B减树），它是一种多路搜索树（多叉树），可以在平衡二叉树的基础上降低树的高度，从而提升查找效率。
+【结论】
+1）B树通过多叉、一个节点可有多个值，有效地控制了树的高度，比平衡二叉树查询效率高。
+2）但是范围查询的效率仍然有待提升  
+
+![image-20210812071840252](img_MYSQL%E8%BF%9B%E9%98%B6/image-20210812071840252.png)
+
+### B+Tree
+
+B+Tree是B树的变体，比B树有更广泛的应用。
+【结论】
+1）B+Tree在叶子节点增加了有序链表，包含了所有节点，非常适合范围查询。
+2）非叶子节点存在部分冗余。  
+
+![image-20210812071923974](img_MYSQL%E8%BF%9B%E9%98%B6/image-20210812071923974.png)
+
+参考：[数据结构在线模拟工具](https://www.cs.usfca.edu/~galles/visualization/Algorithms.html)
+
+## MyISAM与InnoDB  
+
+```java
+//对两种引擎的表分别进行插入操作
+insert into t_myisam(id, a, b) values(5, 2, 7);
+insert into t_myisam(id, a, b) values(8, 11, 5);
+insert into t_myisam(id, a, b) values(4, 9, 3);
+insert into t_myisam(id, a, b) values(2, 5, 1);
+insert into t_myisam(id, a, b) values(6, 0, 2);
+insert into t_myisam(id, a, b) values(1, 4, 4);
+insert into t_myisam(id, a, b) values(7, 3, 8);
+insert into t_myisam(id, a, b) values(3, 6, 9);
+//使用select * from table发现MyISAM中的数据会按照插入的顺序排序，InnoDB会按照主键顺序排序。
+```
+
+
+
+### MyISAM的索引结构  
+
+MyISAM存储引擎使用B+Tree作为索引结构，叶子节点的data域存放的是数据记录的地址。因此索引检索会按照B+Tree的检索算法检索索引，如果指定的Key存在，则取出其data域的值（地址），然后根据地址读取相应的数据记录。  
+
+![image-20210812073355495](img_MYSQL%E8%BF%9B%E9%98%B6/image-20210812073355495.png)
+
+### InnoDB的索引结构
+
+InnoDB存储引擎也使用B+Tree作为索引结构，索引的key是数据表的主键，叶子节点的data域保存了完整的数据记录。MyISAM索引文件和数据文件是分离的，索引文件仅保存数据记录的地址；InnoDB只有一个表数据文件，它本身就是主索引文件。  
+
+其中主键索引data存放的是数据，第二索引data存放的是主键。
+
+![image-20210812073959262](img_MYSQL%E8%BF%9B%E9%98%B6/image-20210812073959262.png)
+
+### 复合索引的底层结构
+
+假定，对people表创建复合索引(last_name, first_name, birthday) ，索引的多个值会按照定义索引时字段的顺序进行排序。
+
+1. 复合索引先按照第一列 last_name 进行排序存储；当 last_name 相同时，则根据 first_name 进行排序；当 last_name 和 first_name 都相同时，则根据 birthday 进行排序。
+2. 从图不难看出，该索引结构对于全值匹配、匹配最左前缀、匹配列前缀、匹配范围值、精确匹配某一列并范围匹配另外一列等类型的查询都是有效的。  
+
+![image-20210812075212040](img_MYSQL%E8%BF%9B%E9%98%B6/image-20210812075212040.png)
+
+### MySQL的索引分类  
+
+其中，索引的顺序和数据记录的顺序(物理顺序)一致称为聚集索引，又称为聚簇索引。
+
+![image-20210812075313482](img_MYSQL%E8%BF%9B%E9%98%B6/image-20210812075313482.png)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

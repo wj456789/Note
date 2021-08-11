@@ -30,7 +30,7 @@ insert into score(name, course, grade) values('张三', '语文', 89);
 
 ### GROUP BY和HAVING的使用
 
-#### 语法
+#### 语法	
 
 ```java
 //aggregate_function表示聚合函数
