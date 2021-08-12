@@ -266,6 +266,23 @@ MySQL关闭权限验证后，直接通过 mysql 命令即可连接到数据库�
 >SHOW INDEX FROM tableName;
 ```
 
+```java
+>create table tableName(
+	a int,
+    ...
+    index indexName(columnName1, columnName2, …)
+);
+
+>show create table tableName\G;
+CTEATE TABLE tableName(
+	a int(11) DEFAULT NULL,
+    ...
+    KEY indexName(columnName1, columnName2, …)
+)engine=InnoDB default charset=utf8;
+```
+
+
+
 ### 建立索引注意点
 
 - 选择区分度高的列建立索引
@@ -1182,4 +1199,4 @@ NoSQL用于超大规模数据的存储。
 
 - **图形存储**
   - Neo4J
-  - FlockDB
+    - FlockDB

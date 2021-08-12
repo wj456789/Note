@@ -193,20 +193,6 @@ select
 from sql_v A group by A.name;
 ```
 
-
-
-
-
-
-
-
-
-![image-20210811230645227](img_MYSQL%E8%BF%9B%E9%98%B6/image-20210811230645227.png)
-
-![image-20210811231405389](img_MYSQL%E8%BF%9B%E9%98%B6/image-20210811231405389.png)
-
-
-
 ## MySQL索引原理之B+Tree  
 
 ```java
@@ -355,6 +341,110 @@ InnoDB存储引擎也使用B+Tree作为索引结构，索引的key是数据表�
 其中，索引的顺序和数据记录的顺序(物理顺序)一致称为聚集索引，又称为聚簇索引。
 
 ![image-20210812075313482](img_MYSQL%E8%BF%9B%E9%98%B6/image-20210812075313482.png)
+
+## 降序索引  
+
+在MySQL 8.0之前，索引都是按升序创建的，虽然语法上支持DESC，但创建的仍然是升序索引。  
+
+```java
+>CREATE INDEX indexName ON tableName(columnName1 asc, columnName2 desc, …);
+```
+
+如果某个查询需要对多个列进行排序（有降序、也有升序），并且排序条件与索引列不一致，或没有对排序列创建索引，数据库都会进行额外的排序filesort，此时就可以考虑使用降序索引进行优化。  
+
+```java
+//当不存在a desc,b asc这样的索引，数据库就会进行额外排序，使用explain中Extra：Using filesort
+>select * from tableName order by a desc,b asc\G;
+
+//创建索引加快查询效率
+>create table t1(
+	a int,
+	b int,
+	index a_desc_b_asc(a desc, b asc)
+);
+```
+
+## like '%xxx'不会使用索引  
+
+B+Tree索引可以用于在表达式中对字段进行比较，如=、>、>=、<、<=和Between。索引同样也可以用在LIKE语句中，只要参数不是以通配符开头的字符串。  
+
+```java
+//如：
+SELECT * FROM tbl_name WHERE key_col LIKE 'Patrick%';
+SELECT * FROM tbl_name WHERE key_col LIKE 'Pat%_ck%';
+```
+
+下面的SELECT语句不会用到索引：  
+
+```java
+SELECT * FROM tbl_name WHERE key_col LIKE '%Patrick';
+SELECT * FROM tbl_name WHERE key_col LIKE '%Patrick%';
+```
+
+索引是一种有序的数据结构，会根据索引字段顺序进行排序，当字段开头模糊匹配无法使用索引查找
+
+```java
+//特例
+explain select name from tableName where name like '%龙%';
+```
+
+## 列参与运算不会使用索引  
+
+索引列作为表达式的一部分，或者将索引列作为函数的参数无法使用索引；
+
+```java
+//不会使用索引
+#找出id=4的人
+>select * from sql10_people where id+1=5;
+#找出92年及之前生的人
+>select * from sql10_people where year(birthday)<=1992;
+```
+
+```java
+//会使用索引
+#找出id=4的人
+>select * from sql10_people where id=5-1;
+#找出92年及之前生的人
+>select * from sql10_people where birthday<=DATE_FORMAT('1992-12-31','%Y-%M-%d');
+```
+
+## 隐式类型转换会导致索引失效  
+
+```java
+create table sql11_people(
+    id int not null auto_increment primary key,
+    name varchar(30) comment '姓名',
+    phone varchar(15) comment '联系电话'
+)engine=InnoDB default charset=utf8;
+create index idx_11_phone on sql11_people(phone);
+```
+
+对于SQL中的值为数值的字符串，不加单引号MySQL也不会报错，但是存在隐式类型转换会导致索引失效  
+
+```java
+#标准写法（会使用索引）
+select * from sql11_people where phone='18733334444';
+#非标准写法（全表扫描，不推荐）
+select * from sql11_people where phone=18733334444;
+#对于int类型的值加了单引号，会走索引但不推荐
+select * from sql11_people where id='5'
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
