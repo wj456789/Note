@@ -489,8 +489,6 @@ expect eof               //等待结束
 
 
 
-## systemctl
-
 ## sed
 
 通过sed命令可以处理、编辑文本文件
@@ -525,11 +523,11 @@ sed [-hnVi][-e<script>][-f<script文件>][文本文件]
 
 ```java
 //在testfile文件的第四行后添加一行，并将结果输出
-#sed -e 4a\newLine testfile 
-#sed -e '4a\newLine' testfile   
+#sed -e 4a\newLine testfile
+#sed -e '4a\newLine' testfile
 #sed -e '4a newLine' testfile
-#sed -e '4anewLine' testfile    
-#sed '4a newLine' testfile   
+#sed -e '4anewLine' testfile
+#sed '4a newLine' testfile
     
 HELLO LINUX!
 Linux is a free unix-type opterating system.  
@@ -647,6 +645,7 @@ No 2-5 number
 
 ## top
 
+```bash
 #top
 #top -p 进程号
 top - 09:43:54 up 195 days, 17:53,  1 user,  load average: 0.09, 0.10, 0.12
@@ -659,34 +658,44 @@ KiB Swap:  7812092 total,  7759268 free,    52824 used. 53242476 avail Mem
 12318 root      20   0 26.392g 800092  11712 S   0.3  1.2  60:20.37 java
 17653 mysql     20   0 4632064 375564  13316 S   0.3  0.6  14:53.54 mysqld
 19785 root      20   0  114468   2788   1344 S   0.3  0.0   3:12.64 bash
+```
 
-这时可以使用命令操作屏幕
+这时可以使用以下命令操作屏幕
 f或者F：从当前显示中添加或者删除列。
 
+### 常用信息
 
-KiB Mem计算可用内存=free + buff/cache
-KiB Swap中used数值变化表示内存不够用了
-RES表明进程常驻内存
-计算某个进程所占的物理内存大小公式：RES – SHR
+- KiB Mem计算可用内存=free + buff/cache
+- KiB Swap中used数值变化表示内存不够用了
+- RES表明进程常驻内存
+- 计算某个进程所占的物理内存大小公式：RES – SHR
 
-详解：
-cpu状态信息
-0.0%us【user space】— 用户空间占用CPU的百分比。
-0.3%sy【sysctl】— 内核空间占用CPU的百分比。
+### cpu状态信息
+
+0.1%us【user space】— 用户空间占用CPU的百分比。
+0.2%sy【sysctl】— 内核空间占用CPU的百分比。
 0.0%ni【】— 改变过优先级的进程占用CPU的百分比
 99.7%id【idolt】— 空闲CPU百分比
 0.0%wa【wait】— IO等待占用CPU的百分比
 0.0%hi【Hardware IRQ】— 硬中断占用CPU的百分比
 0.0%si【Software Interrupts】— 软中断占用CPU的百分比
 
-内存状态
+### 内存状态
+
+```bash
 KiB Mem : 65685108 total, 42266972 free,  8329524 used, 15088612 buff/cache(缓存的内存量)
+```
 
-swap交换分区信息
+### swap交换分区信息
+
+```bash
 KiB Swap:  7812092 total,  7759268 free,    52824 used. 53242476 avail Mem
-Linux会将文件缓存提高读写效率，但是程序运行结束后，Cache Memory也不会自动释放，导致可用物理内存变少，当系统的物理内存不够用的时候，就需要将物理内存中的一部分空间释放出来，以供当前运行的程序使用。这些被释放的空间被临时保存到Swap空间中，等到那些被释放的空间中的程序要运行时，再从Swap分区中恢复保存的数据到内存中。也就是说将暂时不用的物理内存释放，里面的内容备份在Swap空间中，等用用的时候再从swap空间中恢复
+```
 
-各进程（任务）的状态监控
+Linux会将文件缓存提高读写效率，但是程序运行结束后，Cache Memory也不会自动释放，导致可用物理内存变少，当系统的物理内存不够用的时候，就需要将物理内存中的一部分空间释放出来，以供当前运行的程序使用。这些被释放的空间被临时保存到Swap空间中，等到那些被释放的空间中的程序要运行时，再从Swap分区中恢复保存的数据到内存中。也就是说将暂时不用的物理内存释放，里面的内容备份在Swap空间中，等用的时候再从swap空间中恢复
+
+### 各进程（任务）的状态监控
+
 PID — 进程id
 USER — 进程所有者
 PR — 进程优先级
@@ -712,8 +721,6 @@ https://www.cnblogs.com/niuben/p/12017242.html
 
 
 
-
-
 ## 服务管理
 
 Linux 服务管理两种方式service和systemctl
@@ -730,6 +737,7 @@ systemctl命令兼容了service，即systemctl也会去/etc/init.d目录下，�
 
 systemctl mysql start
 systemctl mysql stop
+
 ## 开机自启动
 systemctl enable mysql
 

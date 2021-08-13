@@ -61,10 +61,10 @@ for (Iterator<string> it = myList.iterator(); it.hasNext();) {
 }
 System.out.println( "List Value:" + myList.toString());
  
-//2、建一个集合，记录需要删除的元素，之后统一删除             
+//2、建一个集合，记录需要删除的元素，之后统一删除
 List<string> templist = new ArrayList<string>();
     for (String value : myList) {
-        if (value.equals( "3")) {
+        if (value.equals("3")) {
             templist.add(value);
         }
     }
