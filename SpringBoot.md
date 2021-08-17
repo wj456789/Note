@@ -328,14 +328,79 @@ public class ApplicationConversionService extends FormattingConversionService {
 
 ## 配置文件
 
-### 全局配置文件
+### 源码
+
+```java
+public class ConfigFileApplicationListener implements EnvironmentPostProcessor, SmartApplicationListener, Ordered {
+
+	private static final String DEFAULT_PROPERTIES = "defaultProperties";
+	private static final String DEFAULT_SEARCH_LOCATIONS = "classpath:/,classpath:/config/,file:./,file:./config/*/,file:./config/";
+	private static final String DEFAULT_NAMES = "application";
+    
+	public static final String ACTIVE_PROFILES_PROPERTY = "spring.profiles.active";
+	public static final String INCLUDE_PROFILES_PROPERTY = "spring.profiles.include";
+	public static final String CONFIG_NAME_PROPERTY = "spring.config.name";
+	public static final String CONFIG_LOCATION_PROPERTY = "spring.config.location";
+	public static final String CONFIG_ADDITIONAL_LOCATION_PROPERTY = "spring.config.additional-location";
+    ...
+        
+    private Set<String> getSearchNames() {
+        if (this.environment.containsProperty(CONFIG_NAME_PROPERTY)) {
+            String property = this.environment.getProperty(CONFIG_NAME_PROPERTY);
+            Set<String> names = asResolvedSet(property, null);
+            names.forEach(this::assertValidConfigName);
+            return names;
+        }
+        return asResolvedSet(ConfigFileApplicationListener.this.names, DEFAULT_NAMES);
+    }
+    
+    private Set<String> getSearchLocations() {
+        Set<String> locations = getSearchLocations(CONFIG_ADDITIONAL_LOCATION_PROPERTY);
+        if (this.environment.containsProperty(CONFIG_LOCATION_PROPERTY)) {
+            locations.addAll(getSearchLocations(CONFIG_LOCATION_PROPERTY));
+        }else {
+            locations.addAll(asResolvedSet(ConfigFileApplicationListener.this.searchLocations, DEFAULT_SEARCH_LOCATIONS));
+        }
+        return locations;
+    }
+    ...
+}
+```
+
+### 默认的配置文件加载顺序
+
+springboot 读取配置文件的优先级：
+
+1. `file:./config/`：读取jar包的同一目录下的config文件夹下的配置文件
+2. `file:./config/*/`：读取jar包的同一目录下的config文件夹子目录下的配置文件
+3. `file:./`：读取jar包同级目录下的配置文件
+4. `classpath:config/`：读取classpath下config文件夹中的配置文件
+5. `classpath:`：读取classpath下的配置文件
+
+我们通常在`src/main/resources` 文件夹下创建的`application.properties` 文件的优先级是最低的，相同的配置项优先级高的会覆盖优先级低的，不同的配置项所有配置文件时累加互补的。
+
+### 默认的配置文件加载名称
+
+springboot 读取配置文件默认名称：
 
 - application.properties
 - application.yml
 
-文件名固定，放在classpath:/或classpath:/config目录下，项目启动时会自动去加载全局配置文件
-
 ### 其他配置文件
+
+application-{profile}.properties或者application-{profile}.yml
+
+```properties
+#启用，优先级最高
+spring.profiles.active=profile
+#引入多个
+spring.profiles.include=profile1,profile2,...
+
+
+spring.config.name
+spring.config.location
+spring.config.additional-location
+```
 
 在jar的外面，新建一个配置文件，然后运行jar命令后面跟上 --spring.config.location=x:xxxx/application.properties
 
@@ -601,7 +666,7 @@ public class User implements Serializable {
 }
 ```
 
-### **使用注解方式添加配置类**
+### 使用注解方式添加配置类
 
 ```java
 // 标注在类上，表示这是一个配置类，相当于以前的spring配置文件

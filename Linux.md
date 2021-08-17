@@ -41,29 +41,92 @@ wq!		强制保存退出
 #tail -100f filename	查看文件尾部100行内容并实时监控 
 #cat -n filename	查看所有文件内容并编号
 
+## 查看文件和文件夹大小
+
+-  df 可以查看一级文件夹大小、使用比例、档案系统及其挂入点，但无法查看文件
+-  du 查询文件或文件夹的磁盘使用空间。
+
+```sh
+查看根目录的磁盘使用情况，从而查看磁盘的分区和已经使用量
+参数-h表示使用「Human-readable」的输出，也就是在档案系统大小使用 GB、MB 等易读的格式。
+#df -h
+
+文件系统        	容量  已用  可用 已用% 挂载点
+devtmpfs         32G     0   32G    0% /dev
+tmpfs            32G  4.0K   32G    1% /dev/shm
+/dev/sda2      1016M  166M  850M   17% /boot
+/dev/sda1       381M  9.8M  372M    3% /boot/efi
+/dev/sdb2       3.6T   89M  3.4T    1% /home/dbown
+tmpfs           6.3G   12K  6.3G    1% /run/user/42
+tmpfs           6.3G     0  6.3G    0% /run/user/0
+```
+
+`/dev/sda2、/dev/sda1、/dev/sdb2`是磁盘分区，`tmps`等是系统运行时，在内存划分的一部分区域。这部分区域被临时挂载到文件树下。
+
+```sh
+fdisk+磁盘设备名称进入磁盘操作命令
+#fdisk /dev/sda
+```
+
+```sh
+列出/home/work/目录下面一级子目录大小，--max-depth 用于指定深入目录的层数
+#du -h --max-depth=1 /home/work/    
+列出/home/work/目录下面一级子目录和文件大小
+#du -h --max-depth=1 /home/work/*   
+```
+
+参考：
+[Linux磁盘分区的详细步骤](
+
 ## 复制文件
 
-//此选项通常在复制目录时使用，它保留链接、文件属性，并复制目录下的所有内容
+```sh
+此选项通常在复制目录时使用，它保留链接、文件属性，并复制目录下的所有内容
 #cp -a dir
-//覆盖已经存在的目标文件而不给出提示
+覆盖已经存在的目标文件而不给出提示
 #cp -f 
+```
+
+```sh
+复制一个文件的前100000行到另一个文件中
+#head -n 100000 data.txt > sample.txt
+复制一个文件的后100000行到另一个文件中
+#tail -n 100000 data.txt > sample.txt
+```
 
 ## 删除文件rm(remove)
 
--f		强制删除文件或direction
--r		将指定目录下的所有文件和子目录一并删除
+- -f		强制删除文件或direction
+- -r		将指定目录下的所有文件和子目录一并删除
 
+```
 #rm -f *		删除当前目录下的所有类型的文件
 #rm -rf direction	将会删除目录以及其下所有文件、文件夹
+```
+
+### 筛选文件并删除
+
+找到根目录下所有的以test开头的文件并把查找结果当做参数传给rm -rf命令进行删除： 
+
+```sh
+使用xargs参数
+#find . -type f  -name 'test*' | xargs rm -rf
+使用-delete参数
+#find . -type f  -name 'test*' -delete
+使用-exec参数
+#find . -type f  -name 'test*' -exec rm -rf {} \；
+```
 
 ## 查找文件
 
+```sh
 #find / -name "april*"	查找根目录及其子目录下所有以april开头的目录和文件
 #find -name   "[A-Z]*"	查找当前目录及其子目录下所有以大写字母开头的目录和文件
 #find -name   "[A-Z]*" -type d/f	查找当前目录及其子目录下所有以大写字母开头的目录/文件
 #whereis 文件名	定位可执行文件、源代码文件、帮助文件在文件系统中的位置
 #locate test	查找和test相关的所有文件
 #locate /etc/sh	搜索etc目录下所有以sh开头的文件,可以用#updatedb 命令用来创建或更新 slocate/locate 命令所必需的数据库文件
+```
 
 参考：
 Linux find 用法示例
@@ -757,27 +820,7 @@ systemctl list-units 列举已经启动的unit
 linux中systemctl详细理解及常用命令
 https://blog.csdn.net/skh2015java/article/details/94012643
 
-## Linux磁盘分区
-
-df -h			//查看磁盘的分区和已经使用量
-
-文件系统        容量  已用  可用 已用% 挂载点
-devtmpfs         32G     0   32G    0% /dev
-tmpfs            32G  4.0K   32G    1% /dev/shm
-/dev/sda2      1016M  166M  850M   17% /boot
-/dev/sda1       381M  9.8M  372M    3% /boot/efi
-/dev/sdb2       3.6T   89M  3.4T    1% /home/dbown
-tmpfs           6.3G   12K  6.3G    1% /run/user/42
-tmpfs           6.3G     0  6.3G    0% /run/user/0
-
-/dev/sda2、/dev/sda1、/dev/sdb2是磁盘分区，tmps等是系统运行时，在内存划分的一部分区域。这部分区域被临时挂载到文件树下。
-
-
-#fdisk /dev/sda		//fdisk+磁盘设备名称进入磁盘操作命令
-
-参考：
-Linux磁盘分区的详细步骤
-https://blog.csdn.net/dufufd/article/details/80253561
+https://blog.csdn.net/dufufd/article/details/80253561)
 
 ## 软链接
 
