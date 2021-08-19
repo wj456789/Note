@@ -367,7 +367,9 @@ public class ConfigFileApplicationListener implements EnvironmentPostProcessor, 
 }
 ```
 
-### 默认的配置文件加载顺序
+### 默认配置文件
+
+#### 加载顺序
 
 springboot 读取配置文件的优先级：
 
@@ -379,14 +381,16 @@ springboot 读取配置文件的优先级：
 
 我们通常在`src/main/resources` 文件夹下创建的`application.properties` 文件的优先级是最低的，相同的配置项优先级高的会覆盖优先级低的，不同的配置项所有配置文件时累加互补的。
 
-### 默认的配置文件加载名称
+在properties和yml/yaml配置文件同时存在的情况下, 在同一目录下，properties配置优先级 > YAML(YML)配置优先级。
+
+#### 加载名称
 
 springboot 读取配置文件默认名称：
 
 - application.properties
 - application.yml
 
-### 其他配置文件
+#### Profile配置文件
 
 application-{profile}.properties或者application-{profile}.yml
 
@@ -395,16 +399,22 @@ application-{profile}.properties或者application-{profile}.yml
 spring.profiles.active=profile
 #引入多个
 spring.profiles.include=profile1,profile2,...
-
-
-spring.config.name
-spring.config.location
-spring.config.additional-location
 ```
 
-在jar的外面，新建一个配置文件，然后运行jar命令后面跟上 --spring.config.location=x:xxxx/application.properties
+#### 自定义配置
 
-```java
+```properties
+#参考源码，和默认冲突
+spring.config.name=applicationName
+#和默认冲突
+spring.config.location=path1,path2,...
+#和默认累加
+spring.config.additional-location=path1,path2,...
+```
+
+除了可以在配置文件里面配置们还可以在运行jar命令后面跟上 --spring.config.location=xxx等，如：
+
+```sh
 # java -jar xx.jar --spring.config.location=./application.properties
 ```
 
@@ -425,7 +435,7 @@ user.password=qwp${random.int}
 user.age=${random.int(10)}
 ```
 
-### **YAML文件用法**
+### YAML文件用法
 
 YAML是专门用来写配置文件的语言，文件的后缀是.yml或.yaml。
 
@@ -479,7 +489,7 @@ names: [tom,jack,alice]
 
 ### **多环境配置**
 
-可以为不同环境提供不同中的配置信息，如开发环境、测试环境、生产环境
+使用Profile配置文件可以为不同环境提供不同中的配置信息，如开发环境、测试环境、生产环境
 
 两种方式：
 
@@ -510,7 +520,6 @@ spring.profiles.active=pro
 #### **使用yml配置文件**
 
 - 单个yml中编写多个配置
-- 编写多个yml文件，分别代表不同的配置
 
 ```java
 #单个yml配置文件
@@ -543,6 +552,8 @@ spring:
   profiles: pro # 指定pro，代表生产环境
 ```
 
+- 编写多个yml文件，分别代表不同的配置
+
 ```java
 //多个yml配置文件
 //application.yml
@@ -574,12 +585,10 @@ server:
 - @Value支持Sqel表达式写法，如：@Value("#{12+56}")
 - @Value不支持JSR303数据校验，而@ConfigurationProperties支持
 
-#### 全局配置文件
-
-application.properties和application.yml会默认加载
+#### 默认配置文件
 
 ```java
-//application.yml配置文件
+//yml配置文件
 user:
  username: admin
  age: 18
@@ -594,7 +603,7 @@ user:
    -list3
  maps: {k1: v1,k2: v2}
  
-//application.properties配置文件
+//properties配置文件
 user.username=tom
 user.age=21
 user.status=false
@@ -637,16 +646,9 @@ public class User implements Serializable {
 }
 ```
 
-#### **自定义配置文件**
+#### 自定义配置文件
 
 ```java
-// 将当前Bean添加到容器中
-@Component
-// 加载外部的属性文件，两个注解都要有
-@ConfigurationProperties(prefix = "user")
-@PropertySource({"classpath:user.properties"})
-public class User implements Serializable {...}
- 
 // 标注在程序入口主类上且只能加载外部的spring配置文件
 @ImportResource({"classpath:spring.xml"})
 @SpringBootApplication
@@ -654,10 +656,18 @@ public class SpringbootConfigApplication {...}
 ```
 
 ```java
-//user.properties放在项目根目录下或者项目打成jar包后放在jar包同级目录下
+//user.properties放在上述默认配置文件->加载顺序中的路径
 user.username=zhangsan
 user.password=123456
 
+1、    
+@Component
+@ConfigurationProperties(prefix = "user")
+//加载自定义的属性文件
+@PropertySource({"classpath:config.properties","classpath:user.properties"})
+public class User implements Serializable {...}    
+    
+2、
 @Component
 @PropertySource({"file:user.properties"})
 public class User implements Serializable {
@@ -683,7 +693,7 @@ public class SpringConfig {
 }
 ```
 
-## **热部署**
+## 热部署
 
 ```java
 //使用SpringBoot提供的devtools实现热部署
@@ -697,7 +707,7 @@ public class SpringConfig {
 </dependency>
 ```
 
-## **SpringBoot启动初始化**
+## SpringBoot启动初始化
 
 ```java
 @Component
@@ -712,7 +722,7 @@ public class RunnerLoadOne implements CommandLineRunner {
 }
 ```
 
-## **SpringBoot获取jar包所在目录路径**
+## SpringBoot获取jar包所在目录路径
 
 ```java
 ApplicationHome h = new ApplicationHome(getClass());
