@@ -584,6 +584,7 @@ server:
 - @Value不支持复杂类型封装，而@ConfigurationProperties支持
 - @Value支持Sqel表达式写法，如：@Value("#{12+56}")
 - @Value不支持JSR303数据校验，而@ConfigurationProperties支持
+- @Value不支持松散绑定(驼峰命名(userName)、横干拼接(user-name)、下划线（user_name）之间可以互相识别的绑定)，而@ConfigurationProperties支持
 
 #### 默认配置文件
 
@@ -649,7 +650,7 @@ public class User implements Serializable {
 #### 自定义配置文件
 
 ```java
-// 标注在程序入口主类上且只能加载外部的spring配置文件
+// 标注在程序入口主类上且一般加载spring的xml配置文件
 @ImportResource({"classpath:spring.xml"})
 @SpringBootApplication
 public class SpringbootConfigApplication {...}
@@ -675,6 +676,8 @@ public class User implements Serializable {
     private String username;
 }
 ```
+
+参考：[SpringBoot读取外部配置文件的方法](https://blog.csdn.net/u012811805/article/details/106515386)
 
 ### 使用注解方式添加配置类
 

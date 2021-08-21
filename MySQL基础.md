@@ -28,6 +28,14 @@ insert into score(name, course, grade) values('张三', '语文', 89);
 
 ## 数据查询语言DQL
 
+### ORDER BY
+
+字段是整型数字，存储时用了Integer，排序会按照数字大小排序，如：2、4、10、11、31；但是用varchar存储，排序会按照字符排序，如：10、11、2、31、4，这时如果需要按照数字大小排序，先对长度排序，再使用字符排序`OROUP BY LENGTH(num),num`。
+
+
+
+
+
 ### GROUP BY和HAVING的使用
 
 #### 语法	

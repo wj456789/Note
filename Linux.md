@@ -76,7 +76,7 @@ fdisk+磁盘设备名称进入磁盘操作命令
 ```
 
 参考：
-[Linux磁盘分区的详细步骤](
+[Linux磁盘分区的详细步骤](https://blog.csdn.net/dufufd/article/details/80253561)
 
 ## 复制文件
 
