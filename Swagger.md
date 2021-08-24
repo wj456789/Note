@@ -412,9 +412,21 @@ msg*	string
 }
 ```
 
+## 常见问题
 
+### 文件上传，接收file类型时显示string解决方案
 
-
+```java
+//@ApiOperation、@ApiImplicitParams、headers不要也可以
+@ApiOperation(value = "上传文件", notes = "上传文件", httpMethod="POST" ,consumes="multipart/form-data")
+@ApiImplicitParams({
+        @ApiImplicitParam(name = "file", paramType="form", value = "文件", dataType="file", required = true)
+})
+@PostMapping(value = "/import",headers = "content-type=multipart/form-data")
+public ResultView import(@ApiParam(value="文件",required=true)@RequestPart("file")MultipartFile file){
+    return enanocellParameterValueService.importEnanocellParameterValues(file);
+}
+```
 
 
 

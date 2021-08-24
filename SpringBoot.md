@@ -803,13 +803,21 @@ public class AccountBasicServiceImplTest {
 
 ![image-20210715161355898](img_SpringBoot/image-20210715161355898.png)
 
+## 常见问题
 
+### 文件上传Stream closed
 
+文件上传时，tomcat报错`org.springframework.web.multipart.MultipartException: Failed to parse multipart servlet request; nested exception is java.io.IOException: org.apache.tomcat.util.http.fileupload.FileUploadException: Stream closed`
 
+几经查询发现是由于logback过滤器导致的，解决方案：
 
+配置文件里，增加如下配置。
 
+```properties
+Spring.mvc.hiddenmethod.filter.enabled=true
+```
 
-
+参考：[文件上传org.apache.tomcat.util.http.fileupload.FileUploadException: Stream closed](https://www.cnblogs.com/siroinfo/p/13045008.html)
 
 
 
