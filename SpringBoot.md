@@ -65,7 +65,7 @@ SpringBoot是一个用来简化Spring应用的初始化创建和开发的框架
 </dependencies>
 ```
 
-### **主程序类**
+### 主程序类
 
 ```java
 //标注在类上，表示这个类是一个SpringBoot应用
@@ -81,7 +81,7 @@ public class SpringbootDemoApplication {
 }
 ```
 
-### **@SpringBootApplication源码**
+### @SpringBootApplication源码
 
 ```java
 //@SpringBootConfiguration标注在类上，表示这个SpringBoot的配置类，相当于xml配置文件

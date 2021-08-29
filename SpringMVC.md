@@ -43,7 +43,7 @@ Web应用架构，思想是将所有客户端请求全部交由控制器，由�
 ## SpringMVC程序
 
 ```xml
-	//依赖整合包
+//依赖整合包
 <dependency>
     <groupId>org.springframework</groupId>
     <artifactId>spring-webmvc</artifactId>
