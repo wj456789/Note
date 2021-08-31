@@ -222,7 +222,7 @@ server.servlet.encoding.force=true
 总结：SpringBoot启动时会加载大量的自动配置类，通过这些自动配置类向容器中添加组件，来实现自动配置功能 
 ```
 
-### Web开发的自动配置类：WebMvcAutoConfiguration源码              
+### Web开发的自动配置类：WebMvcAutoConfiguration源码
 
 ```java
 @Configuration
@@ -696,7 +696,9 @@ public class SpringConfig {
 }
 ```
 
-## 热部署
+## 常用备注
+
+### 热部署
 
 ```java
 //使用SpringBoot提供的devtools实现热部署
@@ -710,7 +712,7 @@ public class SpringConfig {
 </dependency>
 ```
 
-## SpringBoot启动初始化
+### SpringBoot启动初始化
 
 ```java
 @Component
@@ -725,13 +727,555 @@ public class RunnerLoadOne implements CommandLineRunner {
 }
 ```
 
-## SpringBoot获取jar包所在目录路径
+### SpringBoot获取jar包所在目录路径
 
 ```java
 ApplicationHome h = new ApplicationHome(getClass());
 File jarF = h.getSource();
 System.out.println(jarF.getParentFile().toString());
 ```
+
+## SpringBoot Web
+
+可以通过实现WebMvcConfigurer接口重写其中方法实现web的一些配置，注意，这个接口中的方法都添加了Jdk1.8中的default方法修饰，不强制实现所有的方法（jdk1.8新特性）。
+
+在SpringBoot1.0中是继承WebMvcConfigurerAdapter类，在SpringBoot2.0中已过时。在SpringBoot2.0中也可以继承WebMvcConfigurationSupport，但是这样会导致自动配置类WebMvcAutoConfiguration不生效。
+
+参考：
+
+[WebMvcConfigurer 与 WebMvcConfigurationSupport避坑指南](https://www.cnblogs.com/sueyyyy/p/11611676.html)
+
+```java
+public class UrlInterceptor implements HandlerInterceptor {
+    ...
+}
+
+
+
+@Configuration
+public class MvcConfig implements WebMvcConfigurer {
+    @Autowired
+    private HandlerInterceptor urlInterceptor;
+
+    private static List<String> myPathPatterns = new ArrayList<>();
+
+    //在初始化Servlet服务时（在Servlet构造函数执行之后、init()之前执行），@PostConstruct注解的方法被调用
+    @PostConstruct
+    void init() {
+        System.out.println("Servlet init ... ");
+        // 添加匹配的规则， /** 表示匹配所有规则，任意路径
+        myPathPatterns.add("/**");
+    }
+
+    //在卸载Servlet服务时（在Servlet的destroy()方法之前执行），@PreDestroy注解的方法被调用
+    @PreDestroy
+    void destroy() {
+        System.out.println("Servlet destory ... ");
+    }
+
+    //注册拦截器
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+    	//addPathPatterns 用于添加拦截的规则，excludePathPatterns 用于排除拦截的规则
+       registry.addInterceptor(urlInterceptor).addPathPatterns("/**").excludePathPatterns("/login","/emp/login"); 
+    	registry.addInterceptor(urlInterceptor).addPathPatterns(myPathPatterns).excludePathPatterns("/user/login");
+    }
+    
+    //视图跳转控制器，这里的配置可实现直接访问http://localhost:8080/toLogin就跳转到login.jsp页面了
+    @Override
+    public void addViewControllers(ViewControllerRegistry registry) {
+        registry.addViewController("/toLogin").setViewName("login");
+    }
+
+    //静态资源处理--过滤swagger-api
+    @Override
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        //addResoureHandler指的是对外暴露的访问路径，addResourceLocations指的是文件放置的目录。
+        //过滤swagger
+        registry.addResourceHandler("swagger-ui.html")
+                .addResourceLocations("classpath:/META-INF/resources/");
+
+        registry.addResourceHandler("/webjars/**")
+                .addResourceLocations("classpath:/META-INF/resources/webjars/");
+
+        registry.addResourceHandler("/swagger-resources/**")
+                .addResourceLocations("classpath:/META-INF/resources/swagger-resources/");
+
+        registry.addResourceHandler("/swagger/**")
+                .addResourceLocations("classpath:/META-INF/resources/swagger*");
+
+        registry.addResourceHandler("/v2/api-docs/**")
+                .addResourceLocations("classpath:/META-INF/resources/v2/api-docs/");
+
+        //指定外部的目录
+        registry.addResourceHandler("/my/**").addResourceLocations("file:E:/my/");
+    }
+    
+    //默认静态资源处理器
+    //解决了DispatcherServlet拦截静态资源问题，可以直接访问web根目录（webroot）下的静态资源
+    @Override
+    public void configureDefaultServletHandling(DefaultServletHandlerConfigurer configurer) {
+        //开启默认拦截器可用
+        configurer.enable();
+        //指定一个默认拦截器DefaultServletHttpRequestHandler
+        configurer.enable("DefaultServletHttpRequestHandler");
+    }
+        
+     
+
+    //格式和类型转换
+    @Override
+    public void addFormatters(FormatterRegistry registry) {
+    	registry.addFormatterForFieldType(LocalDate.class, new USLocalDateFormatter());
+    }
+    
+    
+    //配置消息转换器--这里用的是ali的FastJson
+    @Override
+    public void configureMessageConverters(List<HttpMessageConverter<?>> converters) {
+        //1. 定义一个convert转换消息的对象;
+        FastJsonHttpMessageConverter fastJsonHttpMessageConverter = new FastJsonHttpMessageConverter();
+        //2. 添加fastJson的配置信息，比如：是否要格式化返回的json数据;
+        FastJsonConfig fastJsonConfig = new FastJsonConfig();
+        fastJsonConfig.setSerializerFeatures(SerializerFeature.PrettyFormat,
+                SerializerFeature.WriteMapNullValue,
+                SerializerFeature.WriteNullStringAsEmpty,
+                SerializerFeature.DisableCircularReferenceDetect,
+                SerializerFeature.WriteNullListAsEmpty,
+                SerializerFeature.WriteDateUseDateFormat);
+        //3.处理中文乱码问题
+        List<MediaType> fastMediaTypes = new ArrayList<>();
+        fastMediaTypes.add(MediaType.APPLICATION_JSON_UTF8);
+        //4.在convert中添加配置信息.
+        fastJsonHttpMessageConverter.setSupportedMediaTypes(fastMediaTypes);
+        fastJsonHttpMessageConverter.setFastJsonConfig(fastJsonConfig);
+        //5.将convert添加到converters当中.
+        converters.add(fastJsonHttpMessageConverter);
+    }
+
+    //启用内容裁决解析器，configureContentNegotiation()方法是专门用来配置内容裁决参数的 
+    @Override
+    public void configureContentNegotiation(ContentNegotiationConfigurer configurer) {
+        // 表示是否通过请求的Url的扩展名来决定media type
+        configurer.favorPathExtension(true)
+                // 忽略Accept请求头
+                .ignoreAcceptHeader(true)
+                .parameterName("mediaType")
+                // 设置默认的mediaType
+                .defaultContentType(MediaType.TEXT_HTML)
+                // 以.html结尾的请求会被当成MediaType.TEXT_HTML
+                .mediaType("html", MediaType.TEXT_HTML)
+                // 以.json结尾的请求会被当成MediaType.APPLICATION_JSON
+                .mediaType("json", MediaType.APPLICATION_JSON);
+    }
+    
+    //跨域支持 
+    @Override
+    public void addCorsMappings(CorsRegistry registry) {
+        registry.addMapping("/**")
+                .allowedOrigins("*")
+                .allowCredentials(true)
+                .allowedMethods("GET", "POST", "DELETE", "PUT")
+                .maxAge(3600 * 24);
+    }
+    
+    //配置视图解析器
+    @Override
+    public void configureViewResolvers(ViewResolverRegistry registry) {
+    	super.configureViewResolvers(registry);
+    	registry.viewResolver(resourceViewResolver());
+    	//registry.jsp("/WEB-INF/jsp/",".jsp");
+    }
+    //配置请求视图映射
+    @Bean
+    public InternalResourceViewResolver resourceViewResolver(){
+    	InternalResourceViewResolver internalResourceViewResolver = new InternalResourceViewResolver();
+    	//请求视图文件的前缀地址
+    	internalResourceViewResolver.setPrefix("/WEB-INF/jsp/");
+    	//请求视图文件的后缀
+    	internalResourceViewResolver.setSuffix(".jsp");
+    	return internalResourceViewResolver;
+    }
+    
+    //自定义参数解析器
+    @Override
+    public void addArgumentResolvers(List<HandlerMethodArgumentResolver> argumentResolvers) {
+        argumentResolvers.add(currentUserMethodArgumentResolver());
+    }
+    @Bean
+    public CurrentUserMethodArgumentResolver currentUserMethodArgumentResolver() {
+        return new CurrentUserMethodArgumentResolver();
+    }
+}
+```
+
+参考：
+
+[Spring Boot配置接口 WebMvcConfigurer](https://blog.csdn.net/fmwind/article/details/81235401)
+
+### 参数解析器
+
+```java
+//RequestMappingHandlerAdapter会调用addArgumentResolvers方法，将相应的参数解析器添加到RequestMappingHandlerAdapter的customArgumentResolvers属性中
+public class CurrentUserMethodArgumentResolver implements HandlerMethodArgumentResolver {
+    //用于判定是否需要对该参数解析，返回true为需要，并会去调用下面的方法resolveArgument。
+    @Override
+    public boolean supportsParameter(MethodParameter parameter) {
+        return parameter.getParameterType().isAssignableFrom(CurrentUser.class)
+                && parameter.hasParameterAnnotation(User.class);
+    }
+    //参数解析的方法，返回的Object就是controller方法上的形参对象。
+    @Override
+    public Object resolveArgument(MethodParameter parameter, ModelAndViewContainer mavContainer, 
+    					NativeWebRequest webRequest, WebDataBinderFactory binderFactory) throws Exception {
+        CurrentUser user = (CurrentUser) webRequest.getAttribute("currentUser", RequestAttributes.SCOPE_REQUEST);
+        if (user == null) {
+            log.info("获取用户信息失败");
+        }
+        return user;
+    }
+}
+ 
+ 
+@Target(ElementType.PARAMETER)          // 可用在方法的参数上
+@Retention(RetentionPolicy.RUNTIME)     // 运行时有效
+public @interface User {
+} 
+ 
+//在Controller的方法参数中使用@User，该方法在映射时会注入当前登录的User对象
+@RestController
+public class KpiController {
+	public Result getInfo(@User CurrentUser user){
+		System.out.println(user);
+		return new Result;
+	}
+}
+```
+
+参考：
+
+[WebMvcConfigurer.addArgumentResolvers自定义参数处理器不生效的原理与解决方案(通过BeanPostProcessor实现)](https://blog.csdn.net/weixin_42213903/article/details/101211873)
+
+[SpringBoot中过滤器的使用](https://blog.csdn.net/jacksonary/article/details/84572701)
+
+### 类型和格式转换器
+
+```java
+//日期格式化
+/*
+	public interface Formatter<T> extends Printer<T>, Parser<T> {...}
+ 	只能将String转换为T
+   Converter<S,T>可以将任何源类型S转换为目标类型T
+*/
+@Override
+public void addFormatters(FormatterRegistry registry) {
+    registry.addFormatter(new Formatter<Date>() {
+        @Override
+        public Date parse(String date, Locale locale) {
+            return new Date(Long.parseLong(date));
+        }
+        @Override
+        public String print(Date date, Locale locale) {
+            return Long.valueOf(date.getTime()).toString();
+        }
+    });
+    
+    registry.addConverter(new Converter<String, Date>(){
+        @Override
+        public Date convert(String source) {
+            String[] dateFormatPatterns = {
+            		"yyyy-MM-dd HH:mm:ss", 
+            		"yyyy-MM-dd HH:mm", 
+            		"yyyy-MM-dd HH", 
+            		"yyyy-MM-dd"};
+            try {
+            	return DateUtils.parseDate(source, dateFormatPatterns);
+            } catch (ParseException ex) {
+            	throw new IllegalArgumentException("Could not parse date: " + ex.getMessage(), ex);
+            }
+        }
+    });
+}
+
+//也可以直接定义Converter<S,T>,Formatter<T>类型的bean注入容器中，详解见webmvcautoconfiguration源码
+@Bean
+public Converter<String, Date> createConverter() {
+    return new Converter<String, Date>(){
+        @Override
+        public Date convert(String source) {
+            String[] dateFormatPatterns = {
+            		"yyyy-MM-dd HH:mm:ss", 
+            		"yyyy-MM-dd HH:mm", 
+            		"yyyy-MM-dd HH", 
+            		"yyyy-MM-dd"};
+            try {
+            	return DateUtils.parseDate(source, dateFormatPatterns);
+            } catch (ParseException ex) {
+            	throw new IllegalArgumentException("Could not parse date: " + ex.getMessage(), ex);
+            }
+        }
+    };
+}
+```
+
+### 自定义Servlet配置
+
+注册Servlet三大组件：Servlet、Filter、Listener
+
+#### 使用内置的servlet容器
+
+##### 使用配置
+
+```java
+@Configuration
+public class CustomServletConfig {
+
+    // 注册Servlet
+    @Bean
+    public ServletRegistrationBean myServlet() {
+        ServletRegistrationBean<MyServlet> registrationBean = new
+ ServletRegistrationBean<>();
+        registrationBean.setServlet(new MyServlet());
+        registrationBean.addUrlMappings("/myServlet");
+        return registrationBean;
+    }
+    
+    // 注册Filter
+    @Bean
+    public FilterRegistrationBean myFilter(){
+        FilterRegistrationBean<MyFilter> registrationBean = new
+ FilterRegistrationBean<>();
+        registrationBean.setFilter(new MyFilter());
+        registrationBean.addUrlPatterns("/showLogin","/test1");
+        return registrationBean;
+    }
+    
+    // 注册Listener
+    @Bean
+    public ServletListenerRegistrationBean myListener(){
+        ServletListenerRegistrationBean<MyListener> registrationBean = new
+ ServletListenerRegistrationBean<>();
+        registrationBean.setListener(new MyListener());
+        return registrationBean;
+    }
+}
+```
+
+##### 使用注解
+
+```java
+//整合servlet
+@WebServlet(name="HelloServlet",urlPatterns="/helloServlet")
+public class HelloServlet extends HttpServlet{...}
+
+@SpringBootApplication
+//启动扫描@WebServlet注解并初始化它
+@ServletComponentScan
+public class SpringBootDemoApplication{...} 
+ 
+ 
+ 
+//整合Filter 
+@WebFilter(name="myFilter",urlPatterns="/first")
+public class MyFilter extends Filter{...}
+ 
+@SpringBootApplication
+@ServletComponentScan
+public class SpringBootDemoApplication{...}  
+
+
+/*
+常用的Web事件的监听接口如下：
+ServletContextListener：用于监听Web的启动及关闭
+ServletContextAttributeListener：用于监听ServletContext范围内属性的改变
+ServletRequestListener：用于监听用户请求
+ServletRequestAttributeListener：用于监听ServletRequest范围属性的改变
+HttpSessionListener：用于监听用户session的开始及结束
+HttpSessionAttributeListener：用于监听HttpSession范围内的属性改变
+*/
+//整合Listener
+@WebListener
+public class MyListener extends ServletContextListener{...}
+
+@SpringBootApplication
+@ServletComponentScan
+public class SpringBootDemoApplication{...}  
+```
+
+#### 使用外部的servlet容器
+
+```java
+//创建一个Maven的war工程
+//将内置Tomcat的scope配置为provided
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-tomcat</artifactId>
+    <scope>provided</scope>
+</dependency>
+
+ 
+public class ServletInitializer extends SpringBootServletInitializer {
+    @Override
+    protected SpringApplicationBuilder configure(SpringApplicationBuilder application) {
+        // 传入SpringBoot应用的主程序类
+        return application.sources(SpringbootWarApplication.class);
+    }
+}
+```
+
+```properties
+spring.mvc.view.prefix=/WEB-INF/views/
+spring.mvc.view.suffix=.jsp
+```
+
+最后手动创建web目录，并配置tomcat
+
+## 全局异常处理
+
+### 定义错误码页面
+
+创建 错误状态码.html 页面，放在templates/error目录中，当发生错误时会自动到该目录下查找对应的错误页面可以创建如 4xx.html 或 5xx.html 页面，用来匹配所有该类型的错误（会先进行精确匹配）
+
+```html
+<h2>5xx错误</h2>
+<h3>状态码：[[${status}]]</h3>
+<h3>错误提示：[[${error}]]</h3>
+<h3>异常消息：[[${message}]]</h3>
+<h3>时间戳：[[${timestamp}]]</h3>
+```
+
+### 定义异常通知
+
+参考笔记SpringMVC
+
+## SpringBoot JDBC
+
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-jdbc</artifactId>
+</dependency>
+<dependency>
+    <groupId>mysql</groupId>
+    <artifactId>mysql-connector-java</artifactId>
+    <scope>runtime</scope>
+</dependency>
+```
+
+```properties
+spring.datasource.driver-class-name=com.mysql.jdbc.Driver
+spring.datasource.url=jdbc:mysql://localhost:3306/springboot?useUnicode=true&characterEncoding=utf-8
+spring.datasource.username=root
+spring.datasource.password=
+spring.datasource.type=org.apache.commons.dbcp.BasicDataSource
+
+spring.datasource.initialSize=10
+spring.datasource.maxActive=100
+spring.datasource.minIdle=5
+spring.datasource.maxWait=50000
+```
+
+```java
+@Configuration
+public class DataSourceConfig {
+    @Bean
+    // 从配置文件中读取spring.datasource属性，并注入给数据源的属性
+    @ConfigurationProperties(prefix = "spring.datasource")
+    public DataSource dataSource(){
+    	 //使用的dbcp连接池
+        return new BasicDataSource();
+    }
+}
+```
+
+```java
+@Controller
+@RequestMapping("/user")
+public class UserController {
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+        
+    @RequestMapping("/findAll")
+    @ResponseBody
+    public List<Map<String, Object>> findAll(){
+        List<Map<String, Object>> list = jdbcTemplate.queryForList("select * from t_user");
+        return list;
+    }
+}
+```
+
+
+
+## SpringBoot MyBatis
+
+```yml
+# 配置DataSource
+spring:
+ datasource:
+  driver-class-name: com.mysql.jdbc.Driver
+  url: jdbc:mysql://localhost:3306/springboot?useUnicode=true&characterEncoding=utf-8
+  username: root
+  password:
+  initialSize: 5
+  maxActive: 100
+  minIdle: 3
+  maxWait: 50000
+# 配置MyBatis
+mybatis:
+ type-aliases-package: com.itany.pojo
+ mapper-locations: classpath:mapper/*.xml
+ #mybatis主配置文件可写可不写
+ config-location: classpath:mybatis-config.xml
+```
+
+```java
+@Configuration
+//扫描MyBatis的Mapper接口所在的包
+@MapperScan("com.itany.mapper")
+public class MyBatisConfig {
+    @Bean
+    @ConfigurationProperties(prefix = "spring.datasource")
+    public DataSource dataSource(){
+    	return new DruidDataSource();
+    }
+}
+```
+
+## SpringBoot 数据库连接池
+
+参考笔记MySQL中数据库连接池详解
+
+## SpringBoot PageHelper
+
+参考笔记MyBatis中pagehelper详解
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ## SpringBoot Test
 
