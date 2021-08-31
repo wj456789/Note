@@ -267,6 +267,17 @@ public class WebMvcAutoConfiguration {
 #### 加载静态资源源码
 
 ```java
+@ConfigurationProperties(prefix = "spring.mvc")
+public class WebMvcProperties {
+	//Path pattern used for static resources.
+    private String staticPathPattern = "/**";
+    ...
+}
+
+
+    
+    
+
 @ConfigurationProperties(prefix = "spring.resources",ignoreUnknownFields = false)
 public class ResourceProperties {
     private static final String[] CLASSPATH_RESOURCE_LOCATIONS = new String[]
@@ -284,10 +295,19 @@ public class ResourceProperties {
     ...
 } 
  
-# 当访问静态资源时会到所有静态资源文件夹中查找
-# 配置文件指定静态资源的位置,修改后，除配置的目录以外其他目录就不可以再访问静态资源了
+
+```
+
+```properties
+#静态资源访问路径，默认通过/**直接访问下面静态资源加载位置
+spring.mvc.static-path-pattern= /static/**
+
+#当访问静态资源时会到所有静态资源文件夹中查找
+#配置文件指定静态资源的位置,修改后，除配置的目录以外其他目录就不可以再访问静态资源了
 spring.resources.static-locations=classpath:/static,classpath:/public 
 ```
+
+
 
 #### 自动添加格式转换器源码
 

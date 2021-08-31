@@ -1,5 +1,212 @@
 # MYSQL进阶
 
+## 数据库连接池
+
+### 流程
+
+#### 不使用连接池流程
+
+1. TCP建立连接的三次握手
+2. MySQL认证的三次握手
+3. 真正的SQL执行
+4. MySQL的关闭
+5. TCP的四次握手关闭
+
+#### 使用连接池流程
+
+- 第一次访问的时候，需要建立连接。 但是之后的访问，均会复用之前创建的连接，直接执行SQL语句。
+- 当客户请求数据库连接时，首先查看连接池中是否有空闲连接，如果存在空闲连接，则将连接分配给客户使用；如果没有空闲连接，则查看当前所开的连接数是否已经达到最大连接数，如果没达到就重新创建一个连接给请求的客户；如果达到就按设定的最大等待时间进行等待，如果超出最大等待时间，则抛出异常给客户。
+- 每一个事务都会独占一个数据库连接。
+
+参考：[数据库连接池了解和常用连接池对比](https://www.cnblogs.com/whb11/p/11315463.html)
+
+### 连接池类型
+
+第一代连接池c3p0和dbcp一般已经弃用了，常用第二代连接池HikariCP和Druid
+
+### SpringBoot配置数据库连接池
+
+```java
+//springboot2.3.0版本org.springframework.boot.autoconfigure.jdbc.DataSourceBuilder
+//SpringBoot中默认支持的连接池有dbcp2, tomcat, hikari三种连接池
+public final class DataSourceBuilder<T extends DataSource> {
+   private static final String[] DATA_SOURCE_TYPE_NAMES = new String[] {
+       "com.zaxxer.hikari.HikariDataSource",
+       "org.apache.tomcat.jdbc.pool.DataSource", 
+       "org.apache.commons.dbcp2.BasicDataSource" 
+   };
+         ...
+}
+```
+
+#### 配置默认数据库连接池（Hikari）
+
+```xml
+<!-- jdbc起步依赖 -->
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-jdbc</artifactId>
+</dependency>
+<!-- mysql数据库驱动 -->
+<dependency>
+    <groupId>mysql</groupId>
+    <artifactId>mysql-connector-java</artifactId>
+</dependency>
+```
+
+```properties
+# application.properties
+# 必要配置
+# 驱动程序类名称
+spring.datasource.driver-class-name=com.mysql.jdbc.Driver
+spring.datasource.url=jdbc:mysql://127.0.0.1:3306/datebook?useUnicode=true&characterEncoding=UTF-8&autoReconnect=true&useSSL=false&zeroDateTimeBehavior=convertToNull
+spring.datasource.username=root
+spring.datasource.password=root
+
+# 常用配置
+# 指定使用的数据库连接池类型
+spring.datasource.type=com.zaxxer.hikari.HikariDataSource
+# 最小空闲连接数，如果空闲连接低于此值并且连接池中的总连接数少于maximumPoolSize就会创建新连接，默认值：与maximumPoolSize相同
+spring.datasource.hikari.minimum-idle=5
+# 最大实际连接数，默认值：10
+spring.datasource.hikari.maximum-pool-size=15
+# 事务自动提交，默认值：true
+spring.datasource.hikari.auto-commit=true
+# 允许连接在池中闲置的最长时间，当连接数减少到minimum-idle，空闲连接将不会退出，值为0意味着空闲连接永远不会从池中删除，默认值：600000（10分钟）
+spring.datasource.hikari.idle-timeout=30000
+# 连接池名称，默认：自动生成
+spring.datasource.hikari.pool-name=DatebookHikariCP
+# 连接的最大生存周期，正在使用的连接永远不会删除，值为0表示无限寿命， 默认值：1800000（30分钟）
+spring.datasource.hikari.max-lifetime=1800000
+# 客户端等待连接的最大毫秒数，没有可用连接的情况下超过此时间，则会抛出SQLException，默认值：30000（30秒）
+spring.datasource.hikari.connection-timeout=30000
+# 驱动程序JDBC4之前，检测新获取的连接是否存在未完成的查询，JDBC4不需要，默认值：无
+spring.datasource.hikari.connection-test-query=SELECT 1
+```
+
+参考：[Springboot 2.0默认连接池HikariCP详解（效率最高）](https://blog.csdn.net/weixin_41249041/article/details/90578226)
+
+#### 配置druid连接池
+
+```xml
+<!-- 阿里系的Druid依赖包 -->
+<dependency>
+    <groupId>com.alibaba</groupId>
+    <artifactId>druid-spring-boot-starter</artifactId>
+    <version>1.1.9</version>
+</dependency>
+<!-- Druid 依赖 log4j包，但是SpringBoot默认使用的是slf4j+logback -->
+<dependency>
+    <groupId>log4j</groupId>
+    <artifactId>log4j</artifactId>
+    <version>1.2.17</version>
+</dependency>
+```
+
+```properties
+#mysql 配置
+spring.datasource.driverClassName=com.mysql.jdbc.Driver
+spring.datasource.url=jdbc:mysql://192.168.2.126:3306/springboot_druid_demo?characterEncoding=utf-8&autoReconnect=true&zeroDateTimeBehavior=convertToNull&useSSL=false
+spring.datasource.username=root
+spring.datasource.password=123456
+
+#阿里druid连接池驱动配置信息
+spring.datasource.type=com.alibaba.druid.pool.DruidDataSource
+#连接池的配置信息
+#初始化大小
+spring.datasource.initialSize=5
+#最小空闲连接数
+spring.datasource.minIdle=5
+#最大连接数
+spring.datasource.maxActive=20
+#配置获取连接等待超时的时间
+spring.datasource.maxWait=60000
+#配置间隔多久才进行一次检测，检测需要关闭的空闲连接，单位是毫秒
+spring.datasource.timeBetweenEvictionRunsMillis=60000
+#配置一个连接在池中最小生存的时间，单位是毫秒
+spring.datasource.minEvictableIdleTimeMillis=300000
+spring.datasource.validationQuery=SELECT 1 FROM DUAL
+spring.datasource.testWhileIdle=true
+spring.datasource.testOnBorrow=false
+spring.datasource.testOnReturn=false
+#打开PSCache，并且指定每个连接上PSCache的大小
+spring.datasource.poolPreparedStatements=true
+spring.datasource.maxPoolPreparedStatementPerConnectionSize=20
+#配置监控统计拦截的filters，去掉后监控界面sql无法统计，'wall'用于防火墙
+spring.datasource.filters=stat,wall,log4j
+#通过connectProperties属性来打开mergeSql功能；慢SQL记录
+spring.datasource.connectionProperties=druid.stat.mergeSql=true;druid.stat.slowSqlMillis=5000
+```
+
+```java
+@Configuration
+public class DruidConfig {
+    @Bean
+    public ServletRegistrationBean druidServlet() {// 主要实现web监控的配置处理
+        ServletRegistrationBean servletRegistrationBean = new ServletRegistrationBean(
+                new StatViewServlet(), "/druid/*");//表示进行druid监控的配置处理操作
+        servletRegistrationBean.addInitParameter("allow", "127.0.0.1,129.168.1.11");//白名单，空字符串表示允许所有地址访问
+        servletRegistrationBean.addInitParameter("deny", "129.168.1.12");//黑名单
+        servletRegistrationBean.addInitParameter("loginUsername", "root");//用户名
+        servletRegistrationBean.addInitParameter("loginPassword", "root");//密码
+        servletRegistrationBean.addInitParameter("resetEnable", "false");//是否可以重置数据源
+        return servletRegistrationBean;
+
+    }
+    @Bean    //监控
+    public FilterRegistrationBean filterRegistrationBean(){
+        FilterRegistrationBean filterRegistrationBean=new FilterRegistrationBean();
+        filterRegistrationBean.setFilter(new WebStatFilter());
+        filterRegistrationBean.addUrlPatterns("/*");//所有请求进行监控处理
+        filterRegistrationBean.addInitParameter("exclusions", "*.js,*.gif,*.jpg,*.css,/druid/*");//排除
+        return filterRegistrationBean;
+    }
+    
+    //配置连接池
+    @Bean
+    @ConfigurationProperties(prefix = "spring.datasource")
+    public DataSource druidDataSource() {
+        /*
+        	可以不使用配置文件直接赋值
+         	DataSource  dataSource = new DruidDataSource();
+           dataSource.setDriverClasClassName("com.mysql.jdbc.Driver");
+           dataSource.setUrl(url);
+           dataSource.setUsername(username);
+           dataSource.setPassword(password);
+           dataSource.setMaxActive(maxTotal);
+           dataSource.setMinIdle(minIdle);
+           dataSource.setMaxIdle(maxIdle);
+           dataSource.setInitialSizlSize(initialSize);
+        */
+        return new DruidDataSource();
+    }
+}
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ## 每门课都大于x分
 
 **请用一条SQL筛选出所有课程的成绩都大于等于85的学生**
