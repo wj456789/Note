@@ -169,8 +169,7 @@ sql_v
 | 数据冗余 | 有一定的冗余                     | 有一定的冗余                       |
 | 可扩展性 | 对实体增加属性，需要动表结构     | 对实体增加属性，只需要增加记录即可 |
 
-通过上面的对比，不难发现，相对于横表，纵表主要的优势是可扩展性强，适用于表结构不固定、经常扩展的场
-景，如电信行业的用户账单明细，金融行业的收支明细
+通过上面的对比，不难发现，相对于横表，纵表主要的优势是可扩展性强，适用于表结构不固定、经常扩展的场景，如电信行业的用户账单明细，金融行业的收支明细。
 
 ### 转换
 
@@ -193,7 +192,7 @@ select
 from sql_v A group by A.name;
 ```
 
-## MySQL索引原理之B+Tree  
+## MySQL索引原理之B+Tree
 
 ```java
 CREATE [UNIQUE | FULLTEXT | SPATIAL] INDEX index_name
@@ -237,7 +236,7 @@ lock_option:
 | MEMORY/HEAP | HASH, BTREE    |
 | NDB         | HASH, BTREE    |
 
-### 哈希索引  
+### 哈希索引
 
 哈希索引基于哈希表实现，它根据给定的哈希函数Hash(Key)和处理冲突（不同索引列值有相同的哈希值）方法将每一个索引列值都映射到一个固定长度的地址，哈希索引只存储哈希值和行指针。
 【结论】
@@ -248,7 +247,7 @@ lock_option:
 
 ### 二叉查找树  
 
-二叉查找树，也称之为二叉搜索树、二叉排序树，它的每个节点最多有两个子节点，左子树上的节点值均小于它的根节点值，右子树上的节点值均大于它的根节点值，左右子树也分别是二叉排序树  
+二叉查找树，也称之为二叉搜索树、二叉排序树，它的每个节点最多有两个子节点，左子树上的节点值均小于它的根节点值，右子树上的节点值均大于它的根节点值，左右子树也分别是二叉排序树
 
 【结论】
 1）二叉查找树可以做范围查询。
@@ -313,9 +312,9 @@ insert into t_myisam(id, a, b) values(3, 6, 9);
 
 
 
-### MyISAM的索引结构  
+### MyISAM的索引结构
 
-MyISAM存储引擎使用B+Tree作为索引结构，叶子节点的data域存放的是数据记录的地址。因此索引检索会按照B+Tree的检索算法检索索引，如果指定的Key存在，则取出其data域的值（地址），然后根据地址读取相应的数据记录。  
+MyISAM存储引擎使用B+Tree作为索引结构，叶子节点的data域存放的是数据记录的地址。因此索引检索会按照B+Tree的检索算法检索索引，如果指定的Key存在，则取出其data域的值（地址），然后根据地址读取相应的数据记录。
 
 ![image-20210812073355495](img_MYSQL%E8%BF%9B%E9%98%B6/image-20210812073355495.png)
 
@@ -381,7 +380,7 @@ SELECT * FROM tbl_name WHERE key_col LIKE '%Patrick';
 SELECT * FROM tbl_name WHERE key_col LIKE '%Patrick%';
 ```
 
-索引是一种有序的数据结构，会根据索引字段顺序进行排序，当字段开头模糊匹配无法使用索引查找
+索引是一种有序的数据结构，**会根据索引字段顺序进行排序**，当字段开头模糊匹配无法使用索引查找
 
 ```java
 //特例
@@ -400,7 +399,7 @@ explain select name from tableName where name like '%龙%';
 >select * from sql10_people where year(birthday)<=1992;
 ```
 
-```java
+```mysql
 //会使用索引
 #找出id=4的人
 >select * from sql10_people where id=5-1;
@@ -410,7 +409,7 @@ explain select name from tableName where name like '%龙%';
 
 ## 隐式类型转换会导致索引失效  
 
-```java
+```mysql
 create table sql11_people(
     id int not null auto_increment primary key,
     name varchar(30) comment '姓名',
@@ -421,7 +420,7 @@ create index idx_11_phone on sql11_people(phone);
 
 对于SQL中的值为数值的字符串，不加单引号MySQL也不会报错，但是存在隐式类型转换会导致索引失效  
 
-```java
+```mysql
 #标准写法（会使用索引）
 select * from sql11_people where phone='18733334444';
 #非标准写法（全表扫描，不推荐）
@@ -429,6 +428,134 @@ select * from sql11_people where phone=18733334444;
 #对于int类型的值加了单引号，会走索引但不推荐
 select * from sql11_people where id='5'
 ```
+
+## or条件会导致索引失效  
+
+- 如果查询条件中使用了or，只要其中一个条件没有索引，其他条件（字段）有索引也不会使用 。or 和 and 不一样，添加复合索引 (id, name) 也不能解决问题 。
+- 给or的每个字段单独添加索引或者使用union或union all解决这个问题。
+
+```mysql
+#当只有id有索引，name没有索引时
+#不会使用索引
+select * from sql_p where id='5' or name='张三';
+
+#会使用id索引
+select * from sql_p where id='5' 
+union 
+select * from sql_p where name='张三';
+```
+
+## 全文索引  
+
+全文索引是搜索引擎的关键技术。
+
+### 倒排索引  
+
+倒排索引通常也称之为反向索引，它是搜索引擎主要使用的索引方式。倒排索引是一种面向单词的索引机制，每个文档都可以用一系列单词来表示，可以很方便地通过单词找到对应的文档。  
+
+- 正向索引：文档-->单词
+- 倒排索引：单词-->文档  
+
+```mysql
+#对以下文档内容建索引，得到的结果如下图。
+MySQL is the most popular relational database on the internet.
+I like MySQL very much.
+```
+
+![image-20210831072122404](img_MYSQL%E8%BF%9B%E9%98%B6/image-20210831072122404.png)
+
+### 全文索引的使用  
+
+```mysql
+CREATE TABLE ft_en(
+    id INT UNSIGNED AUTO_INCREMENT NOT NULL PRIMARY KEY,
+    title VARCHAR(200),
+    body TEXT,
+    FULLTEXT (title,body)
+) ENGINE=InnoDB;
+
+
+INSERT INTO ft_en(title,body) VALUES
+('MySQL Tutorial','DBMS stands for DataBase ...'),
+('How To Use MySQL Well','After you went through a ...'),
+('Optimizing MySQL','In this tutorial we will show ...'),
+('1001 MySQL Tricks','1. Never run mysqld as root. 2. ...'),
+('MySQL vs. YourSQL','In the following database comparison ...'),
+('MySQL Security','When configured properly, MySQL ...');
+
+
+#如果建表时未创建全文索引，也可以使用create fulltext index创建
+CREATE FULLTEXT INDEX ft_title_body ON ft_en(title,body);
+```
+
+#### 三种模式  
+
+MySQL支持三种模式的全文检索，自然语言模式、布尔模式和查询扩展模式。  
+
+- 自然语言模式  
+
+```mysql
+#将搜索字符串解释为自然人类语言，除双引号外，没有特殊的运算符
+#未指定查询模式或指定为 IN NATURAL LANGUAGE MODE，都表示自然语言搜索
+SELECT * FROM ft_en WHERE MATCH (title, body) AGAINST ('database');
+```
+
+```mysql
+#score越大表示相关度越高
+select *,MATCH (title, body) AGAINST ('database') as score from ft_en;
+```
+
+![image-20210831074441897](img_MYSQL%E8%BF%9B%E9%98%B6/image-20210831074441897.png)
+
+- 布尔模式  
+
+```mysql
+#使用特殊规则解释搜索字符串。该字符串包含要搜索的单词，还可以包含指定要求的运算符
+#查询模式 IN BOOLEAN MODE 表示布尔搜索，+database -dbms表示有database没有dbms字样
+SELECT * FROM ft_en WHERE MATCH (title, body) AGAINST ('+database -dbms' IN BOOLEAN MODE);
+```
+
+- 查询扩展模式  
+
+```mysql
+#是对自然语言搜索的修改。搜索字符串用于执行自然语言搜索，将搜索返回的最相关行中的单词添加到搜索字符串中，然后再次执行搜索
+#IN NATURAL LANGUAGE MODE WITH QUERY EXPANSION 或 WITH QUERY EXPANSION
+SELECT * FROM ft_en WHERE MATCH (title, body) AGAINST ('database' WITH QUERY EXPANSION);
+```
+
+### 忽略的单词
+
+在使用MySQL全文索引时，会发现有些单词检索不出结果，如for、how、in等，如：
+
+```mysql
+#查询结果为空
+select * from ft_en where match(title,body) against('for');
+```
+
+主要原因有两个：
+
+- InnoDB存储引擎默认只对长度>=3的单词建索引。查看参数设置： `SHOW VARIABLES LIKE 'innodb_ft%';`
+
+- 使用了停用词。查看停用词表： `select * from information_schema.INNODB_FT_DEFAULT_STOPWORD;  `
+
+### 查看分词结果
+
+```mysql
+SET GLOBAL innodb_ft_aux_table="liufeng/ft_en";
+SELECT * FROM INFORMATION_SCHEMA.INNODB_FT_INDEX_CACHE;
+```
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
