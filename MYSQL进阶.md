@@ -183,27 +183,67 @@ public class DruidConfig {
 }
 ```
 
+## 存储引擎
 
+### 概念
 
+MySQL中的数据用各种不同的技术存储在文件(或者内存)中。这些技术中的每一种技术都使用不同的存储机制、索引技巧、锁定水平并且最终提供广泛的不同的功能和能力。这些不同的技术以及配套的相关功能在 MySQL中被称作存储引擎(也称作表类型)。
 
+在mysql客户端中，使用以下命令可以查看MySQL支持的引擎。
 
+`show engines;`
 
+### InnoDB
 
+- InnoDB是一个健壮的事务型存储引擎；
+- 支持行级锁定和外键约束；
+- 适合处理多重并发的更新请求；
+- 与其它存储引擎不同，InnoDB表能够自动从灾难中恢复；
+- 支持自动增加列AUTO_INCREMENT属性。
+- InnoDB将它的数据放在一个逻辑表空间(一个目录)中，表空间可以包含数个文件（一个数据库一个文件夹，一个表是一个`.frm`表定义文件和`.ibd`表数据文件）
 
+一般来说，如果需要事务支持，并且有较高的并发读取频率，InnoDB是不错的选择。
 
+### MyISAM
 
+- 拥有较高的插入、查询速度；
+- 不支持事务，也不支持外键；
+- 可以把数据文件和索引文件放在不同目录（InnoDB是放在一个目录里面的）；要指定数据文件和索引文件的路径，需要在创建表的时候通过`DATA DIRECTORY`和`INDEX DIRECTORY`语句指定，文件路径需要使用绝对路径。
 
+### MEMORY
 
+- 使用系统内存存储数据，虽然在内存中存储表数据确实会提供很高的性能，但当mysqld守护进程崩溃时，所有的Memory数据都会丢失；
+- 存储的数据使用的是长度不变的格式，不能使用BLOB和TEXT长度可变的数据类型，VARCHAR是一种长度可变的类型，但因为它在MySQL内部当做长度固定不变的CHAR类型，所以可以使用；
+- 可以在一个MEMORY表中有非唯一键值；
+- MEMORY支持AUTO_INCREMENT列和对可包含NULL值的列的索引；
+- 当不再需要MEMORY表的内容时，要释放被MEMORY表使用的内存，应该执行DELETE FROM或TRUNCATE TABLE，或者删除整个表（使用DROP TABLE）；
+- 支持散列索引和B树索引，如：
 
+```mysql
+#在username字段上使用了HASH散列索引
+create table users(
+    id smallint unsigned not null auto_increment,
+    username varchar(15) not null,
+    pwd varchar(15) not null,
+    index using hash (username),
+    primary key (id)
+)engine=memory;
 
+#在username字段上使用BTREE索引
+create table users(
+    id smallint unsigned not null auto_increment,
+    username varchar(15) not null,
+    pwd varchar(15) not null,
+    index using btree (username),
+    primary key (id)
+)engine=memory;
+```
 
+### ARCHIVE
 
+仅仅支持最基本的插入和查询两种功能。Archive支持高并发的插入操作，但是本身不是事务安全的。Archive非常适合存储归档数据，如记录日志信息可以使用Archive。
 
-
-
-
-
-
+![img](img_MYSQL%E8%BF%9B%E9%98%B6/20170705172036010)
 
 
 
@@ -502,7 +542,7 @@ B+Tree是B树的变体，比B树有更广泛的应用。
 
 参考：[数据结构在线模拟工具](https://www.cs.usfca.edu/~galles/visualization/Algorithms.html)
 
-## MyISAM与InnoDB  
+## MyISAM与InnoDB索引结构  
 
 ```java
 //对两种引擎的表分别进行插入操作
@@ -523,13 +563,15 @@ insert into t_myisam(id, a, b) values(3, 6, 9);
 
 MyISAM存储引擎使用B+Tree作为索引结构，叶子节点的data域存放的是数据记录的地址。因此索引检索会按照B+Tree的检索算法检索索引，如果指定的Key存在，则取出其data域的值（地址），然后根据地址读取相应的数据记录。
 
+在MyISAM中，主索引和辅助索引（Secondary key）在结构上没有任何区别，只是主索引要求key是唯一的，而辅助索引的key可以重复。
+
 ![image-20210812073355495](img_MYSQL%E8%BF%9B%E9%98%B6/image-20210812073355495.png)
 
 ### InnoDB的索引结构
 
 InnoDB存储引擎也使用B+Tree作为索引结构，索引的key是数据表的主键，叶子节点的data域保存了完整的数据记录。MyISAM索引文件和数据文件是分离的，索引文件仅保存数据记录的地址；InnoDB只有一个表数据文件，它本身就是主索引文件。  
 
-其中主键索引data存放的是数据，第二索引data存放的是主键。
+其中主键索引data存放的是数据，辅助索引data存放的是主键。
 
 ![image-20210812073959262](img_MYSQL%E8%BF%9B%E9%98%B6/image-20210812073959262.png)
 

@@ -716,7 +716,7 @@ public class SpringConfig {
 }
 ```
 
-## 常用备注
+## 常用
 
 ### 热部署
 
@@ -754,6 +754,51 @@ ApplicationHome h = new ApplicationHome(getClass());
 File jarF = h.getSource();
 System.out.println(jarF.getParentFile().toString());
 ```
+
+### springboot实现转发和重定向
+
+#### 转发
+
+方式一：使用 "forward" 关键字(不是指java关键字)，注意：类的注解不能使用@RestController 要用@Controller
+
+```java
+@RequestMapping(value="/test/test01/{name}" , method = RequestMethod.GET)
+public String test(@PathVariable String name) {
+	return "forward:/ceng/hello.html";
+}
+```
+
+方式二：使用servlet 提供的API，注意：类的注解可以使用@RestController,也可以使用@Controller
+
+```java
+@RequestMapping(value="/test/test01/{name}" , method = RequestMethod.GET)
+public void test(@PathVariable String name, HttpServletRequest request, HttpServletResponse response) throws Exception {
+	request.getRequestDispatcher("/ceng/hello.html").forward(request,response);
+}
+```
+
+#### 重定向
+
+方式一：使用 "redirect" 关键字(不是指java关键字)，注意：类的注解不能使用@RestController，要用@Controller
+
+```java
+@RequestMapping(value="/test/test01/{name}" , method = RequestMethod.GET)
+public String test(@PathVariable String name) {
+	return "redirect:/ceng/hello.html";
+}
+```
+
+方式二：使用servlet 提供的API，注意：类的注解可以使用@RestController，也可以使用@Controller
+
+```java
+@RequestMapping(value="/test/test01/{name}" , method = RequestMethod.GET)
+public void test(@PathVariable String name, HttpServletResponse response) throws IOException {
+	response.sendRedirect("/ceng/hello.html");
+}
+```
+
+使用API进行重定向时，一般会在url之前加上：request.getContextPath()
+
 
 ## SpringBoot Web
 
@@ -1366,6 +1411,67 @@ public class AccountBasicServiceImplTest {
 还可以在idea界面点击右上角的⚡️，如下图，test生命周期就被跳过去了，灰色。
 
 ![image-20210715161355898](img_SpringBoot/image-20210715161355898.png)
+
+## SpringBoot Vue部署
+
+linux服务器环境，打成一个jar包
+
+1. 把vue的项目用`npm run build`命令打包，打包完成后，会生成dist文件夹。
+
+   将vue源码放在SpringBoot中一起编译打包可参考：[SpringBoot和VUE源码直接整合打包成jar](https://blog.csdn.net/chen15369337607/article/details/101680861)
+
+2. 打开springboot项目，在src/resources目录下新建一个public文件夹，将dist文件夹中的所有文件放到public下。
+
+3. 配置静态资源访问
+
+```java
+@Configuration
+public class MvcConfig implements WebMvcConfigurer {
+    //配置静态访问资源
+    @Override
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        registry.addResourceHandler( "/" ).addResourceLocations( "classpath:/public/index.html" );
+        registry.addResourceHandler( "/index.html" ).addResourceLocations( "classpath:/public/index.html" );
+        registry.addResourceHandler("/static/**").addResourceLocations( "classpath:/public/static/" );
+        registry.addResourceHandler("/parameterExcel/**").addResourceLocations( "file:./parameterExcel/" );
+        WebMvcConfigurer.super.addResourceHandlers( registry );
+    }
+}
+
+//shiro配置静态资源访问
+@Configuration
+public class ShiroConfig {
+    @Bean("shiroFilter")
+    public ShiroFilterFactoryBean factory(DefaultWebSecurityManager securityManager) {
+        ShiroFilterFactoryBean factoryBean = new ShiroFilterFactoryBean();
+
+        // 添加自己的过滤器并且取名为jwt
+        Map<String, Filter> filterMap = new HashMap<>();
+        filterMap.put("jwt", new JWTFilter());
+        factoryBean.setFilters(filterMap);
+        factoryBean.setSecurityManager(securityManager);
+    
+        //自定义url规则
+        Map<String, String> filterRuleMap = new LinkedHashMap<>();
+        
+        //通过http://ip:port/contextPath/ 访问
+        filterRuleMap.put("/", "anon");
+        filterRuleMap.put("/static/**", "anon");
+        filterRuleMap.put("/parameterExcel/**", "anon");
+        // 所有请求通过我们自己的JWT Filter
+        filterRuleMap.put("/**", "jwt");
+        factoryBean.setFilterChainDefinitionMap(filterRuleMap);
+        return factoryBean;
+    }
+}
+```
+
+3. 使用Maven的clean和package命令清理打包jar。
+
+4. `nohup java -jar xxx.jar &`命令后台启动。
+
+
+
 
 ## 常见问题
 
