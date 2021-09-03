@@ -480,7 +480,102 @@ public static void main(String[] args){
  */
 ```
 
-​    
+## 排序
+
+### Comparator<T>接口
+
+![image-20210902103126846](img_Java%E5%9F%BA%E7%A1%80/image-20210902103126846.png)
+
+实现排序需要重写`int compare(T o1, T o2);`方法
+
+对o1和o2进行排序，o1和o2传入compare方法顺序是o1、o2，根据Comparetor.compare(o1, o2)方法的返回值，如果返回的值小于零，则不交换两个o1和o2的位置；如果返回的值大于零，则交换o1和o2的位置；然后根据o1、o2传入值的大小和交换之后的排序，判断是升序或逆序
+
+```java
+List<Integer> list = Stream.of(1,2,10).collect(Collectors.toList());
+Collections.sort(list, new Comparator<Integer>() {
+            @Override
+            public int compare(Integer o1, Integer o2) {
+                //o1-o2是升序
+                //o2-o1是降序
+                return o2-o1;
+            }
+});
+System.out.println(list);//[10, 2, 1]
+```
+
+### Comparable<T>接口
+
+需要重写`public int compareTo(T o)`方法
+
+#### String默认实现
+
+```java
+System.out.println("ASD".compareTo("DAE"));//-3
+```
+
+#### 自定义
+
+```java
+class myComparable implements Comparable<myComparable>{
+        String a;
+        String b;
+        public String getA() {
+            return a;
+        }
+        public void setA(String a) {
+            this.a = a;
+        }
+        public String getB() {
+            return b;
+        }
+        public void setB(String b) {
+            this.b = b;
+        }
+        myComparable(String a, String b){
+            this.a=a;
+            this.b=b;
+        }
+        @Override
+        public int compareTo(myComparable o) {
+            int result=0;
+            result=a.compareTo(o.a);
+            if(result==0){
+                result=b.compareTo(o.b);
+            }
+            return result;
+        }
+        public String toString(){
+            return JSONObject.toJSONString(this);
+        }
+}
+
+public static void main(String[] args) {
+        ArrayList<myComparable> list1 = new ArrayList<>();
+        list1.add(new myComparable("1","6"));
+        list1.add(new myComparable("5","3"));
+        list1.add(new myComparable("1","2"));
+        Collections.sort(list1);
+        System.out.println(list1);
+}
+
+//输出：[{"a":"1","b":"2"}, {"a":"1","b":"6"}, {"a":"5","b":"3"}]
+```
+
+### Java8排序
+
+```java
+//正向排序
+list.stream().sorted(Comparator.comparing(Employee::getName)).collect(Collectors.toList());
+//反向排序
+list.stream().sorted(Comparator.comparingLong(Employee::getId).reversed()).collect(Collectors.toList());
+//多个排序
+list.stream().sorted(Comparator.comparing((Employee::getName).thenComparing(Employee::getId)).collect(Collectors.toList());
+//多个排序时需要指明参数类型Employee否则编译失败
+list.stream().sorted(Comparator.comparing((Employee e)->Integer.parseInt(e.getOrderNum()))
+                     .thenComparing(Person::getId)).collect(Collectors.toList());                     
+```
+
+
 
 ## 浅拷贝和深拷贝
 

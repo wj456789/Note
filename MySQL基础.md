@@ -1,5 +1,7 @@
 # MySQL基础
 
+学习参考：[MySQL教程：MySQL数据库学习宝典（从入门到精通）](http://c.biancheng.net/mysql/)
+
 SQL（Structure Query Language）结构化查询语言
 
 - DQL（data query language）数据查询语言 select操作
@@ -242,7 +244,125 @@ MySQL关闭权限验证后，直接通过 mysql 命令即可连接到数据库�
 >ALTER USER 'root'@'localhost' IDENTIFIED BY '123456';
 ```
 
+## 外键和外键约束
 
+### 外键
+
+表一的主键字段X在另外一张表二中存在，且不是主键，则字段X称为表二的外键；其中表一称为主键表(父表，主表)，表二称为外键表(从表，外表); 
+
+如：字段depart_id就是学生表的外键，这里的外键表是学生表，主键表是院系表。
+
+```mysql
+#学生表
+create table student(
+    id int not null auto_increment primary key, 
+    name varchar(30) not null comment '学生姓名',
+    depart_id varchar(10) not null comment '院系ID'
+)engine=InnoDB default charset=utf8;
+
+#院系表
+create table depart(
+    id int not null auto_increment primary key, 
+    name varchar(30) not null comment '院系名称'
+)engine=InnoDB default charset=utf8;
+```
+
+### 外键实现
+
+**定义外键时，需要遵守下列规则：**
+
+- 主表必须已经存在于数据库中，或者是当前正在创建的表。如果是后一种情况，则主表与从表是同一个表，这样的表称为自参照表，这种结构称为自参照完整性。
+- 外键的取值要么取父表中字段对应的值，要么取NULL值;并且外键中列的数据类型必须和主表主键中对应列的数据类型相同。
+- 主表中有多个主键时，外键中列的数目必须和主表的主键中列的数目相同。
+
+#### 在创建表时设置外键约束
+
+```mysql
+[CONSTRAINT <外键名>]    FOREIGN KEY 字段名 [，字段名2，…]    REFERENCES <主表名> 主键列1 [，主键列2，…]
+```
+
+```mysql
+#父表
+create table parent(
+　　id number primary key,
+　　name varchar2(30),
+);
+
+#子表
+create table child(
+    id number primary key,
+    name varchar2(30),
+    #1、
+    parent_id number,
+    constraint child_fid_fk foreign key(parent_id) references parent(id)
+    #2、也可以直接在字段上定义
+    parent_id number constraint child_fid_fk references parent(id)
+);
+```
+
+#### 在修改表时添加外键约束
+
+前提是从表中外键列中的数据必须与主表中主键列中的数据一致或者是从表没有数据
+
+```mysql
+ALTER TABLE <数据表名> 
+ADD CONSTRAINT <外键名> 
+FOREIGN KEY(<列名>) REFERENCES <主表名> (<列名>);
+```
+
+```mysql
+ALTER  TABLE child 
+ADD  CONSTRAINT child_fid_fk 
+FOREIGN  KEY (parent_id)  REFERENCES  parent(id);
+```
+
+#### 删除外键约束
+
+外键一旦删除，就会解除主表和从表间的关联关系。
+
+```mysql
+ALTER TABLE <表名> 
+DROP FOREIGN KEY <外键约束名>;
+```
+
+```mysql
+ALTER  TABLE child 
+DROP FOREIGN KEY child_fid_fk;
+```
+
+**PS:**
+
+使用`casecade constraints`解除关联就可以删除父表
+
+```mysql
+drop table parent cascade constranints;
+```
+
+### Mysql 外键设置
+
+#### on delete 规则
+
+- `CASCADE`：级联删除，就是删除主键表的同时，外键表同时删除。
+
+- `NO ACTION`(非活动，默认)、`RESTRICT`：约束/限制
+  当取值为`No Action`或者`Restrict`时，则当在主键表中删除对应记录时，首先检查该记录是否有对应外键，如果有则不允许删除。（即外键表约束主键表）
+
+  - `NO ACTION`和`RESTRICT`的区别：只有在及个别的情况下会导致区别，前者是在其他约束的动作之后执行，后者具有最高的优先权执行。
+
+- `SET NULL`：级联置空
+
+  当取值为Set Null时，则当在主键表中删除对应记录时，首先检查该记录是否有对应外键，如果有则设置子表中该外键值为null(外键表约束主键表，不过这就要求该外键允许取null)。
+
+```mysql
+create table child(
+    id number primary key,
+    name varchar2(30),
+    #parent_id number constraint child_fid_fk references parent(id) on delete set null
+    parent_id number constraint child_fid_fk references parent(id) on delete cascade
+);
+```
+
+参考：[外键约束](https://www.cnblogs.com/cjaaron/p/9216839.html)
 
 ## 索引
 
