@@ -1,5 +1,12 @@
 # String
 
+```java
+//常用方法
+char[] toCharArray();	//生成字符数组
+```
+
+
+
 ## String.format()
 
 `format(String format, Object… args) `新字符串使用本地语言环境，制定字符串格式和参数生成格式化的新字符串。

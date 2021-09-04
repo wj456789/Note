@@ -56,6 +56,22 @@ static可以用来修饰类的成员方法、类的成员变量，另外可以�
 
 ## 包装类
 
+### Integer
+
+```java
+//常用方法
+public static void main(String[] args) {
+    System.out.println(Integer.toBinaryString(14));	//1110
+    System.out.println(Integer.toHexString(14));	//e
+    System.out.println(Integer.toOctalString(14));	//16
+    System.out.println(Integer.parseInt("12",8));	//10
+    System.out.println(Integer.parseInt("1010",2));	//10
+    System.out.println(Integer.parseInt("ff",16));	//255
+}
+```
+
+
+
 - `Integer.parseInt(String s)`将会返回int常量。
 - `Integer.valueOf(String s)`将会返回Integer类型，如果存在缓存将会返回缓存中已有的对象。
 
@@ -83,6 +99,8 @@ public static void main(String[] args){
     System.out.println(a == c);//true,一个Integer 与 int比较，先将Integer转换成int类型，再做值比较
 }
 ```
+
+
 
 
 
@@ -749,3 +767,4 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
     }
 }
 ```
+
