@@ -1,8 +1,12 @@
 # String
 
+## 常用方法
+
 ```java
-//常用方法
-char[] toCharArray();	//生成字符数组
+boolean matches(String regex)			//正则比较
+char[] toCharArray();					//生成字符数组
+int indexOf(String str, int fromIndex)		//从fromIndex位置开始往后找到第一个str所在整个字符串位置
+int lastIndexOf(String str, int fromIndex)	//从fromIndex位置开始往前找到第一个str所在整个字符串位置
 ```
 
 
