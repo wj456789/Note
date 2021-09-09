@@ -309,30 +309,39 @@ https://blog.csdn.net/hnoysz/article/details/78666272
 
 ## 解压缩命令
 
-tar解压缩命令
--z	用于gzip压缩方式	文件名.tar.gz
--x	解压缩、提取打包的内容
--c	建立一个压缩，打包文档
--v	显示压缩或者打包的内容
--f	f后面要接压缩后的文件的名字，只要用到tar命令，-f选项是必须要用的，-f参数在使用的时候一定排在其他参数的后面，在最右边
+**tar解压缩命令**
 
-#tar -zxvf test.tar.gz		//解压缩tar.gz文件
-#tar -cvf test.tar test/	//压缩为test.tar
+- -z	用于gzip压缩方式	文件名.tar.gz
+- -x	解压缩、提取打包的内容
+- -c	建立一个压缩，打包文档
+- -v	显示压缩或者打包的内容
+- -f	f后面要接压缩后的文件的名字，只要用到tar命令，-f选项是必须要用的，-f参数在使用的时候一定排在其他参数的后面，在最右边
 
-zip压缩命令
--r	递归压缩，将自定目录下的所有子文件以及文件一起处理
+```sh
+tar -zxvf test.tar.gz		#解压缩tar.gz文件
+tar -cvf test.tar test/		#压缩为test.tar
+```
 
-#zip -r test.zip test/
-#zip test.zip test1.txt test2.txt...
+**zip压缩命令**
 
-unzip解压命令
--d	指定文件解压后存储的目录
+- -r	递归压缩，将自定目录下的所有子文件以及文件一起处理
 
-#unzip test.war -d test/ 
+```sh
+zip -r test.zip test/
+zip test.zip test1.txt test2.txt...
+```
+
+**unzip解压命令**
+
+- -d	指定文件解压后存储的目录
+
+```sh
+unzip test.war -d test/ 
+```
 
 参考：
-Linux压缩打包命令——tar、zip、unzip
-https://blog.csdn.net/weixin_44901564/article/details/99682926
+[Linux压缩打包命令——tar、zip、unzip](https://blog.csdn.net/weixin_44901564/article/details/99682926)
+
 
 ## 查看端口
 
