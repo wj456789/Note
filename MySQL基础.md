@@ -527,9 +527,17 @@ DROP VIEW view_name;
 
 #### 读取数据问题
 
--  脏读(Drity Read)
+- 脏读(Drity Read)
+
+  事务A可以读取到事务B未提交的执行结果，即读取未提交的数据。  
+
 - 不可重复读(Non-repeatable read)
+
+  事务A执行同样的查询，在事务B提交之前、提交之后，会得到不同的查询结果  
+
 - 幻读(Phantom Read)
+
+  事务B插入一条数据并提交，事务A查询不到事务B提交的数据，也无法插入同样的数据，产生“幻读”  
 
 参考：[脏读、幻读、不可重复读](https://www.cnblogs.com/l-y-h/p/12458777.html#_label0_3)
 

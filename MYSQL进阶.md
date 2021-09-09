@@ -794,6 +794,113 @@ SET GLOBAL innodb_ft_aux_table="liufeng/ft_en";
 SELECT * FROM INFORMATION_SCHEMA.INNODB_FT_INDEX_CACHE;
 ```
 
+### ngram全文解析器  
+
+MySQL内置的全文解析器使用空格确定单词的开始和结束，当涉及汉语、日语或韩文时，这明显不适用。为了解决这个问题，MySQL提供了ngarm全文解析器，支持MyISAM和InnoDB存储引擎。
+
+ngram即n元分词，ngram解析器将文本序列标记为连续的n字符序列，例如，对于“我爱中国”：  
+
+- n=1： '我', '爱', '中', '国'
+- n=2： '我爱', '爱中', '中国'
+- n=3： '我爱中', '爱中国'
+- n=4： '我爱中国'  
+
+默认ngram令牌大小为2，可以通过修改ngram_token_size来配置ngram令牌大小。  
+
+```mysql
+#在启动参数中设置
+mysqld --ngram_token_size=2
+#在配置文件中设置
+[mysqld]
+ngram_token_size=2
+```
+
+#### 使用ngram解析器创建全文索引  
+
+```mysql
+CREATE TABLE ft_zh(
+    id INT UNSIGNED AUTO_INCREMENT NOT NULL PRIMARY KEY,
+    title VARCHAR(200),
+    body TEXT,
+    FULLTEXT (title,body) WITH PARSER ngram
+) ENGINE=InnoDB CHARACTER SET utf8mb4;
+
+INSERT INTO ft_zh(title,body) VALUES ('MySQL基础入门', '主要讲解MySQL的基本使用。');
+INSERT INTO ft_zh(title,body) VALUES ('MySQL高级进阶', '主要讲解查询优化、高可用等相关知识。');
+
+#如果建表时未创建全文索引
+CREATE FULLTEXT INDEX idx_ft_zh ON ft_zh(title, body) WITH PARSER ngram;
+
+#查看分词结果
+SET GLOBAL innodb_ft_aux_table="liufeng/ft_zh";
+SELECT * FROM INFORMATION_SCHEMA.INNODB_FT_INDEX_CACHE ORDER BY doc_id, position;
+
+#查询数据
+SELECT * FROM ft_zh WHERE MATCH (title, body) AGAINST('入门和进阶');
+```
+
+### Sphinx  
+
+Sphinx是一个免费、开源的全文搜索引擎，它的设计就着眼于与数据库的完美结合，有着类似于DBMS的特性，查询速度非常快，支持分布式检索，并且扩展性好。它可以高效利用内存和磁盘I/O，缓解大型操作的瓶颈，可以提供比数据库本身更专业的搜索功能。  
+
+Sphinx可以在多个方面完善基于MySQL的应用程序，能弥补MySQL性能的不足，还提供了MySQL没有的功能，例如：
+
+- Sphinx是快速、高效、可扩展的全文检索。
+- Shinx的索引和检索的速度要明显快于MySQL，查询1GB的数据也只需要10~100ms。
+- Sphinx可以对多个源表的混合数据创建索引，不限于单个表上的字段。
+- Sphinx可以将多个索引的搜索结果进行动态整合。
+- 除了能对文本列索引外，还支持其他数据类型，如整型、浮点型、时间戳等。
+- 支持布尔、短语、相似词搜索。
+- 支持关键词高亮显示。
+- 支持生成文档摘要。
+- … …  
+
+**使用Sphinx的两种方式：**  
+
+在实际应用中，可以通过两种方式整合Sphinx和MySQL。一种是松耦合方式，Sphinx对MySQL的查询结果进行索引，应用程序使用API进行检索；另一种是将Sphinx作为MySQL的插件。  
+
+![image-20210910074024798](img_MYSQL%E8%BF%9B%E9%98%B6/image-20210910074024798.png)
+
+**中文分词算法：**  
+
+- 基于词典  
+
+  典型的机械分词，与词典进行比较，词典越大，分词的准确率越高。
+  - 正向最大匹配
+  - 逆向最大匹配
+  - 双向最大匹配  
+
+- 基于统计  
+
+  上下文中相邻的字同时出现的次数越多，就越可能构成一个词。
+
+  - N元模型
+  - 隐马尔科夫模型 HMM  
+
+- 基于规则（语义）  
+
+  通过模拟人对句子的理解，达到识别词的效果，基本思想是语义分析，句法分析，利用句法信息和语义信息对文本进行分词。目前还不成熟  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
