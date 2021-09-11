@@ -2,6 +2,42 @@
 
 学习参考：[MySQL教程：MySQL数据库学习宝典（从入门到精通）](http://c.biancheng.net/mysql/)
 
+## 数据类型
+
+### char
+
+- char表示定长字符串，长度是固定的；
+
+- 如果插入数据的长度小于char的固定长度时，则用空格填充；
+
+- 因为长度固定，所以存取速度要比varchar快很多，甚至能快50%，但正因为其长度固定，所以会占据多余的空间，是空间换时间的做法；
+
+- 对于char来说，最多能存放的字符个数为255，和编码无关；
+- 空格表示占位不算一个字符；
+
+**char(10)：** 10位固定字符串，不足补空格，最多10个字符
+
+### varchar
+
+- varchar表示可变长字符串，长度是可变的；
+- 插入的数据是多长，就按照多长来存储；
+- varchar在存取方面与char相反，它存取慢，因为长度不固定，但正因如此，不占据多余的空间，是时间换空间的做法；
+- 对于varchar来说，最多能存放的字符个数为65532；
+- 空格也按一个字符存储；
+
+**varchar(50)中50的涵义：**最多存放50个字符，varchar(50)和(200)存储hello所占空间一样，但后者在排序时会消耗更多内存，因为order by col采用fixed_length计算col长度(memory引擎也一样)。在早期 MySQL 版本中， 50 代表字节数，现在代表字符数。
+
+### int
+
+**int(20)中20的涵义:**  是指显示字符的长度，不是存储数据的大小。20表示最大显示宽度为20，但仍占4字节存储，存储范围不变；不影响内部存储，只是影响带 zerofill 定义的 int 时，前面补多少个 0，易于报表展示
+
+### FLOAT和DOUBLE
+
+- FLOAT类型数据可以存储至多8位十进制数，并在内存中占4字节。
+- DOUBLE类型数据可以存储至多18位十进制数，并在内存中占8字节。
+
+## 语句类型
+
 SQL（Structure Query Language）结构化查询语言
 
 - DQL（data query language）数据查询语言 select操作
@@ -9,7 +45,7 @@ SQL（Structure Query Language）结构化查询语言
 - DDL（data defination language）数据库定义语言，主要是建表、删除表、修改表字段等操作
 - DCL（data control language）数据库控制语言，如commit，revoke之类的
 
-## 数据定义语言DDL
+### 数据定义语言DDL
 
 ```java
 create table score(
@@ -20,23 +56,35 @@ create table score(
 )engine=InnoDB default charset=utf8;
 ```
 
-## 数据操作语言DML
+### 数据操作语言DML
 
 ```java
 insert into score(name, course, grade) values('张三', '语文', 89);
 ```
 
+#### drop、delete与truncate
+
+三者都表示删除，但是三者有一些差别：
+
+|          | Delete                                   | Truncate                       | Drop                                                 |
+| -------- | ---------------------------------------- | ------------------------------ | ---------------------------------------------------- |
+| 类型     | 属于DML                                  | 属于DDL                        | 属于DDL                                              |
+| 回滚     | 可回滚                                   | 不可回滚                       | 不可回滚                                             |
+| 删除内容 | 表结构还在，删除表的全部或者一部分数据行 | 表结构还在，删除表中的所有数据 | 从数据库中删除表，所有的数据行，索引和权限也会被删除 |
+| 删除速度 | 删除速度慢，需要逐行删除                 | 删除速度快                     | 删除速度最快                                         |
 
 
-## 数据查询语言DQL
+因此，在不再需要一张表的时候，用drop；在想删除部分数据行时候，用delete；在保留表而删除所有数据的时候用truncate。
 
-### ORDER BY
+### 数据查询语言DQL
+
+#### ORDER BY
 
 字段是整型数字，存储时用了Integer，排序会按照数字大小排序，如：2、4、10、11、31；但是用varchar存储，排序会按照字符排序，如：10、11、2、31、4，这时如果需要按照数字大小排序，先对长度排序，再使用字符排序`OROUP BY LENGTH(num),num`。
 
-#### GROUP BY和HAVING的使用
+**GROUP BY和HAVING的使用：**
 
-**语法**	
+**语法：**	
 
 ```java
 //aggregate_function表示聚合函数
@@ -47,14 +95,14 @@ GROUP BY column_name1,column_name2,...
 HAVING aggregate_function(column_name) operator value
 ```
 
-**说明**
+**说明：**
 
 1. group by可以对一列或多列进行分组
 
 2. SELECT一般只能跟上分组字段和聚合函数
 3. WHERE 关键字无法与聚合函数一起使用，HAVING 子句可以对分组后的各组数据进行筛选，也可以对聚合函数进行判断
 
-### group_concat
+#### group_concat
 
 group_concat配合group by一起使用，用于将某一列的值按指定的分隔符进行拼接，MySQL默认的分隔符为逗号。
 
@@ -81,7 +129,7 @@ dept group_concat(name)
 部门C  李洁,欧阳辉
 ```
 
-### distinct
+#### distinct
 
 distinct用于在查询中返回列的唯一不同值（去重复），支持单列或多列。
 
@@ -92,12 +140,12 @@ distinct用于在查询中返回列的唯一不同值（去重复），支持单
 SELECT DISTINCT column_name1, column_name2,... FROM table_name;
 ```
 
-### 表连接
+#### 表连接
 
 **语法**
 
-```java
-//where
+```mysql
+#where
 SELECT table1.column, table2.column 
 FROM table1, table2 
 WHERE table1.column1 = table2.column2;
@@ -105,41 +153,72 @@ WHERE table1.column1 = table2.column2;
 
 **分类**
 
-- 内连接：使用where或 join、inner join，只连接匹配的行
-- 外连接：
-  - 左外连接，left join，包含左表的全部行（不管右表是否存在与之匹配的行），以及右表中全部匹配的行
-  - 右外连接，right join，包含右表的全部行（不管左表是否存在与之匹配的行），以及左表中全部匹配的行
-  - 全外连接，full join，包含左右两个表的全部行（不管在另一个表中是否存在与之匹配的行）
-- 自连接：同一张表内的连接，相互连接的表在物理上同为一张表，但是逻辑上是多张表
+- `内连接`：使用`where、 join、inner join`，只连接匹配的行
 
-交叉连接（cross join）：没有用where子句的交叉连接将产生笛卡尔积，第一个表的行数乘以第二个表的行数等于笛卡尔积
-和结果集的大小。这种连接需要尽量避免。比如：`SELECT table1.column, table2.column FROM table1, table2; `
+  - `自连接`：同一张表内的连接，相互连接的表在物理上同为一张表，但是逻辑上是多张表
 
-### 子查询
+    ```mysql
+    SELECT * FROM A T1 INNER JOIN A T2 ON T1.id=T2.pid
+    ```
 
-**子查询in**
+- `外连接`：
+  
+  - `左外连接，left join`，包含左表的全部行（不管右表是否存在与之匹配的行），以及右表中全部匹配的行
+  
+  - `右外连接，right join`，包含右表的全部行（不管左表是否存在与之匹配的行），以及左表中全部匹配的行
+  
+  - `全外连接，full join`，包含左右两个表的全部行（不管在另一个表中是否存在与之匹配的行），
+  
+    - MySQL不支持全连接，但是可以使用`LEFT JOIN 和UNION和RIGHT JOIN`联合使用来替代
+  
+    ```mysql
+    SELECT * FROM A LEFT JOIN B ON A.id=B.id UNION SELECT * FROM A RIGHT JOIN B ON A.id=B.id
+    ```
 
-```java
-//子查询in语法
+- `交叉连接（cross join）`：没有用where子句的交叉连接将产生笛卡尔积，第一个表的行数乘以第二个表的行数等于笛卡尔积
+  和结果集的大小。这种连接需要尽量避免。比如：
+
+  ```mysql
+  SELECT table1.column, table2.column FROM table1, table2;
+  ```
+
+- `联合查询（UNION与UNION ALL）`
+
+  ```mysql
+  SELECT * FROM A UNION SELECT * FROM B UNION ...
+  ```
+
+  - 就是把多个结果集集中在一起，UNION前的结果为基准，需要注意的是联合查询的列数要相等，相同的记录行会合并
+  - 如果使用UNION ALL，不会合并重复的记录行
+  - 效率 UNION 高于 UNION ALL
+
+#### 子查询
+
+一条SQL语句的查询结果做为另一条查询语句的条件或查询结果，其中多条SQL语句嵌套使用，内部的SQL查询语句称为子查询。
+
+- **子查询in**
+
+```mysql
+#子查询in语法
 SELECT column_name FROM table_name 
 WHERE column_name IN(
  SELECT column_name FROM table_name [WHERE]
 );
 ```
 
-**子查询exists**
+- **子查询exists**
 
-EXISTS是子查询中用于测试内部查询是否返回任何行的布尔运算符。将主查询的数据放到子查询中做条件验证，根据验证结果（TRUE 或 FALSE）来决定主查询的数据结果是否保留。
+  EXISTS是子查询中用于测试内部查询是否返回任何行的布尔运算符。**将主查询的数据放到子查询中做条件验证**，根据验证结果（TRUE 或 FALSE）来决定主查询的数据结果是否保留。
 
-```java
-//where子句使用exists语法
+```mysql
+#where子句使用exists语法
 SELECT t1.* 
 FROM table_name1 t1
 WHERE EXISTS (SELECT * FROM table_name2 t2 WHERE t1.column_name=t2.column_name);
 ```
 
-```java
-//查找有成绩的学生
+```mysql
+#查找有成绩的学生
 >select A.* from student A where exists(select * from score B where A.stu_id=B.stu_id);
 
 stu_id name address
@@ -147,13 +226,38 @@ stu_id name address
  2     李四	陕西
 ```
 
+- **mysql中 in 和 exists 区别**
+
+  mysql中的in语句是把外表和内表作hash 连接，而exists语句是对外表作loop循环，每次loop循环再对内表进行查询。一直大家都认为exists比in语句的效率要高，这种说法其实是不准确的。这个是要区分环境的。
+
+  - 如果查询的两个表大小相当，那么用in和exists差别不大。
+
+  - 如果两个表中一个较小，一个是大表，则子查询表大的用exists，子查询表小的用in。
+
+  - `not in 和not exists`：如果查询语句使用了not in，那么内外表都进行全表扫描，没有用到索引；而not extsts的子查询依然能用到表上的索引。所以无论那个表大，用not exists都比not in要快。
+
+#### 分页
+
+LIMIT 子句可以被用于强制 SELECT 语句返回指定的记录数。LIMIT 接受一个或两个数字参数。参数必须是一个整数常量。
+
+```mysql
+#如果给定两个参数，第一个参数指定第一个返回记录行的偏移量，第二个参数指定返回记录行的最大数目。初始记录行的偏移量是 0(而不是 1)
+mysql> SELECT * FROM table LIMIT 5,10; # 检索记录行 6-15 
+
+#为了检索从某一个偏移量到记录集的结束所有的记录行，可以指定第二个参数为 -1
+mysql> SELECT * FROM table LIMIT 95,-1; # 检索记录行 96-last. 
+
+#如果只给定一个参数，它表示返回最大的记录行数目
+mysql> SELECT * FROM table LIMIT 5; #检索前 5 个记录行 
+```
 
 
-## 数据控制语言DCL
 
-### 用户管理
+### 数据控制语言DCL
 
-```java
+#### 用户管理
+
+```mysql
 #创建用户，用户创建后没有任何权限
 >CREATE USER '用户名' [@'主机名'] [IDENTIFIED BY '密码'];
 #注意：MySQL的用户账号由两部分组成：用户名和主机名，即用户名@主机名，主机名可以是IP或机器名称,主机名为%表示允许任何地址的主机远程登录MySQL数据库。
@@ -163,7 +267,7 @@ stu_id name address
 >ALTER USER '用户名'@'主机名' IDENTIFIED BY '新密码';
 ```
 
-### 权限体系
+#### 权限体系
 
 MySQL的权限体系大致分为5个层级，全局层级、数据库层级、表层级、列层级和子程序层级。
 
@@ -188,9 +292,9 @@ MySQL的权限信息主要存储在以下几张表中，当用户连接数据库
 - **column_priv** 用户对某表的某个列所拥有的权限
 - **procs_priv** 用户对存储过程及存储函数的操作权限
 
-### 权限管理
+#### 权限管理
 
-```java
+```mysql
 #授权
 >grant all privileges on databaseName.tableName to '用户名' [@'主机名'] ;
 #撤销授权
@@ -201,7 +305,7 @@ MySQL的权限信息主要存储在以下几张表中，当用户连接数据库
 >show grants for '用户名' [@'主机名'] ;
 ```
 
-### 权限列表
+#### 权限列表
 
 使用grant和revoke进行授权、撤销授权时，需要指定具体是哪些权限，这些权限大体可以分为3类，
 数据类、结构类和管理类。
@@ -210,21 +314,21 @@ MySQL的权限信息主要存储在以下几张表中，当用户连接数据库
 - **结构**	CREATE	ALTER	INDEX	DROP	CREATE TEMPORARY TABLES	SHOW VIEW	CREATE ROUTINE	ALTER ROUTINE	EXECUTE	CREATE VIEW	EVENT	TRIGGER
 - **管理**	USAGE	GRANT	SUPER	PROCESS	RELOAD	SHUTDOWN	SHOW DATABASES	LOCK TABLES	REFERENCES	REPUCATION CUENT	REPUCATION SLAVE	CREATE USER
 
-### 禁止root用户远程登录
+#### 禁止root用户远程登录
 
-```java
+```mysql
 #保证用户表中不存在root@%用户即可
 >use mysql;
 >select user,host from user;
 ```
 
-### 忘记root密码
+#### 忘记root密码
 
 windows+mysql8
 
-```java
+```sh
 #关闭权限验证
-#mysqld --defaults-file="C:\ProgramData\MySQL\MySQL Server 8.0\my.ini" --console --skip-grant-tables --shared-memory
+mysqld --defaults-file="C:\ProgramData\MySQL\MySQL Server 8.0\my.ini" --console --skip-grant-tables --shared-memory
 ```
 
 说明：参数--defaults-file的值为配置文件my.ini的完整路径。
@@ -233,16 +337,31 @@ windows+mysql8
 
 MySQL关闭权限验证后，直接通过 mysql 命令即可连接到数据库，并可正常执行各类操作。
 
-```java
+```mysql
 #刷新权限
 >FLUSH PRIVILEGES;
 #修改root用户的密码
 >ALTER USER 'root'@'localhost' IDENTIFIED BY '123456';
 ```
 
-## 外键和外键约束
+## SQL 约束
 
-### 外键
+- NOT NULL: 用于控制字段的内容一定不能为空（NULL）。
+- UNIQUE: 控件字段内容不能重复，一个表允许有多个 Unique 约束。
+- PRIMARY KEY: 也是用于控件字段内容不能重复，但它在一个表只允许出现一个。
+- FOREIGN KEY: 用于预防破坏表之间连接的动作，也能防止非法数据插入外键列，因为它必须是它指向的那个表中的值之一。
+- CHECK: 用于控制字段的值范围。
+
+## MySQL键
+
+- 超键：在关系中能唯一标识元组的属性集称为关系模式的超键。一个属性可以为作为一个超键，多个属性组合在一起也可以作为一个超键。超键包含候选键和主键。
+- 候选键：是最小超键，即没有冗余元素的超键。
+- 主键：数据库表中对储存数据对象予以唯一和完整标识的数据列或属性的组合。一个数据列只能有一个主键，且主键的取值不能缺失，即不能为空值（Null）。
+- 外键：在一个表中存在的另一个表的主键称此表的外键。
+
+### 外键和外键约束
+
+#### 外键
 
 表一的主键字段X在另外一张表二中存在，且不是主键，则字段X称为表二的外键；其中表一称为主键表(父表，主表)，表二称为外键表(从表，外表); 
 
@@ -263,7 +382,7 @@ create table depart(
 )engine=InnoDB default charset=utf8;
 ```
 
-### 外键实现
+#### 外键实现
 
 **定义外键时，需要遵守下列规则：**
 
@@ -271,7 +390,7 @@ create table depart(
 - 外键的取值要么取父表中字段对应的值，要么取NULL值;并且外键中列的数据类型必须和主表主键中对应列的数据类型相同。
 - 主表中有多个主键时，外键中列的数目必须和主表的主键中列的数目相同。
 
-#### 在创建表时设置外键约束
+##### 在创建表时设置外键约束
 
 ```mysql
 [CONSTRAINT <外键名>]    FOREIGN KEY 字段名 [，字段名2，…]    REFERENCES <主表名> 主键列1 [，主键列2，…]
@@ -296,7 +415,7 @@ create table child(
 );
 ```
 
-#### 在修改表时添加外键约束
+##### 在修改表时添加外键约束
 
 前提是从表中外键列中的数据必须与主表中主键列中的数据一致或者是从表没有数据
 
@@ -312,7 +431,7 @@ ADD  CONSTRAINT child_fid_fk
 FOREIGN  KEY (parent_id)  REFERENCES  parent(id);
 ```
 
-#### 删除外键约束
+##### 删除外键约束
 
 外键一旦删除，就会解除主表和从表间的关联关系。
 
@@ -334,9 +453,9 @@ DROP FOREIGN KEY child_fid_fk;
 drop table parent cascade constranints;
 ```
 
-### Mysql 外键设置
+#### Mysql 外键设置
 
-#### on delete 规则
+##### on delete 规则
 
 - `CASCADE`：级联删除，就是删除主键表的同时，外键表同时删除。
 
@@ -379,6 +498,8 @@ create table child(
 - 空间方面：索引需要占物理空间。
 
 ### 索引种类
+
+![image-20210812075313482](img_MySQL/image-20210812075313482.png)
 
 - **普通索引** 最基本的索引，没有任何限制，仅加速查询。
 - **唯一索引** 索引列的值必须唯一，但允许有空值。
@@ -593,6 +714,17 @@ InnoDB存储引擎也使用B+Tree作为索引结构，索引的key是数据表�
 
 ![image-20210812073959262](img_MySQL/image-20210812073959262.png)
 
+#### 聚簇索引和非聚簇索引
+
+- 聚簇索引：将数据存储与索引放到了一块，找到索引也就找到了数据，比如innodb的主键索引，在InnoDB中，只有主键索引是聚簇索引，如果没有主键，则挑选一个唯一键建立聚簇索引。如果没有唯一键，则隐式的生成一个键来建立聚簇索引。
+- 非聚簇索引：将数据和索引分开存储，索引结构的叶子节点指向了数据的对应行，比如myisam的索引和innodb的辅助索引
+
+当查询使用聚簇索引时，在对应的叶子节点，可以获取到整行数据，因此不用再次进行回表查询。使用非聚簇索引，如果查询语句所要求的字段是否全部命中了索引，也可以不用再进行回表查询，否则需要进行二次查询。换句话说，B+树在满足聚簇索引和覆盖索引的时候不需要回表查询数据。
+
+举个简单的例子，假设我们在员工表的年龄上建立了索引，那么当进行`select age from employee where age < 20`的查询时，在索引的叶子节点上，已经包含了age信息，不会再次进行回表查询。
+
+
+
 #### 复合索引的底层结构
 
 假定，对people表创建复合索引(last_name, first_name, birthday) ，索引的多个值会按照定义索引时字段的顺序进行排序。
@@ -602,11 +734,9 @@ InnoDB存储引擎也使用B+Tree作为索引结构，索引的key是数据表�
 
 ![image-20210812075212040](img_MySQL/image-20210812075212040.png)
 
-#### MySQL的索引分类  
 
-其中，索引的顺序和数据记录的顺序(物理顺序)一致称为聚集索引，又称为聚簇索引。
 
-![image-20210812075313482](img_MySQL/image-20210812075313482.png)
+
 
 ### 索引优化使用
 
@@ -975,7 +1105,7 @@ Sphinx可以在多个方面完善基于MySQL的应用程序，能弥补MySQL性�
 - 重用性  ：视图是对复杂查询语句的封装，对数据库重构，不会影响程序的运行  
 - 安全性  ：视图可以隐藏一些敏感的信息，可以把权限限定到行列级别  
 
-```java
+```mysql
 #创建视图
 CREATE VIEW view_name AS SELECT…;
 #修改视图
@@ -987,12 +1117,6 @@ SHOW TABLE STATUS WHERE comment='view';
 #删除视图
 DROP VIEW view_name;
 ```
-
-
-
-
-
-
 
 ## 事务
 
@@ -1055,15 +1179,28 @@ DROP VIEW view_name;
 
 - 不可重复读(Non-repeatable read)
 
-  事务A执行同样的查询，在事务B提交之前、提交之后，会得到不同的查询结果  
+  在一个事务的两次查询之中数据不一致，事务A执行同样的查询，事务B对数据进行更新提交，在事务B提交之前、提交之后，会得到不同的查询结果  
 
 - 幻读(Phantom Read)
 
-  事务B插入一条数据并提交，事务A查询不到事务B提交的数据，也无法插入同样的数据，产生“幻读”  
+  在一个事务的两次查询中数据笔数不一致，事务A执行同样的查询，事务B插入一条数据并提交，在事务B提交之前、提交之后，事务A后一次查询看到了前一次查询没有看到的行。
+  
+  
+  
+  PS:  幻读的前提条件是InnoDB引擎，可重复读隔离级别，使用**当前读**时。
+  
+  - 在可重复读隔离级别下，普通查询是快照读，是不会看到别的事务插入的数据的，幻读只在**当前读**下才会出现。
+  - 幻读专指**新插入的行**，读到原本存在行的更新结果不算。因为**当前读**的作用就是能读到所有已经提交记录的最新值。
 
-参考：[脏读、幻读、不可重复读](https://www.cnblogs.com/l-y-h/p/12458777.html#_label0_3)
+参考：
 
-#### 操作
+[脏读、幻读、不可重复读](https://www.cnblogs.com/l-y-h/p/12458777.html#_label0_3)
+
+[MySQL幻读](https://www.jianshu.com/p/c53c8ab650b5)
+
+[MySQL当前读、快照读、MVCC](https://www.cnblogs.com/wwcom123/p/10727194.html)
+
+**操作:**
 
 ```java
 //设定隔离级别为READ-UNCOMMITTED
@@ -1110,7 +1247,7 @@ DROP VIEW view_name;
 
 用于记录MySQL数据库中响应时间超过指定阈值的语句。它不仅仅只针对**SELECT**语句，像**INSERT、UPDATE、DELETE**等语句，只要响应时间超过所设定阈值都会记录在慢查询日志中。
 
-#### 日志参数
+**日志参数:**
 
 - **slow_query_log** 是否开启慢查询日志，1表示开启，0表示关闭。
 - **slow_query_log_file** 慢查询日志存储路径，可选。注意：MySQL 5.6之前的版本，参数名为 log-slow-queries
@@ -1121,11 +1258,12 @@ DROP VIEW view_name;
   - log_output=‘TABLE’表示将日志存入数据库
   - log_output=‘FILE,TABLE’表示同时将日志存入文件和数据库
 
-```java
+```mysql
 #查看是否开启慢查询日志,其中show variables可以查看mysql中参数值
 >show variables like 'slow%';
-#临时开启慢查询日志
->set slow_query_log='ON';
+#临时开启慢查询日志,它会在datadir下产生一个xxx-slow.log的文件
+>set GLOBAL slow_query_log='ON';
+#设置临界时间
 >set long_query_time=1;
 #慢查询日志文件所在位置
 >show variables like '%datadir%';
@@ -1171,7 +1309,7 @@ start-position 528 --stop-position 1191 > d:\backup\test.sql
 
 
 
-## 优化
+## SQL优化
 
 ### 查询分析器explain
 
@@ -1179,20 +1317,92 @@ explain命令可以查看SQL语句的执行计划。MySQL解释了它将如何�
 
 explain的使用很简单，只需要在SQL语句之前加上explain命令即可。
 
-#### 参数
+**参数**
 
-- id	执行select子句或操作表的顺序
-- select_type	查询的类型，如SIMPLE、PRIMARY、SUBQUERY、DERIVED、UNION等
-- table	当前行使用的表名
+- id	一个查询中各个子查询的执行顺序
+
+  - id相同执行顺序由上至下。
+  - id不同，id值越大优先级越高，越先被执行。
+  - id为`null`时表示一个结果集，不需要使用它查询，常出现在包含union等查询语句中。
+
+- select_type	查询类型
+
+  - SIMPLE	不包含任何子查询或union等查询
+  - PRIMARY	包含子查询最外层查询就显示为 PRIMARY
+  - SUBQUERY	在select或 where字句中包含的查询
+  - DERIVED	from字句中包含的查询
+  - UNION	出现在union后的查询语句中
+  - UNION RESULT	从UNION中获取结果集，例如上文的第三个例子
+
+- table	查询的数据表
+
 - partitions	匹配的分区
-- **type** 	连接类型，如system、const、eq_ref、ref、range、index、all等，越往后语句越差
+
+- **type** 	访问类型，如`system、const、eq_ref、ref、range、index、all`等，越往后语句越差，优化时至少要达到 range 级别，要求是ref级别，如果可以是consts最好。 
+
+  - `ALL` 扫描全表数据
+  - `index` 遍历索引，索引物理文件全扫描
+  - `range` 对索引进行范围检索
+  - `index_subquery` 在子查询中使用 ref
+  - `unique_subquery` 在子查询中使用 eq_ref
+  - `ref_or_null` 对Null进行索引的优化的 ref
+  - `fulltext` 使用全文索引
+  - `ref` 使用非唯一索引查找数据，即使用普通的索引（normal index）
+  - `eq_ref` 在join查询中使用`PRIMARY KEY or UNIQUE NOT NULL`索引关联。
+  - `consts` 单表中最多只有一个匹配行（主键或者唯一索引），在优化阶段即可读取到数据。 
+
 - possible_keys	可能使用的索引
+
 - **key**	实际使用的索引，NULL表示未使用索引
+
 - key_len	查询中使用的索引长度
-- ref	列与索引的比较
+
+- ref	列与索引的比较，上述表的连接匹配条件，即哪些列或常量被用于查找索引列上的值
+
 - **rows**	扫描的行数
+
 - **filtered**	选取的行数占扫描的行数的百分比，理想的结果是100
+
 - extra	其他额外信息
+
+  - Using index 使用覆盖索引
+
+  - Using where 使用了用where子句来过滤结果集
+
+  - Using filesort 使用文件排序，使用非索引列进行排序时出现，非常消耗性能，尽量优化。
+
+  - Using temporary 使用了临时表
+
+### 优化大表数据查询
+
+1. 优化shema、sql语句+索引；
+2. 第二加缓存，memcached, redis；
+3. 主从复制，读写分离；
+4. 垂直拆分，根据你模块的耦合度，将一个大的系统分为多个小的系统，也就是分布式系统；
+5. 水平切分，针对数据量大的表，这一步最麻烦，最能考验技术水平，要选择一个合理的sharding key(切分键)， 为了有好的查询效率，表结构要改动，做一定的冗余，应用也要改，sql中尽量带sharding key，将数据定位到限定的表上去查，而不是扫描全部的表；
+
+### 处理超大分页
+
+超大的分页一般从两个方向上来解决.
+
+- 数据库层面,这也是我们主要集中关注的(虽然收效没那么大),类似于`select * from table where age > 20 limit 1000000,10`这种查询其实也是有可以优化的余地的. 这条语句需要load1000000数据然后基本上全部丢弃,只取10条当然比较慢. 当时我们可以修改为`select * from table where id in (select id from table where age > 20 limit 1000000,10)`.这样虽然也load了一百万的数据,但是由于索引覆盖,要查询的所有字段都在索引中,所以速度会很快. 同时如果ID连续的好,我们还可以`select * from table where id > 1000000 limit 10`,效率也是不错的,优化的可能性有许多种,但是核心思想都一样,就是**减少load加载的数据**.
+
+- 从需求的角度减少这种请求…主要是不做类似的需求(直接跳转到几百万页之后的具体某一页.只允许逐页查看或者按照给定的路线走,这样可预测,可缓存)以及防止ID泄漏且连续被人恶意攻击.
+
+解决超大分页,其实主要是靠缓存,可预测性的提前查到内容,缓存至redis等k-V数据库中,直接返回即可.
+
+```mysql
+#在阿里巴巴《Java开发手册》中,对超大分页的解决办法是类似于上面提到的第一种.
+#【推荐】利用延迟关联或者子查询优化超多分页场景。 
+
+#说明：MySQL并不是跳过offset行，而是取offset+N行，然后返回放弃前offset行，返回N行，那当offset特别大的时候，效率就非常的低下，要么控制返回的总页数，要么对超过特定阈值的页数进行SQL改写。 
+
+#正例：先快速定位需要获取的id段，然后再关联： 
+
+SELECT a.* FROM 表1 a, (select id from 表1 where 条件 LIMIT 100000,20 ) b where a.id=b.id
+```
+
+
 
 ## 分区表
 
@@ -1319,7 +1529,7 @@ ALTER TABLE `user` REMOVE PARTITIONING ;
 
 ## 存储过程
 
-存储过程（ Stored Procedure）是为了完成特定功能的**SQL语句集**，经编译创建并保存在数据库中，用户可通过指定存储过程的名字并给定参数(需要时)来调用执行，类似于编程语言中的方法或函数。  
+存储过程（ Stored Procedure）是为了完成特定功能的**预编译SQL语句集**，经编译创建并保存在数据库中，用户可通过指定存储过程的名字并给定参数(需要时)来调用执行，类似于编程语言中的方法或函数。  
 
 **存储过程的优点：**
 
@@ -1411,9 +1621,9 @@ call send_email(1, '欢迎加入MySQL阵营！ ');
 
 ## 触发器
 
-触发器（ trigger）用于监视某种情况并触发某种操作，它是与**表事件**相关的特殊的存储过程， 它的执行不是由程序调用，而是由事件来触发。 例如，当对某张表进行**insert、 delete、 update操作**时就会触发执行它。  
+触发器（ trigger）是用户定义在关系表上的一类由事件驱动的特殊的存储过程。用于监视某种情况并触发某种操作，它是与**表事件**相关的特殊的存储过程， 它的执行不是由程序调用，而是由事件来触发。 例如，当对某张表进行**insert、 delete、 update操作**时就会触发执行它。  
 
-```java
+```mysql
 #创建触发器语法
 CREATE TRIGGER trigger_name trigger_time trigger_event ON table_name FOR EACH ROW trigger_stmt
 ```
@@ -1428,7 +1638,7 @@ CREATE TRIGGER trigger_name trigger_time trigger_event ON table_name FOR EACH RO
 - NEW.columnName：获取INSERT触发事件中新插入的数据
   OLD.columnName：获取UPDATE和DELETE触发事件中被更新、删除的数据  
 
-```java
+```mysql
 drop table if exists user_info;
 drop table if exists email_info;
 
@@ -1459,6 +1669,15 @@ END
 //
 delimiter ;
 ```
+
+在MySQL数据库中有如下六种触发器：
+
+- Before Insert
+- After Insert
+- Before Update
+- After Update
+- Before Delete
+- After Delete
 
 ## 表常用操作
 
@@ -1831,7 +2050,7 @@ MySQL 8.0 开始支持原子性的数据定义语言（DDL），也称为原子 
 >drop table test1,test2;
 ```
 
-# NoSQL
+## NoSQL
 
 NoSQL是Not Only SQL的简称，意思是“不仅仅是SQL”。
 
@@ -1861,6 +2080,15 @@ NoSQL用于超大规模数据的存储。
     - FlockDB
 
 
+
+## SQL的生命周期
+
+1. 应用服务器与数据库服务器建立一个连接
+2. 数据库进程拿到请求sql
+3. 解析并生成执行计划，执行
+4. 读取数据到内存并进行逻辑处理
+5. 通过步骤一的连接，发送结果到客户端
+6. 关掉连接，释放资源
 
 ## 数据库连接池
 
