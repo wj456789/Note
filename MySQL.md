@@ -974,6 +974,16 @@ SELECT * FROM ft_en WHERE MATCH (title, body) AGAINST ('+database -dbms' IN BOOL
 SELECT * FROM ft_en WHERE MATCH (title, body) AGAINST ('database' WITH QUERY EXPANSION);
 ```
 
+
+
+**全文索引相关参数设置：**
+
+```mysql
+show variables like 'innodb_ft%';
+```
+
+![image-20210912090755734](img_MySQL/image-20210912090755734.png)
+
 #### 忽略的单词
 
 在使用MySQL全文索引时，会发现有些单词检索不出结果，如for、how、in等，如：
@@ -995,6 +1005,8 @@ select * from ft_en where match(title,body) against('for');
 SET GLOBAL innodb_ft_aux_table="liufeng/ft_en";
 SELECT * FROM INFORMATION_SCHEMA.INNODB_FT_INDEX_CACHE;
 ```
+
+![image-20210912090929871](img_MySQL/image-20210912090929871.png)
 
 #### ngram全文解析器  
 
@@ -1167,7 +1179,7 @@ DROP VIEW view_name;
 - Read Uncommitted（未提交读）
 - Read Committed（已提交读）：大多数据库默认事务隔离级别，比如oracle、sqlserver
 - Repeatable Read（可重复读）：MySQL的默认事务隔离级别
-- Serializable（可串行化）
+- Serializable（串行化）
 
 事务一般隔离级别使用已提交读，代码中个别问题使用悲观锁和乐观锁处理，但是事务不会管理SELECT语句，所以即便是可串行化，也不能保证读取数据更新数据操作的原子性
 
@@ -1184,13 +1196,16 @@ DROP VIEW view_name;
 - 幻读(Phantom Read)
 
   在一个事务的两次查询中数据笔数不一致，事务A执行同样的查询，事务B插入一条数据并提交，在事务B提交之前、提交之后，事务A后一次查询看到了前一次查询没有看到的行。
+
   
-  
-  
-  PS:  幻读的前提条件是InnoDB引擎，可重复读隔离级别，使用**当前读**时。
-  
+
+  PS:  ？？？
+
+- 幻读的前提条件是InnoDB引擎，可重复读隔离级别，使用**当前读**时。
   - 在可重复读隔离级别下，普通查询是快照读，是不会看到别的事务插入的数据的，幻读只在**当前读**下才会出现。
   - 幻读专指**新插入的行**，读到原本存在行的更新结果不算。因为**当前读**的作用就是能读到所有已经提交记录的最新值。
+
+- Innodb默认事务隔离级别是可重复读，同时使用了MVCC和next-key locks解决幻读，MVCC解决的是普通读（快照读）的幻读，next-key locks解决的是当前读情况下的幻读。  
 
 参考：
 
@@ -1200,13 +1215,24 @@ DROP VIEW view_name;
 
 [MySQL当前读、快照读、MVCC](https://www.cnblogs.com/wwcom123/p/10727194.html)
 
+
+
 **操作:**
 
-```java
-//设定隔离级别为READ-UNCOMMITTED
->SET tx_isolation='READ-UNCOMMITTED';
-//查询隔离级别
+```mysql
+#查询隔离级别
 >select @@tx_isolation;    
+#设定隔离级别为READ-UNCOMMITTED
+>SET tx_isolation='READ-UNCOMMITTED';
+
+
+#MySQL 8.0
+#查看事务隔离级别
+select @@transaction_isolation;
+#或者
+show variables like 'transaction_isolation';
+#设置事务隔离级别
+set transaction_isolation ='read-uncommitted';
 ```
 
 
@@ -1401,6 +1427,38 @@ explain的使用很简单，只需要在SQL语句之前加上explain命令即可
 
 SELECT a.* FROM 表1 a, (select id from 表1 where 条件 LIMIT 100000,20 ) b where a.id=b.id
 ```
+
+
+
+## MySQL的锁  
+
+不同的存储引擎支持不同的锁机制，按照锁的粒度来划分，可以分为表锁、行锁和页锁。  
+
+|      | 描述                                                         | MyISAM | InnoDB | BDB  |
+| ---- | ------------------------------------------------------------ | ------ | ------ | ---- |
+| 表锁 | 开销小，加锁快；不会出现死锁；锁定力度大，发生锁冲突概率高，并发度最低 | √      | √      | √    |
+| 行锁 | 开销大，加锁慢；会出现死锁；锁定粒度小，发生锁冲突的概率低，并发度高 |        | √      |      |
+| 页锁 | 开销和加锁速度介于表锁和行锁之间；会出现死锁；锁定粒度介于表锁和行锁之间， 并发度一般 |        |        | √    |
+
+### MyISAM的锁  
+
+MyISAM存储引擎**只支持表锁**。在执行查询操作（select）前， 会自动给涉及的所有表加读锁；在执行更新操作（insert、update、delete等）前， 会自动给涉及的所有表加写锁 。
+
+MyISAM表的读操作，不会阻塞其他用户对相同表的读操作，但会阻塞对相同表的写操作；MyISAM表的写操作，会阻塞其他用户对相同表的读操作、写操作；MyISAM表的读、写操作之间，以及写操作之间是串行的。  
+
+### InnoDB的锁  
+
+InnoDB存储引擎既支持行锁，也支持表锁，但默认情况下是采用行锁。InnoDB的行锁是通过锁定索引项来实现的，而不是锁定物理行记录。InnoDB的锁，与索引、事务的隔离级别有关。InnoDB的锁类型有很多种。
+
+| 锁     | 描述                                                         |
+| ------ | ------------------------------------------------------------ |
+| 共享锁 | `Share Locks`，即S锁，读锁。当一个事务对某行上读锁时，允许其他事务对该行进行读操作，但不允许写。 |
+| 排他锁 | `Exclusive Locks`，即X锁，写锁。当一个事务对某行数据上排他锁，其他事务就不能再对该行上任何锁。 |
+| 意向锁 | `Intention Locks`，包括意向共享锁和意向排他锁，是表级锁，InnoDB自动添加，无需要人工干预 |
+| 记录锁 | `Record Locks`，锁定索引记录，可以防止其他事务更新或删除行。 |
+| 自增锁 | `Auto-inc Locks`，针对自动增长的主键。                       |
+| 间隙锁 | `Gap Locks`，锁定索引记录之间的间隙。                        |
+| 临键锁 | `Next-key Locks`，记录锁与间隙锁的组合。                     |
 
 
 
