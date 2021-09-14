@@ -839,10 +839,12 @@ https://blog.csdn.net/dufufd/article/details/80253561)
 
 ### jdk
 
+```sh
 #java -version
 java version "1.8.0_112"
 Java(TM) SE Runtime Environment (build 1.8.0_112-b15)
 Java HotSpot(TM) 64-Bit Server VM (build 25.112-b15, mixed mode)
+```
 
 #alternatives --config java
 共有 2 个提供“java”的程序。
