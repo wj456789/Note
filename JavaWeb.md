@@ -461,7 +461,27 @@ web.xml和SpringMVC中的资源都是相对于web应用的根目录，比如：
 
 
 
+### 请求的URI过长：414 Request-URI Too Large
 
+问题：在项目中遇到使用get 请求，发现前端传递的参数超过nginx 服务器的限制？
+
+1. 在nginx配置文件里面把这两个缓存加大
+   文件位置：`conf/nginx.conf`
+
+   ```conf
+   http{
+   	...
+   	client_header_buffer_size 512k;
+   	large_client_header_buffers 4 512k;
+   	...
+   }
+   ```
+
+   然后重启nginx 服务器。
+
+2. 前端改用post 请求传递参数，将参数放在请求体中
+
+3. 服务端修改接受参数行为
 
 
 
