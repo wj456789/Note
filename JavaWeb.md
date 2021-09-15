@@ -423,7 +423,7 @@ web.xml和SpringMVC中的资源都是相对于web应用的根目录，比如：
 
 ## Http
 
-请求包括请求头、请求头、请求体；响应包括状态行、响应头、响应体；
+请求包括请求行、请求头、请求体；响应包括状态行、响应头、响应体；
 
 ### HTTP Request Header 请求头
 
@@ -483,29 +483,50 @@ web.xml和SpringMVC中的资源都是相对于web应用的根目录，比如：
 
 3. 服务端修改接受参数行为
 
+### POST
+
+#### Request Payload
+
+![Request Payload](img_JavaWeb/aHR0cHM6Ly9jZG4uanNkZWxpdnIubmV0L2doL0hlbGxvQWxsZW5XL0Jsb2dBc3NldHNAbGF0ZXN0L2ltYWdlcy8yMDIwLzA1LzQucG5n)
+
+```java
+//HTTP请求报文，请求头部Content-Type: application/json，请求正文是一个json格式的字符串
+POST /some-path HTTP/1.1
+Content-Type: application/json
+
+{ "foo" : "bar", "name" : "John" }
+```
+
+#### Form Data
+
+![Form Data](img_JavaWeb/aHR0cHM6Ly9jZG4uanNkZWxpdnIubmV0L2doL0hlbGxvQWxsZW5XL0Jsb2dBc3NldHNAbGF0ZXN0L2ltYWdlcy8yMDIwLzA1LzUucG5n)
+
+```java
+//HTTP请求报文，请求头部Content-Type: application/x-www-form-urlencoded或multipart/form-data，请求正文是类似get请求url请求参数这样的键值对
+POST /some-path HTTP/1.1
+Content-Type: application/x-www-form-urlencoded
+
+foo=bar&name=John
+```
+
+#### 后端处理
+
+```java
+//对象参数前加上@RequestBody，必须是Request Payload请求，解析请求体中的JSON字符串
+//不加@RequestBody，Request Payload请求和Form Data请求都可以接收，甚至可以将参数仿照get拼接到url上
+@PostMapping("/login")
+public ResultView<LoginResp> login(@RequestBody LoginReq loginReq) throws Exception{
+    return loginService.login(loginReq);
+}
+```
 
 
 
+@RequestParam只能接收**简单参数类型**；接收GET请求拼接在URL后的参数，或者是POST传递，且Content-type为x-www-form-urlencoded方式，因为不管是GET方式还是用x-www-form-urlencoded方式传递，参数都是以键值对方式拼接的；
 
+@RequestBody接收**复杂对象**，包括List，实体类，Map对象等；该注解只能够接收POST传递，且Content-type为application/json方式，并且能把接收到的JSON数据绑定到JAVA对象中；一个方法中只能有一个@RequestBody注解，但是@RequestBody注解可以和@RequestParam注解一起使用，而且@RequestParam注解一个方法中可以有多个。
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+不加注解接收参数，参数类型可以为**简单类型**，也可以为**复杂类型**（JAVA对象等，前端传递的参数会和类中的属性名对应并且绑定），但是不能接收Map类型的对象。而且GET请求和POST请求也都能用简单参数或实体类接收到参数。但是POST请求时，和@RequestParam注解一样，Content-type只能为x-www-form-urlencoded。
 
 
 
