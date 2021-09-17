@@ -350,6 +350,117 @@ WATCHER::
 WatchedEvent state:SyncConnected type:NodeChildrenChanged path:/yyy
 ```
 
+#### 工作机制
+
+<img src="img_Zookeeper/1496926-20200208143818212-1084501821.jpg" alt="img" style="zoom:200%;" />
+
+Zookeeper允许客户端向服务端的某个Znode注册一个 Watcher 监听，当服务端的一些指定事件触发了这个 Watcher，服务端会向指定客户端发送一个事件通知来实现分布式的通知功能，然后客户端根据 Watcher 通知状态和事件类型做出业务上的改变。
+
+1. 客户端注册 watcher
+
+2. 服务端处理 watcher
+
+3. 客户端回调 watcher
+
+##### Watcher 特性
+
+- 一次性
+
+  无论是服务端还是客户端，一旦一个 Watcher 被 触 发 ，Zookeeper 都会将其从相应的存储中移除。
+
+- 轻量
+  - Watcher 通知非常简单，只会告诉客户端发生了事件，而不会说明事件的具体内容。
+  - 客户端向服务端注册 Watcher 的时候，并不会把客户端真实的 Watcher 对象实体传递到服务端，仅仅是在客户端请求中使用 boolean 类型属性进行了标记。
+
+- watcher event 异步发送
+
+  watcher 的通知事件从 server 发送到 client 是异步的，这就存在一个问题，不同的客户端和服务器之间通过 socket 进行通信，由于网络延迟或其他因素导致客户端在不通的时刻监听到事件，由于 Zookeeper 本身提供了 ordering guarantee，即客户端监听事件后，才会感知它所监视 znode发生了变化。所以我们使用 Zookeeper 不能期望能够监控到节点每次的变化。Zookeeper 只能保证最终的一致性，而无法保证强一致性。
+
+- 客户端串行执行
+
+  客户端 Watcher 回调的过程是一个串行同步的过程。
+
+- 当一个客户端连接到一个新的服务器上时，watch 将会被以任意会话事件触发。当与一个服务器失去连接的时候，是无法接收到 watch 的。而当 client 重新连接时，如果需要的话，所有先前注册过的 watch，都会被重新注册。通常这是完全透明的。只有在一个特殊情况下，watch 可能会丢失：对于一个未创建的 znode的 exist watch，如果在客户端断开连接期间被创建了，并且随后在客户端连接上之前又删除了，这种情况下，这个 watch 事件可能会被丢失。
+  
+
+##### 客户端注册 Watcher
+
+1. 调用 getData()/getChildren()/exist()三个 API，传入 Watcher 对象
+
+2. 标记请求 request，封装 Watcher 到 WatchRegistration
+
+3. 封装成 Packet 对象，发服务端发送 request
+
+4. 收到服务端响应后，将 Watcher 注册到 ZKWatcherManager 中进行管理
+
+5. 请求返回，完成注册。
+
+##### 服务端处理 Watcher
+
+1. 服务端接收 Watcher 并存储
+
+   接收到客户端请求，处理请求判断是否需要注册 Watcher，需要的话将数据节点的节点路径和 ServerCnxn（ServerCnxn 代表一个客户端和服务端的连接，实现了 Watcher 的 process 接口，此时可以看成一个 Watcher 对象）存储在WatcherManager 的 WatchTable 和 watch2Paths 中去。
+
+2. Watcher 触发
+
+   以服务端接收到 setData() 事务请求触发 NodeDataChanged 事件为例：
+
+   2.1 封装 WatchedEvent
+
+   将通知状态（SyncConnected）、事件类型（NodeDataChanged）以及节点路径封装成一个 WatchedEvent 对象
+
+   2.2 查询 Watcher
+
+   从 WatchTable 中根据节点路径查找 Watcher
+
+   2.3 没找到；说明没有客户端在该数据节点上注册过 Watcher
+
+   2.4 找到；提取并从 WatchTable 和 Watch2Paths 中删除对应 Watcher（从这里可以看出 Watcher 在服务端是一次性的，触发一次就失效了）
+
+3. 调用 process 方法来触发 Watcher
+
+   这里 process 主要就是通过 ServerCnxn 对应的 TCP 连接发送 Watcher 事件通知。
+
+##### 客户端回调 Watcher
+
+客户端 SendThread 线程接收事件通知，交由 EventThread 线程回调 Watcher。
+
+客户端的 Watcher 机制同样是一次性的，一旦被触发后，该 Watcher 就失效了。
+
+
+
+参考：[深入理解 ZooKeeper客户端与服务端的watcher回调](https://www.cnblogs.com/ZhuChangwu/p/11593642.html)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ### 状态同步
 
 Zookeeper保证了主从节点的状态同步。Zookeeper 的核心是原子广播机制，这个机制保证了各个server之间的同步。实现这个机制的协议叫做Zab协议。Zab协议有两种模式，它们分别是恢复模式和广播模式。
