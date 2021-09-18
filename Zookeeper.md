@@ -389,7 +389,7 @@ Zookeeper允许客户端向服务端的某个Znode注册一个 Watcher 监听，
 
 2. 标记请求 request，封装 Watcher 到 WatchRegistration
 
-3. 封装成 Packet 对象，发服务端发送 request
+3. 封装成 Packet 对象，向服务端发送 request
 
 4. 收到服务端响应后，将 Watcher 注册到 ZKWatcherManager 中进行管理
 
