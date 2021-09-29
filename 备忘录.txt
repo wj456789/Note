@@ -1,0 +1,56 @@
+Linux配置网卡
+https://www.cnblogs.com/aknife/p/11181805.html
+
+IntelliJ IDEA启动Tomcat后访问HTML页面解决中文乱码
+https://blog.csdn.net/telyfox/article/details/107780648
+
+Linux防火墙命令大全
+https://blog.csdn.net/qq_38071435/article/details/82312562
+
+linux 添加开机自启动脚本
+https://blog.csdn.net/daidaineteasy/article/details/54864776
+
+centos7 ping: www.baidu.com: Name or service not known
+https://blog.csdn.net/abcd5711664321/article/details/80436457
+
+运行yum系统提示Existing lock /var/run/yum.pid: another copy is running as pid
+https://blog.csdn.net/nbczw8750/article/details/84877315
+
+CentOS报错：Could not retrieve mirrorlist http://mirrorlist.centos.org/?release=7&arch=x86_64&repo=os&i...
+https://blog.csdn.net/weixin_30567471/article/details/98045217
+
+
+
+traceroute和tracert用法详解
+https://blog.csdn.net/zhouwei1221q/article/details/45370039
+
+linux 中增加路由（route）命令详解
+https://blog.csdn.net/qq_34595352/article/details/82218515
+
+CentOS7添加永久路由之一
+https://blog.51cto.com/zhangchengjie/2391061
+CentOS7添加永久静态路由
+https://www.cnblogs.com/outsrkem/p/11369006.html
+
+Linux系统时间同步方法小结
+https://www.cnblogs.com/williamjie/p/10768657.html
+
+
+
+
+
+自定义ECHARTS折线图中悬浮框的位置
+https://www.freesion.com/article/783723539/
+
+echarts饼图调整悬浮提示框的位置
+https://www.cnblogs.com/coderxiaobai/p/13566113.html
+
+ECharts 数据集（dataset）
+https://www.runoob.com/echarts/echarts-dataset.html
+
+
+
+
+
+
+
