@@ -2,9 +2,11 @@
 
 ## 内存结构
 
-JVM按照其存储数据的内容将所需内存分配为堆区与非堆区两个部分：所谓堆区即为通过new的方式创建的对象(类实例)所占用的内存空间;非堆区即为代码、常量、外部访问(如文件访问流所占资源)等。然而虽然java的垃圾回收机制可以回收堆区的资源,而对于非堆区的资源就束手无策了,针对这样的资源回收只能凭借开发人员自身的约束来解决。
+JVM按照其存储数据的内容将所需内存分配为堆区与非堆区两个部分：所谓堆区即为通过new的方式创建的对象(类实例)所占用的内存空间;非堆区即为代码、常量、外部访问(如文件访问流所占资源)等。然而虽然java的垃圾回收机制主要是对堆区的内存进行回收的。
 
-![img](F:%5Cfile_youdao%5Cwang1256116295@163.com%5C1114abff56894192927093f5c957aa6d%5C%E6%88%AA%E5%9B%BE.png)
+![截图](img_JVM/%E6%88%AA%E5%9B%BE.png)
+
+
 
 一个Java8进程最大占用的物理内存为：
 
@@ -12,7 +14,7 @@ Max Memory = eden + survivor + old + String Constant Pool + Code cache + compres
 
 ### 堆区
 
-Heap Space堆区分为新生代和老年代，新生代分为Eden和Survivor区，非堆区包括永久代、栈内存等。
+Heap Space堆区分为新生代和老年代，新生代分为Eden和Survivor区。
 
 **eden（伊甸区）**
 
@@ -27,6 +29,8 @@ Heap Space堆区分为新生代和老年代，新生代分为Eden和Survivor区�
 当老年代区域的内存满了，则会触发full GC，full GC会使程序暂停，所以要避免老年代区域的内存达到所配置的大小。
 
 ### 非堆区
+
+非堆区包括永久代、栈内存等。
 
 **永久代(permanent generation区)**
 
@@ -77,6 +81,7 @@ Heap Space堆区分为新生代和老年代，新生代分为Eden和Survivor区�
 - **-XX:newSize**：表示新生代初始内存的大小,应该小于 -Xms的值;
 - **-XX:MaxnewSize**：表示新生代可被分配的内存的最大上限;当然这个值应该小于 -Xmx的值;
 - **-Xmn**：至于这个参数则是对 -XX:newSize、-XX:MaxnewSize两个参数的同时配置,也就是说如果通过-Xmn来配置新生代的内存大小,那么-XX:newSize = -XX:MaxnewSize = -Xmn,虽然会很方便,但需要注意的是这个参数是在JDK1.4版本以后才使用的。Sun官方推荐配置为整个堆的3/8
+- **-XX:NewRatio=4**：设置新生代和老年代的内存比例为 1:4；
 - **-XX:SurvivorRatio**：设置新生代中Eden和Survivor的比例(默认值为8，即Eden:FromSpace:ToSpace，默认比例8:1:1，假如值为4表示：Eden:S0:S1 = 4:3:3)
 - **-XX:MaxTenuringThreshold**：设置对象晋升老年代的年龄阈值，默认15
 
@@ -105,6 +110,20 @@ Heap Space堆区分为新生代和老年代，新生代分为Eden和Survivor区�
 - **-XX:+UseCompressedClassPointers** 允许类指针压缩。 
 
   它们默认都是开启的，可以手动关闭它们。 如果不允许类指针压缩，那么将没有 compressed class space 这个空间，并且-XX:CompressedClassSpaceSize 这个参数无效。 -XX:-UseCompressedClassPointers 需要搭配 -XX:+UseCompressedOops，但是反过来不是，也就是说我们可以只压缩对象指针，不压缩类指针。在对象指针压缩基础上进行类指针压缩。
+
+
+
+## 垃圾回收算法
+
+- 标记-清除算法：标记无用对象，然后进行清除回收。缺点：效率不高，无法清除垃圾碎片。
+- 复制算法：按照容量划分二个大小相等的内存区域，当一块用完的时候将活着的对象复制到另一块上，然后再把已使用的内存空间一次清理掉。缺点：内存使用率不高，只有原来的一半。
+- 标记-整理算法：标记无用对象，让所有存活的对象都向一端移动，然后直接清除掉端边界以外的内存。
+- 分代算法：根据对象存活周期的不同将内存划分为几块，一般是新生代和老年代，**新生代基本采用复制算法，老年代采用标记整理算法**。
+
+## 垃圾回收器
+
+垃圾收集算法是内存回收的方法论，那么垃圾收集器就是内存回收的具体实现。有7种作用于不同分代的收集器，其中用于回收新生代的收集器包括Serial、PraNew、Parallel Scavenge，回收老年代的收集器包括Serial Old、Parallel Old、CMS，还有用于回收整个Java堆的G1收集器。
+
 
 
 
@@ -247,18 +266,18 @@ Total: reserved=1284481KB, committed=236913KB
                         (malloc=186KB)
 
 reserved
-reserved memory是指JVM 通过mmaped PROT_NONE 申请的虚拟地址空间，在页表中已经存在了记录（entries），保证了其他进程不会被占用。
+reserved memory是指JVM通过mmaped PROT_NONE申请的虚拟地址空间，在页表中已经存在了记录(entries)，保证了其他进程不会被占用。
 
 committed
 committed memory是操作系统实际分配的内存（malloc/mmap）,mmaped PROT_READ | PROT_WRITE，相当于程序实际申请的可用内存。
 committed申请的内存并不是说直接占用了物理内存，由于操作系统的内存管理是惰性的，对于已申请的内存虽然会分配地址空间，
-但并不会直接占用物理内存，真正使用的时候才会映射到实际的物理内存。所以committed > res也是很可能的.
+但并不会直接占用物理内存，真正使用的时候才会映射到实际的物理内存。所以committed > res也是很可能的。
  
 used
 表示当前使用的内存量(以字节为单位)
 ```
 
-jhat 后加工工具，分析内存dump
+jhat 分析jmap等方法生成的dump堆文件，解析Java堆转储文件,并启动一个 web server，可以直接访问。
 
 jinfo 查看jvm系统参数，可以动态设置参数
 
@@ -266,15 +285,28 @@ jstat 可以查看gc和类加载情况
 
 jstack 查看线程堆栈情况
 
-jconsole 傻瓜式工具
+jconsole 可视化工具，可以连接远程linux服务器对内存线程等监视管理。
 
-jvisualVM 傻瓜式工具，功能更强大，可以在线dump内存堆栈,也可以提供后处理工具
+jvisualVM 傻瓜式工具，功能更强大，可以在线dump内存堆栈,也可以提供后处理工具。
 
 Heap Analyzer工具
 
 Heap Jmeter工具
 
-在故障定位(尤其是out of memory)和性能分析的时候，会用到dump文件来帮助我们排除代码问题，常用的有heap dump和thread dump，heap dump记录内存信息的，thread dump是记录CPU信息的，可以使用jmap和jstack命令获取，使用jhat命令分析
+在故障定位(尤其是out of memory)和性能分析的时候，会用到dump文件来帮助我们排除代码问题，常用的有heap dump和thread dump，heap dump记录内存信息的，thread dump是记录CPU信息的，可以使用jmap和jstack命令获取，使用jhat命令分析。
+
+参考：
+
+[java命令--jhat命令使用](https://www.cnblogs.com/baihuitestsoftware/articles/6406271.html)
+
+[JConsole连接远程linux服务器配置](https://www.cnblogs.com/zluckiy/p/10309495.html)
+
+## 引用类型
+
+- 强引用：发生 gc 的时候不会被回收。
+- 软引用：有用但不是必须的对象，在发生内存溢出之前会被回收。
+- 弱引用：有用但不是必须的对象，在下一次GC时会被回收。
+- 虚引用（幽灵引用/幻影引用）：无法通过虚引用获得对象，用 PhantomReference 实现虚引用，虚引用的用途是在 gc 时返回一个通知。
 
 ## springboot内存优化
 
