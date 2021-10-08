@@ -105,7 +105,7 @@ public static void main(String[] args){
     Integer b = 3;             //自动装箱，将会调用Integer.valueOf(n)
     int c = 3;
     System.out.println(a == b);//false    
-    System.out.println(a == c);//true,一个Integer 与 int比较，先将Integer转换成int类型，再做值比较
+    System.out.println(a == c);//true,一个Integer与int比较，先将Integer转换成int类型，再做值比较
 }
 ```
 

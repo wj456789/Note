@@ -480,7 +480,7 @@ DROP FOREIGN KEY child_fid_fk;
 drop table parent cascade constranints;
 ```
 
-#### Mysql 外键设置
+#### Mysql外键设置
 
 ##### on delete 规则
 
@@ -1716,7 +1716,7 @@ update user set age=20 where id=1;					#不允许(事务A未提交),事务A提�
 commit;
 ```
 
-#### 排他锁  
+#### 排他锁
 
 排他锁（Exclusive Locks）也称之为X锁、写锁。当一个事务对某行记录上了排他锁，其他事务即不能对该行记录进行读操作，也不能进行写操作。**InnoDB会自动对增删改操作加排他锁**。
 
