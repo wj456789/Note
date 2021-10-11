@@ -294,8 +294,6 @@ public class ResourceProperties {
     }
     ...
 } 
- 
-
 ```
 
 ```properties
@@ -681,14 +679,14 @@ public class SpringbootConfigApplication {...}
 user.username=zhangsan
 user.password=123456
 
-1、    
+---------------------------------------------------
 @Component
 @ConfigurationProperties(prefix = "user")
 //加载自定义的属性文件
 @PropertySource({"classpath:config.properties","classpath:user.properties"})
 public class User implements Serializable {...}    
     
-2、
+---------------------------------------------------
 @Component
 @PropertySource({"file:user.properties"})
 public class User implements Serializable {

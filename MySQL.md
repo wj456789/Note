@@ -2122,7 +2122,7 @@ delimiter ;
 
 ### 复制表
 
-```java
+```mysql
 #只复制表结构，包括主键、索引，但不会复制表数据
 create table tableName like someTable;
 #复制表的大体结构及全部数据，不会复制主键、索引等
@@ -2138,7 +2138,7 @@ insert into tableName select * from someTable;
 
 在MySQL中，可以使用SELECT...INTO OUTFILE语句将查询结果数据导出到文本文件。
 
-```java
+```mysql
 #文件存储路径
 SELECT * FROM employee INTO OUTFILE 'D:\\employee.txt' 
 #字段间分隔符
@@ -2149,7 +2149,7 @@ ENCLOSED BY '"'
 LINES TERMINATED BY '\r\n';
 ```
 
-```java
+```mysql
 #mysql中secure_file_priv参数控制导出
 #null 表示不允许导入导出		空 表示没有任何限制		指定路径 表示导入导出只能在指定路径下完成    
 show variables like "secure_file_priv";    
@@ -2157,9 +2157,9 @@ show variables like "secure_file_priv";
 
 #### mysql命令
 
-通常，我们使用mysql命令连接数据库，mysql命令有一个-e选项，可以执行指定的SQL语句，再结合DOS的重定向操作符”>”可以将查询结果导出到文件
+通常，我们使用mysql命令连接数据库，mysql命令有一个`-e`选项，可以执行指定的SQL语句，再结合DOS的重定向操作符”>”可以将查询结果导出到文件
 
-```java
+```sh
 mysql -h localhost -u root -p -D mydb -e "select * from employee" > E:\employee.txt
 ```
 
@@ -2167,7 +2167,7 @@ mysql -h localhost -u root -p -D mydb -e "select * from employee" > E:\employee.
 
 mysqldump是MySQL用于转存储数据库的实用程序，它主要产生一个SQL脚本，其中包含创建数据库、创建数据表、插入数据所必需的SQL语句。
 
-```java
+```sh
 # 导出mydb数据库（含数据）
 mysqldump -h localhost -u root -p mydb > d:/mydb.sql
 # 导出mydb数据库（不含数据）
@@ -2197,7 +2197,7 @@ mysqldump -h localhost -u root -p mydb --ignore-table mydb.contacts > d:/employe
 
 schtasks.exe用于安排命令和程序在指定时间内运行或定期运行，它可以从计划表中添加和删除任务、按需要启动和停止任务、显示和更改计划任务。
 
-```java
+```sh
 #备份数据库的脚本mysql_mydb_backup.bat
 mysqldump -h localhost -uroot -p123456 mydb > d:\backup\mydb.sql
 #创建计划任务（每隔指定时间备份一次MySQL）
@@ -2208,7 +2208,7 @@ schtasks /delete /tn 定期备份MySQL
 
 #### Linux
 
-```java
+```sh
 #!/bin/bash
 #备份目录
 backup_dir=/home/liufeng/backup
@@ -2224,7 +2224,7 @@ find ${backup_dir} -mtime +7 -name "*.sql" -exec rm -rf {} \;
 
 crontab是一个命令，常见于Unix和类Unix的操作系统之中，用于周期性执行任务。
 
-```java
+```sh
 #每天凌晨01:30执行shell脚本（备份数据库）
 30 1 * * * bash /home/liufeng/backup/mysql_mydb_backup.sh
 ```
@@ -2235,7 +2235,7 @@ crontab是一个命令，常见于Unix和类Unix的操作系统之中，用于�
 
 在MySQL中，可以使用LOAD DATA语句将文本文件数据导入到对应的数据库表中，可以将LOAD DATA语句看成是SELECT…INTO OUTFILE的反操作
 
-```java
+```mysql
 #数据文件位置
 >LOAD DATA INFILE 'D:\\employee.txt' INTO TABLE employee character set utf8 
 #字段间分隔符
@@ -2250,7 +2250,7 @@ crontab是一个命令，常见于Unix和类Unix的操作系统之中，用于�
 
 在MySQL中，可以使用source命令导入较大的SQL文件。source命令可以导入使用mysqldump备份的sql文件。
 
-```java
+```mysql
 >source d:/mydb.sql
 ```
 
@@ -2278,14 +2278,14 @@ crontab是一个命令，常见于Unix和类Unix的操作系统之中，用于�
 - **Unicode** Unicode是国际标准编码字符集，为世界650种语言进行统一编码，兼容ISO-8859-1。
   Unicode字符集有多个编码方式，分别是UTF-8，UTF-16和UTF-32。
 
-```java
+```mysql
 #查看mysql数据库支持的字符集
 >show character set;
 ```
 
 ### 设置字符集
 
-```java
+```mysql
 1、数据库
 # 创建数据库时指定字符集,COLLATE为排序使用的字符集
 CREATE DATABASE databaseName CHARSET utf8 COLLATE utf8_general_ci;
@@ -2300,7 +2300,7 @@ SHOW CREATE TABLE tableName;
 CREATE TABLE tableName(…, name varchar(50) not null CHARSET utf8, …);
 ```
 
-```java
+```mysql
 #举例
 >create table t1(name varchar(30)) default charset=gb2312
 #gb2312不支持繁体字，这里会报错，需要换成gbk或者unicode编码等    
@@ -2319,7 +2319,7 @@ CREATE TABLE tableName(…, name varchar(50) not null CHARSET utf8, …);
 
 MySQL支持SQL接口的预处理，即不使用二进制传输协议也可以直接以SQL的方式使用预处理。预处理的语法如下。
 
-```java
+```mysql
 # 定义预处理语句
 PREPARE stmt_name FROM preparable_stmt;
 # 执行预处理语句
@@ -2328,7 +2328,7 @@ EXECUTE stmt_name [USING @var_name [, @var_name] ...];
 {DEALLOCATE | DROP} PREPARE stmt_name;
 ```
 
-```java
+```mysql
 >prepare pre_employee from 'select * from employee where name=?';
 >set @name1='张三'
 >execute pre_employee using @name1;    
