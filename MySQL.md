@@ -213,33 +213,33 @@ WHERE table1.column1 = table2.column2;
 
 - **子查询in**
 
-```mysql
-#子查询in语法
-SELECT column_name FROM table_name 
-WHERE column_name IN(
- SELECT column_name FROM table_name [WHERE]
-);
-```
+  ```mysql
+  #子查询in语法
+  SELECT column_name FROM table_name 
+  WHERE column_name IN(
+   SELECT column_name FROM table_name [WHERE]
+  );
+  ```
 
 - **子查询exists**
 
   EXISTS是子查询中用于测试内部查询是否返回任何行的布尔运算符。**将主查询的数据放到子查询中做条件验证**，根据验证结果（TRUE 或 FALSE）来决定主查询的数据结果是否保留。
-
-```mysql
-#where子句使用exists语法
-SELECT t1.* 
-FROM table_name1 t1
-WHERE EXISTS (SELECT * FROM table_name2 t2 WHERE t1.column_name=t2.column_name);
-```
-
-```mysql
-#查找有成绩的学生
->select A.* from student A where exists(select * from score B where A.stu_id=B.stu_id);
-
-stu_id name address
- 1     张三	贵州
- 2     李四	陕西
-```
+  
+  ```mysql
+  #where子句使用exists语法
+  SELECT t1.* 
+  FROM table_name1 t1
+  WHERE EXISTS (SELECT * FROM table_name2 t2 WHERE t1.column_name=t2.column_name);
+  ```
+  
+  ```mysql
+  #查找有成绩的学生
+  >select A.* from student A where exists(select * from score B where A.stu_id=B.stu_id);
+  
+  stu_id name address
+   1     张三	贵州
+   2     李四	陕西
+  ```
 
 - **mysql中 in 和 exists 区别**
 
@@ -322,8 +322,7 @@ MySQL的权限信息主要存储在以下几张表中，当用户连接数据库
 
 #### 权限列表
 
-使用grant和revoke进行授权、撤销授权时，需要指定具体是哪些权限，这些权限大体可以分为3类，
-数据类、结构类和管理类。
+使用grant和revoke进行授权、撤销授权时，需要指定具体是哪些权限，这些权限大体可以分为3类，数据类、结构类和管理类。
 
 - **数据** 	SELECT	INSERT	UPDATE	DELETE	FILE
 - **结构**	CREATE	ALTER	INDEX	DROP	CREATE TEMPORARY TABLES	SHOW VIEW	CREATE ROUTINE	ALTER ROUTINE	EXECUTE	CREATE VIEW	EVENT	TRIGGER
@@ -359,7 +358,7 @@ MySQL关闭权限验证后，直接通过 mysql 命令即可连接到数据库�
 >ALTER USER 'root'@'localhost' IDENTIFIED BY '123456';
 ```
 
-## SQL 约束
+## SQL约束
 
 - NOT NULL: 用于控制字段的内容一定不能为空（NULL）。
 - UNIQUE: 控件字段内容不能重复，一个表允许有多个 Unique 约束。
@@ -375,7 +374,7 @@ MySQL关闭权限验证后，直接通过 mysql 命令即可连接到数据库�
 
 - 超键：在关系中能唯一标识元组的属性集称为关系模式的超键。一个属性可以为作为一个超键，多个属性组合在一起也可以作为一个超键。超键包含候选键和主键。
 - 候选键：是最小超键，即没有冗余元素的超键。
-- 主键：数据库表中对储存数据对象予以唯一和完整标识的数据列或属性的组合。一个数据列只能有一个主键，且主键的取值不能缺失，即不能为空值（Null）。
+- 主键：数据库表中对储存数据对象予以唯一和完整标识的数据列或属性的组合。一个数据列只能有一个主键，且主键的取值不能缺失，即不能为空（Null）。
 - 外键：在一个表中存在的另一个表的主键称此表的外键。
 
 ### 主键
@@ -481,7 +480,7 @@ DROP FOREIGN KEY child_fid_fk;
 drop table parent cascade constranints;
 ```
 
-#### Mysql 外键设置
+#### Mysql外键设置
 
 ##### on delete 规则
 
@@ -624,9 +623,9 @@ lock_option:
 
 参考：[MYSQL官网8.0文档](https://dev.mysql.com/doc/refman/8.0/en/create-index.html)
 
-#### 索引类型  
+#### 索引类型
 
-索引是存储引擎用于快速查找记录的一种数据结构  ，不同的存储引擎支持的索引类型不一样  ，MySQL中主要使用的索引结构类型是Hash和B+Tree。  
+索引是存储引擎用于快速查找记录的一种数据结构，不同的存储引擎支持的索引类型不一样，MySQL中主要使用的索引结构类型是Hash和B+Tree。  
 
 | 存储引擎    | 支持的索引类型 |
 | ----------- | -------------- |
@@ -794,12 +793,7 @@ InnoDB存储引擎也使用B+Tree作为索引结构，索引的key是数据表�
 - 最左前缀匹配原则，非常重要的原则，mysql会一直向右匹配直到遇到范围查询(>、<、between、like)就停止匹配，比如a = 1 and b = 2 and c > 3 and d = 4 如果建立(a,b,c,d)顺序的索引，d是用不到索引的，如果建立(a,b,d,c)的索引则都可以用到，a,b,d的顺序可以任意调整。
 - =和in可以乱序，比如a = 1 and b = 2 and c = 3 建立(a,b,c)索引可以任意顺序，mysql的查询优化器会帮你优化成索引可以识别的形式
 
-
-
-
-
-
-**查询索引列**
+##### 查询索引列
 
 覆盖索引中，select的数据列只从索引中就能得到，不用再扫描数据表，也就是只需扫描索引就可以得到查询结果。但是并非所有类型的索引都可以作为覆盖索引，覆盖索引必须要存储索引列的值。像哈希索引、空间索引、全文索引等并不会真正存储索引列的值。
 
@@ -816,7 +810,7 @@ InnoDB存储引擎也使用B+Tree作为索引结构，索引的key是数据表�
 我们可以利用`select count(*)/count(distinct left(password,prefixLen));`，通过从调整prefixLen的值（从1自增）查看不同前缀长度的一个平均匹配度，接近1时就可以了（表示一个密码的前prefixLen个字符几乎能确定唯一一条记录）
 
 
-#### 降序索引  
+#### 降序索引
 
 在MySQL 8.0之前，索引都是按升序创建的，虽然语法上支持DESC，但创建的仍然是升序索引。  
 
@@ -1040,7 +1034,7 @@ SELECT * FROM INFORMATION_SCHEMA.INNODB_FT_INDEX_CACHE;
 
 ![image-20210912090929871](img_MySQL/image-20210912090929871.png)
 
-#### ngram全文解析器  
+#### ngram全文解析器
 
 MySQL内置的全文解析器使用空格确定单词的开始和结束，当涉及汉语、日语或韩文时，这明显不适用。为了解决这个问题，MySQL提供了ngarm全文解析器，支持MyISAM和InnoDB存储引擎。
 
@@ -1075,7 +1069,7 @@ INSERT INTO ft_zh(title,body) VALUES ('MySQL基础入门', '主要讲解MySQL的
 INSERT INTO ft_zh(title,body) VALUES ('MySQL高级进阶', '主要讲解查询优化、高可用等相关知识。');
 
 #如果建表时未创建全文索引
-CREATE FULLTEXT INDEX idx_ft_zh ON ft_zh(title, body) WITH PARSER ngram;
+CREATE FULLTEXT INDEX idx_ft_zh ON ft_zh(title, body) WITH PARSER ngram; 
 
 #查看分词结果
 SET GLOBAL innodb_ft_aux_table="liufeng/ft_zh";
@@ -1183,14 +1177,14 @@ DROP VIEW view_name;
 
 - **原子性** 事务必须是原子工作单元，事务中包含的各操作要么都做，要么都不做
 - **一致性** 事务在执行完成时，必须使所有的数据都保持一致状态。如上例数据要么是1000和0，要么是900和100
-- **持续性** 事务执行完成之后，它对系统的影响是永久性的。比如不存在断电数据消失
+- **持久性** 事务执行完成之后，它对系统的影响是永久性的。比如不存在断电数据消失
 - **隔离性** 事务独立运行。多个事务之间相互隔离，互不干扰。事务的100%隔离，会牺牲速度
 
 ### 事务控制
 
 在默认情况下，MySQL是自动提交事务的，即每一条INSERT、UPDATE、DELETE的SQL语句提交后会立即执行COMMIT操作。因此，要开启一个事务，可以使用start transaction或begin，或者将autocommit的值设置为0
 
-```java
+```mysql
 #使用start transaction或begin开启事务。
 >start transaction
 >begin
@@ -1200,7 +1194,7 @@ DROP VIEW view_name;
 >commit;    
 ```
 
-```java
+```mysql
 #默认情况下，autocommit的值为1，表示自动提交事务
 >select @@autocommit;
 >set autocommit=0;
@@ -1223,11 +1217,11 @@ DROP VIEW view_name;
 
 - 不可重复读(Non-repeatable read)
 
-  在一个事务的两次查询之中数据不一致，事务A执行同样的查询，事务B对数据进行更新提交，在事务B提交之前、提交之后，会得到不同的查询结果  
+  在一个事务的两次查询之中数据不一致，事务A执行同样的两次查询之间，事务B对数据进行更新提交，在事务B提交之前、提交之后，会得到不同的查询结果  
 
 - 幻读(Phantom Read)
 
-  在一个事务的两次查询中数据笔数不一致，事务A执行同样的查询，事务B插入一条数据并提交，在事务B提交之前、提交之后，事务A后一次查询看到了前一次查询没有看到的行。
+  在一个事务的两次查询中数据笔数不一致，事务A执行同样的两次查询之间，事务B插入一条数据并提交，在事务B提交之前、提交之后，事务A后一次查询看到了前一次查询没有看到的行。
 
   
 
@@ -1299,7 +1293,7 @@ set transaction_isolation ='read-uncommitted';
 
 - **中继日志（relay log）** 
 
-  中继日志类似二进制；可用于复制架构中，使从服务器和主服务器的数据保持一致
+  中继日志类似二进制；可用于复制架构中，使从服务器和主服务器的数据保持一致。
 
 ### 慢查询日志
 
@@ -1336,7 +1330,7 @@ MySQL的二进制日志binlog可以说是MySQL最重要的日志，它记录了�
 
 万一遇到数据丢失的紧急情况下，可以使用binlog日志进行数据恢复（定时全备份+binlog日志恢复增量数据部分）。
 
-```java
+```mysql
 #查看binlog日志参数
 >show variables like 'log_bin%'  
 log_bin								ON
@@ -1348,24 +1342,23 @@ log_bin_use_v1_row_events			OFF
 
 
 
-```java
+```mysql
 #查看所有二进制日志列表
 show master logs;
 #查看正在使用的二进制日志
 show master status;
 #刷新日志（重新开始新的binlog日志文件）
-flush logs
+flush logs;
 
 #binlog日志是二进制文件不能直接打开，需要用如下方式查看    
 #查询指定的binlog
 show binlog events in 'WQ-20160826MDKU-bin.000050' from 10668\G;
 
 #导出sql在查看，同时可以用sql文件恢复误删数据
-#(半夜备份文件，先找到日志中半夜行数到当前行数，导出sql文件，在使用source命令导入)    
+#(半夜备份文件，先找到日志中半夜行数到当前行数，导出sql文件，在使用source命令导入)
 
-mysqlbinlog "C:\ProgramData\MySQL\MySQL Server 8.0\Data\WQ-20160826MDKU-bin.000057" --
-start-position 528 --stop-position 1191 > d:\backup\test.sql
-#sql文件本质上就是数据库语句集    
+mysqlbinlog "C:\ProgramData\MySQL\MySQL Server 8.0\Data\WQ-20160826MDKU-bin.000057" --start-position 528 --stop-position 1191 > d:\backup\test.sql
+#sql文件本质上就是数据库语句集
 ```
 
 
@@ -1436,13 +1429,13 @@ explain的使用很简单，只需要在SQL语句之前加上explain命令即可
 
 ### 处理超大分页
 
-超大的分页一般从两个方向上来解决.
+超大的分页一般从两个方向上来解决。
 
-- 数据库层面,这也是我们主要集中关注的(虽然收效没那么大),类似于`select * from table where age > 20 limit 1000000,10`这种查询其实也是有可以优化的余地的. 这条语句需要load1000000数据然后基本上全部丢弃,只取10条当然比较慢. 当时我们可以修改为`select * from table where id in (select id from table where age > 20 limit 1000000,10)`.这样虽然也load了一百万的数据,但是由于索引覆盖,要查询的所有字段都在索引中,所以速度会很快. 同时如果ID连续的好,我们还可以`select * from table where id > 1000000 limit 10`,效率也是不错的,优化的可能性有许多种,但是核心思想都一样,就是**减少load加载的数据**.
+- 数据库层面,这也是我们主要集中关注的(虽然收效没那么大)，类似于`select * from table where age > 20 limit 1000000,10`这种查询其实也是有可以优化的余地的。这条语句需要load1000000数据然后基本上全部丢弃，只取10条当然比较慢. 当时我们可以修改为`select * from table where id in (select id from table where age > 20 limit 1000000,10)`。这样虽然也load了一百万的数据，但是由于索引覆盖,要查询的所有字段都在索引中，所以速度会很快。 同时如果ID连续的好,我们还可以`select * from table where id > 1000000 limit 10`,效率也是不错的,优化的可能性有许多种，但是核心思想都一样，就是**减少load加载的数据**。
 
 - 从需求的角度减少这种请求…主要是不做类似的需求(直接跳转到几百万页之后的具体某一页.只允许逐页查看或者按照给定的路线走,这样可预测,可缓存)以及防止ID泄漏且连续被人恶意攻击.
 
-解决超大分页,其实主要是靠缓存,可预测性的提前查到内容,缓存至redis等k-V数据库中,直接返回即可.
+解决超大分页，其实主要是靠缓存，可预测性的提前查到内容，缓存至redis等k-V数据库中，直接返回即可。
 
 ```mysql
 #在阿里巴巴《Java开发手册》中,对超大分页的解决办法是类似于上面提到的第一种.
@@ -1469,7 +1462,7 @@ SELECT a.* FROM 表1 a, (select id from 表1 where 条件 LIMIT 100000,20 ) b wh
 
 #### 优化长难的查询语句
 
-一个复杂查询还是多个简单查询
+一个复杂查询还是多个简单查询？？？
 
 MySQL内部每秒能扫描内存中上百万行数据，相比之下，响应数据给客户端就要慢得多，使用切分查询(将一个大的查询分为多个小的相同的查询)是很有必要的。
 
@@ -1579,7 +1572,7 @@ MyISAM中，没有任何where条件的`count(*)`非常快，当有where条件时
 
 当 cpu 飙升到 500%时，先用操作系统命令 top 命令观察是不是 mysqld 占用导致的，如果不是，找出占用高的进程，并进行相关处理。
 
-如果是 mysqld 造成的， `show processlist`，看看里面跑的 session 情况，是不是有消耗资源的 sql 在运行。找出消耗高的 sql，看看执行计划是否准确， index 是否缺失，或者实在是数据量太大造成。
+如果是 mysqld 造成的， `show processlist`，看看里面跑的 session 情况，是不是有消耗资源的 sql 在运行。找出消耗高的 sql，看看执行计划是否准确，index 是否缺失，或者实在是数据量太大造成。
 
 一般来说，肯定要 kill 掉这些线程(同时观察 cpu 使用率是否下降)，等进行相应的调整(比如说加索引、改 sql、改内存参数)之后，再重新跑这些 SQL。
 
@@ -1605,9 +1598,7 @@ MyISAM中，没有任何where条件的`count(*)`非常快，当有where条件时
 
    - 水平切分，针对数据量大的表，这一步最麻烦，最能考验技术水平，要选择一个合理的sharding key(切分键)， 为了有好的查询效率，表结构要改动，做一定的冗余，应用也要改，sql中尽量带sharding key，将数据定位到限定的表上去查，而不是扫描全部的表
 
-#### 垂直拆分
-
-##### 垂直分表
+#### 垂直分表
 
 把主键和一些列放在一个表，然后把主键和另外的列放在另一个表中。
 
@@ -1679,7 +1670,7 @@ unlock tables;
 
 InnoDB存储引擎既支持行锁，也支持表锁，但默认情况下是采用行锁。InnoDB的锁，与索引、事务的隔离级别有关。
 
-- InnoDB的行锁是通过**锁定索引项**来实现的，而不是锁定物理行记录。所以当查询字段不是索引键那么InnoDB将完成表锁，并发将无从谈起。当查询字段是唯一索引时使用记录锁，不是唯一索引使用邻键锁。
+- InnoDB的行锁是通过**锁定索引项**来实现的，而不是锁定物理行记录。所以当查询字段不是索引键那么InnoDB将完成表锁，并发将无从谈起。当查询字段是唯一索引时使用记录锁，不是唯一索引使用临键锁。
 
 - 事务隔离级别与锁的关系
   - 在Read Uncommitted级别下，读取数据不需要加共享锁，这样就不会跟被修改的数据上的排他锁冲突
@@ -1725,7 +1716,7 @@ update user set age=20 where id=1;					#不允许(事务A未提交),事务A提�
 commit;
 ```
 
-#### 排他锁  
+#### 排他锁
 
 排他锁（Exclusive Locks）也称之为X锁、写锁。当一个事务对某行记录上了排他锁，其他事务即不能对该行记录进行读操作，也不能进行写操作。**InnoDB会自动对增删改操作加排他锁**。
 

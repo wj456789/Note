@@ -1375,9 +1375,9 @@ Content-disposition可以控制文件直接在浏览器上显示或者在访问�
 
 - 表现层 Representational：资源的表现层，指的是资源的具体呈现形式，如HTML、JSON等
 
-- 状态转化 State Transfer：指的是状态变化
+- 状态转化 State Transfer：指的是状态变化，通过HTTP方法来实现
 
-REST 指的是一组架构约束条件和原则。满足这些约束条件和原则的应用程序或设计就是RESTful。	
+REST 指的是一组架构约束条件和原则。满足这些约束条件和原则的应用程序或设计就是RESTful。
 
 ### REST关键原则
 

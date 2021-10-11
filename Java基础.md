@@ -35,9 +35,18 @@ static可以用来修饰类的成员方法、类的成员变量，另外可以�
 
   注意：final修饰的类，类中的所有成员方法都被隐式地指定为final方法。
 
+## Java修饰符作用域
+
+| 作用域    | 当前类 | 同包 | 子类 | 其他包 |
+| --------- | ------ | ---- | ---- | ------ |
+| public    | √      | √    | √    | √      |
+| protected | √      | √    | √    | ×      |
+| default   | √      | √    | ×    | ×      |
+| private   | √      | ×    | ×    | ×      |
+
 ## 变量
 
-类中定义的变量称为成员变量，成员变量分为静态变量(全局变量)和实例变量，方法中定义的变量称为局部变量
+类中定义的变量称为成员变量，成员变量分为静态变量(全局变量)和实例变量，方法中定义的变量称为局部变量。
 
 ## 抽象类和接口
 
@@ -96,7 +105,7 @@ public static void main(String[] args){
     Integer b = 3;             //自动装箱，将会调用Integer.valueOf(n)
     int c = 3;
     System.out.println(a == b);//false    
-    System.out.println(a == c);//true,一个Integer 与 int比较，先将Integer转换成int类型，再做值比较
+    System.out.println(a == c);//true,一个Integer与int比较，先将Integer转换成int类型，再做值比较
 }
 ```
 
