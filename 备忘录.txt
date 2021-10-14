@@ -1,6 +1,18 @@
 Linux配置网卡
 https://www.cnblogs.com/aknife/p/11181805.html
 
+centos7 ping: www.baidu.com: Name or service not known
+https://blog.csdn.net/abcd5711664321/article/details/80436457
+
+
+
+
+
+
+
+
+
+
 IntelliJ IDEA启动Tomcat后访问HTML页面解决中文乱码
 https://blog.csdn.net/telyfox/article/details/107780648
 
@@ -9,9 +21,6 @@ https://blog.csdn.net/qq_38071435/article/details/82312562
 
 linux 添加开机自启动脚本
 https://blog.csdn.net/daidaineteasy/article/details/54864776
-
-centos7 ping: www.baidu.com: Name or service not known
-https://blog.csdn.net/abcd5711664321/article/details/80436457
 
 运行yum系统提示Existing lock /var/run/yum.pid: another copy is running as pid
 https://blog.csdn.net/nbczw8750/article/details/84877315

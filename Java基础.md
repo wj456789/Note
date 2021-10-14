@@ -23,6 +23,39 @@ static可以用来修饰类的成员方法、类的成员变量，另外可以�
 - 静态成员变量虽然独立于所在的对象，但是不代表不可以通过对象去访问，所有的静态方法和静态变量都可以通过所在类的实例对象访问（只要访问权限足够）。
 - static是不允许用来修饰局部变量
 
+```java
+//通过具体实例对象访问静态方法看引用变量类型
+public class Parent {
+    public static void test(){
+        System.out.println("parent-test");
+    }
+}
+
+public class Child extends Parent {
+    public static void test(){
+        System.out.println("child-test");
+    }
+}
+
+public static void main(String[] args) {
+    Parent parent=new Parent();
+    parent.test();
+
+    Parent _parent=new Child();
+    _parent.test();
+
+    Child child=new Child();
+    child.test();
+}
+
+输出：
+parent-test
+parent-test
+child-test    
+```
+
+
+
 ## final关键字
 
 - 修饰变量，被final修饰的变量必须要初始化，赋初值后不能再重新赋值，即变量被初始化后便不可改变。

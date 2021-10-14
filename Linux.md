@@ -368,6 +368,114 @@ Inactive(anon):  1626856 kB
 
 可用内存=MemFree + Buffers + Cached
 
+## 网络配置
+
+### 网卡配置
+
+```sh
+#编辑网卡
+$vi /etc/sysconfig/network-scripts/ifcfg-ens5f0
+
+#修改前
+TYPE=Ethernet
+PROXY_METHOD=none
+BROWSER_ONLY=no
+BOOTPROTO=dhcp
+DEFROUTE=yes
+IPV4_FAILURE_FATAL=no
+IPV6INIT=yes
+IPV6_AUTOCONF=yes
+IPV6_DEFROUTE=yes
+IPV6_FAILURE_FATAL=no
+IPV6_ADDR_GEN_MODE=stable-privacy
+NAME=ens5f0
+UUID=e5b58cfe-3963-4f89-bcc4-4995f8896603
+DEVICE=ens5f0
+ONBOOT=no
+
+#修改后
+TYPE=Ethernet
+PROXY_METHOD=none
+BROWSER_ONLY=no
+#静态连接
+BOOTPROTO=static
+DEFROUTE=yes
+IPV4_FAILURE_FATAL=no
+IPV6INIT=yes
+IPV6_AUTOCONF=yes
+IPV6_DEFROUTE=yes
+IPV6_FAILURE_FATAL=no
+IPV6_ADDR_GEN_MODE=stable-privacy
+NAME=ens5f0
+UUID=2e7867d0-1229-4584-880a-412023b6275a
+DEVICE=ens5f0
+#网络设备开机启动
+ONBOOT=yes
+IPV6_PRIVACY=no
+#IP地址
+IPADDR=10.45.168.74
+#子网掩码
+NETMASK=255.255.254.0
+#网关IP
+GATEWAY=10.45.168.1
+DNS1=8.8.8.8
+ZONE=public
+
+#重启网卡
+$service network restart
+```
+
+```sh
+#如果有启动失败的情况，则删除网卡生成规则文件，然后重启服务器
+$rm -f /etc/udev/rules.d/70-persistent-ipoib.rules
+$reboot
+```
+
+```sh
+#查看网络配置
+$ip addr
+
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host
+       valid_lft forever preferred_lft forever
+2: ens1f0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc mq state DOWN group default qlen 1000
+    link/ether 00:e0:ed:7b:2d:c0 brd ff:ff:ff:ff:ff:ff
+3: ens1f1: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc mq state DOWN group default qlen 1000
+    link/ether 00:e0:ed:7b:2d:c1 brd ff:ff:ff:ff:ff:ff
+4: ens5f0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP group default qlen 1000
+    link/ether 2c:4d:54:43:fd:5d brd ff:ff:ff:ff:ff:ff
+    inet 10.45.168.74/23 brd 10.45.169.255 scope global ens5f0
+       valid_lft forever preferred_lft forever
+    inet6 fe80::670a:2a9e:e58e:b23f/64 scope link
+       valid_lft forever preferred_lft forever
+5: ens5f1: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc mq state DOWN group default qlen 1000
+    link/ether 2c:4d:54:43:fd:5e brd ff:ff:ff:ff:ff:ff
+6: virbr0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc noqueue state DOWN group default qlen 1000
+    link/ether 52:54:00:3d:b9:92 brd ff:ff:ff:ff:ff:ff
+    inet 192.168.122.1/24 brd 192.168.122.255 scope global virbr0
+       valid_lft forever preferred_lft forever
+7: virbr0-nic: <BROADCAST,MULTICAST> mtu 1500 qdisc pfifo_fast master virbr0 state DOWN group default qlen 1000
+    link/ether 52:54:00:3d:b9:92 brd ff:ff:ff:ff:ff:ff
+```
+
+### DNS文件配置
+
+```sh
+$vi /etc/resolv.conf 
+
+nameserver 8.8.8.8              #google域名服务器
+nameserver 114.114.114.114      #国内域名服务器(中国电信)
+```
+
+参考：
+
+[Linux配置网卡](https://www.cnblogs.com/aknife/p/11181805.html)
+
+[centos7 ping: www.baidu.com: Name or service not known](https://blog.csdn.net/abcd5711664321/article/details/80436457)
+
 ## rpm
 
  如果使用RPM安装了一些包，一般来说，RPM默认安装路径如下：
