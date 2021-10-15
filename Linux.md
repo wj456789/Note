@@ -2,9 +2,71 @@
 
 ## 关机重启
 
-#shutdown -c now：取消已经执行的 shutdown 命令；
-#shutdown -h now：现在关机；
-#shutdown -r now：现在重启；
+```sh
+$shutdown -c now：取消已经执行的 shutdown 命令；
+$shutdown -h now：现在关机；
+$shutdown -r now：现在重启；
+```
+
+## Linux时间
+
+在Linux下，默认情况下，系统时间和硬件时间并不会自动同步。在Linux运行过程中，系统时间和硬件时间以异步的方式运行，互不干扰。硬件时间的运行，是靠BIOS电池来维持，而系统时间，是用CPU Tick来维持的。在系统开机的时候，会自动从BIOS中取得硬件时间，设置为系统时间。 
+
+### 设置系统时间
+
+在Linux中设置系统时间，可以用date命令：
+
+```sh
+#查看时间
+$ date
+Tue Feb 25 20:15:18 CST 2014
+
+#修改时间
+$ date -s "20140225 20:16:00"  #yyyymmdd hh:mm:ss
+Tue Feb 25 20:16:00 CST 2014
+
+#date 有多种时间格式可接受，查看date --help
+```
+
+### 设置硬件时间
+
+硬件时间的设置，可以用hwclock或者clock命令。两者基本相同，只用一个就行，只不过clock命令除了支持x86硬件体系外，还支持Alpha硬件体系。
+
+```sh
+#查看硬件时间可以是用hwclock ，hwclock --show 或者 hwclock -r
+$ hwclock --show
+Tue 25 Feb 2014 08:21:14 PM CST -0.327068 seconds
+
+#设置硬件时间
+$ hwclock --set --date "20140225 20:23:00"
+
+$ hwclock
+Tue 25 Feb 2014 08:23:04 PM CST -0.750440 seconds
+```
+
+### 系统时间和硬件时间的同步
+
+同步系统时间和硬件时间，可以使用hwclock命令。
+
+```sh
+#以系统时间为基准，修改硬件时间
+$ hwclock --systohc <== sys（系统时间）to（写到）hc（Hard Clock）
+#或者
+$ hwclock -w
+
+
+
+#以硬件时间为基准，修改系统时间
+$ hwclock --hctosys
+#或者
+$ hwclock -s
+```
+
+### 不同机器之间的时间同步
+
+参考：[Linux系统时间同步方法小结](https://www.cnblogs.com/williamjie/p/10768657.html)
+
+
 
 ## vi编辑器
 
@@ -374,7 +436,7 @@ Inactive(anon):  1626856 kB
 
 ```sh
 #编辑网卡
-$vi /etc/sysconfig/network-scripts/ifcfg-ens5f0
+$vi /etc/sysconfig/network-scripts/ifcfg-enp7s0f0
 
 #修改前
 TYPE=Ethernet
@@ -388,9 +450,9 @@ IPV6_AUTOCONF=yes
 IPV6_DEFROUTE=yes
 IPV6_FAILURE_FATAL=no
 IPV6_ADDR_GEN_MODE=stable-privacy
-NAME=ens5f0
+NAME=enp7s0f0
 UUID=e5b58cfe-3963-4f89-bcc4-4995f8896603
-DEVICE=ens5f0
+DEVICE=enp7s0f0
 ONBOOT=no
 
 #修改后
@@ -406,23 +468,25 @@ IPV6_AUTOCONF=yes
 IPV6_DEFROUTE=yes
 IPV6_FAILURE_FATAL=no
 IPV6_ADDR_GEN_MODE=stable-privacy
-NAME=ens5f0
+NAME=enp7s0f0
 UUID=2e7867d0-1229-4584-880a-412023b6275a
-DEVICE=ens5f0
+DEVICE=enp7s0f0
 #网络设备开机启动
 ONBOOT=yes
 IPV6_PRIVACY=no
 #IP地址
-IPADDR=10.45.168.74
+IPADDR=172.16.16.6
 #子网掩码
-NETMASK=255.255.254.0
+NETMASK=255.255.240.0
 #网关IP
-GATEWAY=10.45.168.1
+GATEWAY=172.16.16.3
 DNS1=8.8.8.8
 ZONE=public
 
 #重启网卡
 $service network restart
+#或者
+$systemctl restart network
 ```
 
 ```sh
@@ -435,30 +499,23 @@ $reboot
 #查看网络配置
 $ip addr
 
-1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1
+ip addr
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
     link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
     inet 127.0.0.1/8 scope host lo
        valid_lft forever preferred_lft forever
     inet6 ::1/128 scope host
        valid_lft forever preferred_lft forever
-2: ens1f0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc mq state DOWN group default qlen 1000
-    link/ether 00:e0:ed:7b:2d:c0 brd ff:ff:ff:ff:ff:ff
-3: ens1f1: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc mq state DOWN group default qlen 1000
-    link/ether 00:e0:ed:7b:2d:c1 brd ff:ff:ff:ff:ff:ff
-4: ens5f0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP group default qlen 1000
-    link/ether 2c:4d:54:43:fd:5d brd ff:ff:ff:ff:ff:ff
-    inet 10.45.168.74/23 brd 10.45.169.255 scope global ens5f0
+2: enp7s0f0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc mq state UP group default qlen 1000
+    link/ether 00:26:2d:0d:5e:05 brd ff:ff:ff:ff:ff:ff
+    inet 172.16.16.6/20 brd 172.16.31.255 scope global noprefixroute enp7s0f0
        valid_lft forever preferred_lft forever
-    inet6 fe80::670a:2a9e:e58e:b23f/64 scope link
+    inet6 fe80::62a1:40a6:c851:4dc5/64 scope link noprefixroute
        valid_lft forever preferred_lft forever
-5: ens5f1: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc mq state DOWN group default qlen 1000
-    link/ether 2c:4d:54:43:fd:5e brd ff:ff:ff:ff:ff:ff
-6: virbr0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc noqueue state DOWN group default qlen 1000
-    link/ether 52:54:00:3d:b9:92 brd ff:ff:ff:ff:ff:ff
-    inet 192.168.122.1/24 brd 192.168.122.255 scope global virbr0
-       valid_lft forever preferred_lft forever
-7: virbr0-nic: <BROADCAST,MULTICAST> mtu 1500 qdisc pfifo_fast master virbr0 state DOWN group default qlen 1000
-    link/ether 52:54:00:3d:b9:92 brd ff:ff:ff:ff:ff:ff
+3: enp9s0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc pfifo_fast state DOWN group default qlen 1000
+    link/ether 00:26:2d:0d:5e:04 brd ff:ff:ff:ff:ff:ff
+4: enp7s0f1: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc mq state DOWN group default qlen 1000
+    link/ether 00:26:2d:0d:5e:06 brd ff:ff:ff:ff:ff:ff
 ```
 
 ### DNS文件配置
@@ -468,6 +525,7 @@ $vi /etc/resolv.conf
 
 nameserver 8.8.8.8              #google域名服务器
 nameserver 114.114.114.114      #国内域名服务器(中国电信)
+nameserver 202.103.24.68		#私有DNS
 ```
 
 参考：
@@ -475,6 +533,127 @@ nameserver 114.114.114.114      #国内域名服务器(中国电信)
 [Linux配置网卡](https://www.cnblogs.com/aknife/p/11181805.html)
 
 [centos7 ping: www.baidu.com: Name or service not known](https://blog.csdn.net/abcd5711664321/article/details/80436457)
+
+### 路由配置
+
+#### route
+
+```sh
+#显示现在所有路由
+#结果是自上而下， 就是说， 哪条在前面， 哪条就有优先， 前面都没有， 就用最后一条default
+$route -n
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+0.0.0.0         172.16.16.3     0.0.0.0         UG    103    0        0 enp7s0f0
+172.16.16.0     0.0.0.0         255.255.240.0   U     103    0        0 enp7s0f0
+192.168.80.0    172.16.16.3     255.255.240.0   UG    103    0        0 enp7s0f0
+
+#添加一条路由(发往192.168.80这个网段的全部要经过网关172.16.16.3)
+$route add -net 192.168.80.0 netmask 255.255.240.0 gw 172.16.16.3
+
+#删除一条路由　删除的时候不用写网关
+$route del -net 192.168.80.0 netmask 255.255.240.0
+```
+
+
+
+| 输出项      | 说明                                                         |
+| ----------- | ------------------------------------------------------------ |
+| Destination | 目标网段或者主机                                             |
+| Gateway     | 网关地址，”*” 表示目标是本主机所属的网络，不需要路由         |
+| Genmask     | 网络掩码                                                     |
+| Flags       | 标记。一些可能的标记如下：                                   |
+|             | U — 该路由可以使用                                           |
+|             | H — 该路由是到一个主机                                       |
+|             | G — 该路由是到一个网关，如果没有该标志，说明目的地的直连的，它区分了间接路由和直接路由 |
+|             | N — 该路由是到一个网络                                       |
+|             | R — 恢复动态路由产生的表项                                   |
+|             | D — 由路由的后台程序动态地安装，由重定向报文创建             |
+|             | M — 由路由的后台程序修改，被重定向报文修改                   |
+|             | ! — 拒绝路由                                                 |
+| Metric      | 路由距离，到达指定网络所需的中转数（linux 内核中没有使用）   |
+| Ref         | 路由项引用次数（linux 内核中没有使用）                       |
+| Use         | 此路由项被路由软件查找的次数                                 |
+| Iface       | 该路由表项对应的输出接口                                     |
+
+##### 语法
+
+```sh
+$route  [add|del] [-net|-host] target [netmask Nm] [gw Gw] [[dev] If]
+```
+
+- add : 添加一条路由规则
+- del : 删除一条路由规则
+- -net : 目的地址是一个网络
+- -host : 目的地址是一个主机
+- target : 目的网络或主机
+- netmask : 目的地址的网络掩码
+- gw : 路由数据包通过的网关
+- dev : 为路由指定的网络接口
+
+```sh
+#添加到主机的路由
+$route add –host 192.168.168.110 dev eth0
+$route add –host 192.168.168.119 gw 192.168.168.1
+
+#添加到网络的路由
+$route add –net IP netmask MASK eth0
+$route add –net IP netmask MASK gw IP
+$route add –net IP/24 eth1
+
+#添加默认网关
+$route add default gw 192.168.1.1
+
+#删除路由
+$route del –host 192.168.168.110 dev eth0
+```
+
+参考：
+
+[linux 路由表设置 之 route 指令详解](https://blog.csdn.net/chenlycly/article/details/52141854)
+
+[传统的网络配置命令ifconfig、ip](https://blog.csdn.net/qq_34595352/article/details/82218515)
+
+#### 设置永久路由
+
+- 在`/etc/rc.local`启动项中里添加，但是network服务重启后失效
+
+  ```sh
+  route add -net 192.168.80.0 netmask 255.255.240.0 gw 172.16.16.3
+  ```
+
+- CentOS7添加永久静态路由
+
+  先在`/etc/sysconfig/network-scripts/`下，新建文件名为`route-*`的文件，（`*`代表网卡名）
+
+  ```sh
+  #ADDRESS后面是数字0表示第一条,有多条路由就是0，1，2，3依次
+  $vim /etc/sysconfig/network-scripts/route-enp7s0f0
+  ADDRESS0=192.168.80.0
+  NETMASK0=255.255.240.0
+  GATEWAY0=172.16.16.3
+  ```
+
+#### 路由跟踪
+
+- Internet，即国际互联网，是目前世界上最大的计算机网络。它由遍布全球的几万局域网和数百万台计算机组成，并通过用于异构网络的TCP/IP协议进行网间通信。
+- 互联网中，信息的传送是通过网中许多段的传输介质和设备（路由器，交换机，服务器，网关等等）从一端到达另一端。每一个连接在Internet上的设备，如主机、路由器、接入服务器等一般情况下都会有一个独立的IP地址。
+- 通过Traceroute我们可以知道信息从你的计算机到互联网另一端的主机是走的什么路径。
+- Traceroute通过发送小的数据包到目的设备直到其返回，来测量其需要多长时间。一条路径上的每个设备Traceroute要测3次。输出结果中包括每次测试的时间(ms)和设备的名称（如有的话）及其IP地址。
+- Windows中为Tracert
+
+```sh
+#linux
+$traceroute www.baidu.com
+#windows
+$tracert www.baidu.com
+```
+
+参考：
+
+[traceroute和tracert用法详解](https://blog.csdn.net/zhouwei1221q/article/details/45370039)
+
+
 
 ## rpm
 

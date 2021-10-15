@@ -1,15 +1,11 @@
-Linux配置网卡
-https://www.cnblogs.com/aknife/p/11181805.html
-
-centos7 ping: www.baidu.com: Name or service not known
-https://blog.csdn.net/abcd5711664321/article/details/80436457
 
 
 
 
 
 
-
+使用httpclient post请求中文乱码解决办法
+https://blog.csdn.net/iteye_18692/article/details/82676098
 
 
 
@@ -30,16 +26,6 @@ https://blog.csdn.net/weixin_30567471/article/details/98045217
 
 
 
-traceroute和tracert用法详解
-https://blog.csdn.net/zhouwei1221q/article/details/45370039
-
-linux 中增加路由（route）命令详解
-https://blog.csdn.net/qq_34595352/article/details/82218515
-
-CentOS7添加永久路由之一
-https://blog.51cto.com/zhangchengjie/2391061
-CentOS7添加永久静态路由
-https://www.cnblogs.com/outsrkem/p/11369006.html
 
 Linux系统时间同步方法小结
 https://www.cnblogs.com/williamjie/p/10768657.html
@@ -58,8 +44,8 @@ ECharts 数据集（dataset）
 https://www.runoob.com/echarts/echarts-dataset.html
 
 
-
-
+Jquery页面加载完成自动触发按钮点击事件
+https://www.cnblogs.com/sunny1009/articles/8571889.html#autoid-1-0-0
 
 
 
