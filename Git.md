@@ -15,15 +15,17 @@ Remote：远程仓库
 
 ### 使用Git和Github同步文件
 
+#### 安装配置
+
 1. 在Github上创建仓库Note
 
 2. 安装Git(下载网址http://git-scm.com/download/，选择windows-->Git for Windows Setup)
 
 3. 安装完成打开
 
-4. 输入`ssh-keygen –t rsa –C "邮箱地址"`，之后直接回车，不要修改密钥存放路径，打开密钥id_rsa.pub复制内容
+4. 手动输入`ssh-keygen –t rsa –C "邮箱地址"`，之后直接回车，不要修改密钥存放路径，打开密钥id_rsa.pub复制内容
 
-5. Github上选择settings-->SSH Keys-->Add SSH Key,在Title这一栏随便填一个名字，之后将id_rsa.pub里面的内容复制到到Key这一栏中确定
+5. Github上选择settings-->SSH Keys-->Add SSH Key，在Title这一栏随便填一个名字，之后将id_rsa.pub里面的内容复制到到Key这一栏中确定
 
 6. Git上输入`ssh –T git@github.com` 验证是否设置成功，如果出现问题`ssh:connect to host github.com port 22: Connection timed out`，可以更换端口22，在密钥id_rsa.pub同步文件夹下新建config文件，内容：
 
@@ -45,6 +47,8 @@ Remote：远程仓库
 
    ​	之后重试，有个地方要输入yes
 
+#### 项目初始化
+
 7. 配置一下用户名和邮箱(`git config --global`表示本机器上所有的Git仓库都会使用这个配置)       
 
    ```java
@@ -52,19 +56,19 @@ Remote：远程仓库
    $git config –global user.email "1256116295@qq.com"	
    ```
 
-8. 本地新建目录作为本地仓库，在新建目录右击选择打开Git Bash Here
+2. 本地新建目录作为本地仓库，在新建目录右击选择打开Git Bash Here
 
-9. 输入`git init`初始化仓库
+3. 输入`git init`初始化仓库
 
-10. 输入`git remote add origin https://github.com/wj456789/Note.git`关联远程仓库
+4. 输入`git remote add origin git@github.com:wj456789/Note.git`关联远程仓库(地址或为`https://github.com/wj456789/Note.git`)
 
-11. 输入`git pull git@github.com:wj456789/Note.git`同步远程仓库
+#### 版本同步
 
-12. 输入`git add .`添加所有文件到暂存区
-    		`git commit –m 无`提交所有文件到本地仓库
-    		`git push -u origin master  `推送本地仓库分支master所有文件到远程仓库origin分支master 	
-    
-13. 之后就可以输入`git push`和`git pull`来推送和拉取文件
+1. 输入`git pull git@github.com:wj456789/Note.git`同步远程仓库
+2. 输入`git add .`添加所有文件到暂存区
+   		`git commit –m 无`提交所有文件到本地仓库
+   		`git push origin master  `推送本地仓库分支master所有文件到远程仓库origin分支master 	
+3. `git push -u origin master`指定默认分支，之后就可以输入`git push`和`git pull`来推送和拉取文件
 
 参考：[使用git和github进行文件同步](https://blog.csdn.net/u011622208/article/details/80637661)
 
@@ -234,21 +238,33 @@ $ git commit --amend [file1] [file2] ...
 
 ### 远程同步
 
+修改远程仓库地址
+
+`git remote set-url origin <remote-url>`
+
+仓库路径查询查询
+
+`git remote -v`
+
+增加一个新的远程仓库，并命名为origin 
+
+`git remote add origin <你的项目地址>` //注:项目地址形式为:`https://gitee.com/xxx/xxx.git`或者 `git@gitee.com:xxx/xxx.git`
+
+删除指定的远程仓库
+
+`git remote rm origin`
+
+
+
+
+
 下载远程仓库的所有变动
 
 $ git fetch [remote]
 
-显示所有远程仓库
-
-**$ git remote -v**
-
 显示某个远程仓库的信息
 
 $ git remote show [remote]
-
-增加一个新的远程仓库，并命名
-
-$ git remote add [shortname] [url]
 
 取回远程仓库的变化，并与本地分支合并
 
