@@ -802,6 +802,14 @@ public static void main(String[] args){
 
 对o1和o2进行排序，o1和o2传入compare方法顺序是o1、o2，根据Comparetor.compare(o1, o2)方法的返回值，如果返回的值小于零，则不交换两个o1和o2的位置；如果返回的值大于零，则交换o1和o2的位置；然后根据o1、o2传入值的大小和交换之后的排序，判断是升序或逆序
 
+大小	前-后>0	小大	正序
+小大	前-后<0	小大	正序
+
+大小	后-前<0	大小	逆序
+小大	后-前>0	大小	逆序
+
+**总之前者减后者是升序，后者减前者是降序**
+
 ```java
 List<Integer> list = Stream.of(1,2,10).collect(Collectors.toList());
 Collections.sort(list, new Comparator<Integer>() {
@@ -818,6 +826,8 @@ System.out.println(list);//[10, 2, 1]
 ### Comparable<T>接口
 
 需要重写`public int compareTo(T o)`方法
+
+**当前值减传入值是升序，传入值减当前值是降序**
 
 #### String默认实现
 

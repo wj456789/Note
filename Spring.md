@@ -1034,6 +1034,10 @@ public class LogAdvice {
     @Pointcut("!pc() && pc2()")
     public void pc4(){}
     
+    //多个类
+    @Pointcut("execution(* aop.service.impl.*.*(..)) || execution(* aop.config.*.*.*(..))") 
+    public void pc5(){}
+    
     //切面方法
     //@Before(切点方法())
     @Before("pc()") //后面的小括号不能省略
@@ -1064,6 +1068,43 @@ public class LogAdvice {
     }
 }
 ```
+
+```java
+//目标类
+package aop.service.impl;
+//必须将目标类注入容器中，否则AOP不生效
+@Service
+public class TestServiceImpl {
+    public void transfer() {
+        System.out.println("执行方法");
+    }
+}
+```
+
+```java
+//单元测试
+@RunWith(SpringRunner.class)
+@SpringBootTest(classes = ApplicationRunner.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+
+public class SpringAopApplicationTests {
+    //此时AOP不生效
+	@Test
+	public void contextLoads() {
+		TestServiceImpl test  = new TestServiceImpl;
+		test.transfer();
+	}
+    
+    //从容器中获取对象使用才会有通知
+    @Autowired
+    private TestServiceImpl testServiceImpl;
+    @Test
+	public void contextLoads2() {
+		testServiceImpl.transfer();
+	}
+}
+```
+
+
 
 ## Spring整合web
 
