@@ -584,6 +584,16 @@ new Thread(new Runnable() {
 }).start();
 ```
 
+**总结：**
+
+单线程中`CopyOnWriteArrayList`需要使用`list.remove(value)`删除；`ArrayList`需要使用`it.remove()`删除；或者使用for循环遍历索引配合前两者都可以使用
+
+多线程中必须使用`CopyOnWriteArrayList`，使用`list.remove(value)`删除；或者使用for循环配合`CopyOnWriteArrayList`
+
+
+
+
+
 参考：[Java ConcurrentModificationException异常原因和解决方法](https://www.cnblogs.com/zhuyeshen/p/10956822.html)
 
 

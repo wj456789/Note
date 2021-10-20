@@ -121,13 +121,46 @@ $ vi myredis.conf
 
 ### 简介
 
-Redis数据就是以key­-value形式来存储的，key只能是字符串类型，value可以是以下五种类型：String、List、Set、Sorted­-Sets、Hash。
+Redis数据就是以key­-value形式来存储的，key只能是字符串类型，value可以是以下八种类型。
+
+1. 字符串
+2. 列表list
+3. 无序集合set
+4. 有序集合set(Sorted­-Sets)
+5. 散列hash
+6. 基数统计HyperLogLog    #2.9新增
+7. 地理地图GEO    #3.2新增
+8. 流Stream   #5.0新增
 
 ### String类型  
 
 #### 简介
 
-字符串类型是Redis中最为基础的数据存储类型，它在Redis中是二进制安全的，这便意味着该类型可以接受任何格式的数据，如JPEG图像数据或Json对象描述信息等。在Redis中字符串类型的Value最多可以容纳的数据长度是512M。  
+字符串类型是Redis中最为基础的数据存储类型，它在Redis中是**二进制安全**的，这便意味着该类型可以接受任何格式的数据，如JPEG图像数据或Json对象描述信息等。在Redis中字符串类型的Value最多可以容纳的数据长度是512M。  
+
+参考笔记进制和编码中二进制安全详解
+
+#### 内部编码
+
+type命令实际返回的就是当前键的数据结构类型，它们分别是：string（字符串）、hash（哈希）、list（列表）、set（集合）、zset（有序集合），但这些只是Redis对外的数据结构。实际上每种数据结构都有自己底层的内部编码实现，而且是多种实现，这样Redis会在合适的场景选择合适的内部编码。内部编码即是外部数据结构的内部实现，也就是redis底层的内部数据结构。
+
+![img](img_Redis/1260387-20171217225104530-830166094.png)
+
+我们可以通过object encoding命令查询内部编码，如：
+
+```sh
+>set  key  123
+>object encoding key
+“int”
+```
+
+
+
+
+
+
+
+参考：[Redis的五种数据结构的内部编码](https://www.cnblogs.com/yangmingxianshen/p/8054094.html)
 
 #### 操作  
 
