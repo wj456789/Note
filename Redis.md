@@ -1338,6 +1338,151 @@ Sorted­-Sets和Sets类型极为相似，也称为Zset，它们都是字符串�
 
 ## Redis多数据库
 
+- Redis支持多个数据库，并且每个数据库的数据是隔离的不能共享，并且基于单机才有，如果是集群就没有数据库的概念。
+
+- 每个数据库对外都是一个从0开始的递增数字命名，Redis默认支持16个数据库（可以通过配置文件支持更多，无上限），可以通过配置databases来修改这一数字。
+
+- 客户端与Redis建立连接后会自动选择0号数据库，不过可以随时使用SELECT命令更换数据库，如要选择1号数据库：
+
+  ```sh
+  redis> SELECT 1
+  OK
+  redis [1] > GET foo
+  (nil)
+  ```
+
+- Redis不支持自定义数据库的名字，每个数据库都以编号命名，Redis也不支持为每个数据库设置不同的访问密码，所以一个客户端要么可以访问全部数据库，要么连一个数据库也没有权限访问。
+
+- 多个数据库之间并不是完全隔离的，比如FLUSHALL命令可以清空一个Redis实例中所有数据库中的数据，flushdb清空当前数据库。
+
+- Redis非常轻量级，一个空Redis实例占用的内存只有1M左右。
+
+- Redis数据库更像是一种命名空间，而不适宜存储不同应用程序的数据。比如可以使用0号数据库存储某个应用生产环境中的数据，使用1号数据库存储测试环境中的数据，但不适宜使用0号数据库存储A应用的数据而使用1号数据库B应用的数据，不同的应用应该使用不同的Redis实例存储数据。
+
+## 数据特性
+
+### 位图
+
+- 位图（也叫位数组或位向量）是**由bit位组成的数组**，Redis中的bitmap不是一种新的数据类型，实际上它的底层仍然是字符串，因为字符串本质上是二进制大对象（底层存放的就是二进制）（BLOB, Binary Large Object），**所有字符串也可以视作位图**。
+
+- Redis中的bitmap因为直接用bit位来保存数据，每一位所在的位置为**偏移量**（数组下标）(offset)，在bitmap上可执行`AND,OR,XOR`以及其它位操作。这样的处理方式在某些应用场景下，可以很大程度地节省内存空间。
+
+#### 基本语法
+
+##### SETBIT
+
+```sh
+> setbit KEY_NAME OFFSET VALUE  #该命令用于对 key 所储存的字符串值，设置或清除指定偏移量上的位(bit)。
+```
+
+在redis中，存储的字符串都是以二进制的形式存在的。比如：设置一个key-value，键的名字叫“andy” ，值为字符’a’，‘a’ 的ASCII码是97。转换为二进制是：01100001。offset的学名叫做“偏移” ，二进制中的每一位置就是offset值，比如在这里offset 0 等于 ‘0’ ，offset 1等于’1’ ，offset  2等于’1’，offset 7 等于’1’ ，没错，offset是从左往右计数的，也就是从高位往低位。
+
+那如何通过SETBIT命令将 andy中的 ‘a’ 变成 ‘b’ 呢？即将 01100001 变成 01100010（b的ASCII码是98），其实就是将’a’中的offset 6从0变成1，将offset 7从1变成0。
+
+![img](img_Redis/clipboard.png)
+
+每次SETBIT完毕之后，有一个（integer） 0或者（integer）1的返回值，这个是在你进行SETBIT 之前，该offset位的比特值。最后通过get andy得到的结果变成了 ‘b’ 。
+
+##### BITCOUNT
+
+```sh
+# bitcount key (start end)   开始结束的字节，无表示所有
+> bitcount andy   #该命令统计value字符串（字节）被设置为1的bit数
+```
+
+经过setbit操作之后，andy代表的01100010（b的ASCII码是98），共有3个1。
+
+![img](img_Redis/clipboard-1635117939451.png)
+
+bitcount 统计的是1的个数， bitcount key 0 -1 就是统计所有的字节中1的个数， bitcount 0 0 那么就应该是第一个字节中1的数量的，第一个字节也就是 0 1 2 3 4 5 6 7 这八个bit位上。setbit单位是bit，bitcount是以byte字节为间隔统计的。
+
+##### GETBIT
+
+```sh
+> getbit key offset值  	#返回key对应的value string在offset处的bit值
+```
+
+##### BITOP    
+
+```sh
+> bitop operation destkey key [key...]  # 对一个或多个保存二进制位的字符串key进行位元操作，并将结果保存到 destkey 上	
+```
+
+BITOP 命令支持AND 、 OR 、 NOT 、 XOR这四种操作中的任意一种参数：
+
+- - BITOP AND destkey srckey1 … srckeyN ，对一个或多个 key 求逻辑与，并将结果保存到 destkey
+
+- - BITOP OR destkey srckey1 … srckeyN，对一个或多个 key 求逻辑或，并将结果保存到 destkey
+
+- - BITOP XOR destkey srckey1 … srckeyN，对一个或多个 key 求逻辑异或，并将结果保存到 destkey
+  - BITOP NOT destkey srckey，对给定 key 求逻辑非，并将结果保存到 destkey
+
+除了 NOT 操作之外，其他操作都可以接受一个或多个 key 作为输入，执行结果将始终保持到destkey里面。
+
+当 BITOP 处理不同长度的字符串时，较短的那个字符串所缺少的部分会被看作 0。返回值是保存到 destkey，destkey 的字符串的长度（以字节byte为单位），和输入 key 中最长的字符串长度相等。
+
+##### 应用场景
+
+**使用 bitmap 实现用户上线次数统计、活跃用户统计**
+
+计算用户 A 上线了多少天，用户 B 上线了多少天，诸如此类，以此作为数据，从而决定让哪些用户参加 beta 测试等活动 —— 这个模式可以使用 SETBIT 和 BITCOUNT 来实现。
+
+通过将一个用户的id对应value上的一位，通过对活跃用户对应的位进行置位，就能够用一个value记录所有活跃用户的信息。
+
+id对应下标，值为0表示今天未活跃，1表示活跃
+
+![img](img_Redis/clipboard-1635118959307.png)
+
+因为日活跃用户每天都变化，所以需要每天创建一个新的bitmap。我们简单地把日期添加到key后面，实现了这个功能。例如，要统计某一天有多少个用户至少听了一个音乐app中的一首歌曲，可以把这个bitmap的redis key设计成：
+
+`play:yyyy-mm-dd`即为key
+
+`redis.setbit(play:yyyy-mm-dd, user_id, 1)`
+
+在Redis中速度非常快。而我们通过每天换用一个不同的key来将每天的活跃用户状态记录分开存。比如我们通过对3天（周一周三周四）的活跃用户记录取AND操作，就能得出这3天都活跃的用户列表。
+
+**内存使用情况：**
+
+节约空间，统计一亿人每天的登录情况，用一亿bit，约1200WByte，约10M的字符就能表示。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ## 事务
