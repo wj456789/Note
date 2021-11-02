@@ -513,20 +513,26 @@ foo=bar&name=John
 
 ```java
 //对象参数前加上@RequestBody，必须是Request Payload请求，解析请求体中的JSON字符串
-//不加@RequestBody，Request Payload请求和Form Data请求都可以接收，甚至可以将参数仿照get拼接到url上
 @PostMapping("/login")
 public ResultView<LoginResp> login(@RequestBody LoginReq loginReq) throws Exception{
+    return loginService.login(loginReq);
+}
+
+//不加@RequestBody，Request Payload请求和Form Data请求都可以接收，甚至可以将参数仿照get拼接到url上
+//Form Data请求接收,下面headers可省
+@PostMapping("/login",headers = "content-type=application/x-www-form-urlencoded")
+public ResultView<LoginResp> login(@RequestParam String username.@RequestParam String password) throws Exception{
     return loginService.login(loginReq);
 }
 ```
 
 
 
-@RequestParam只能接收**简单参数类型**；接收GET请求拼接在URL后的参数，或者是POST传递，且Content-type为x-www-form-urlencoded方式，因为不管是GET方式还是用x-www-form-urlencoded方式传递，参数都是以键值对方式拼接的；
+@RequestParam只能接收**简单参数类型(键值对)**；接收GET请求拼接在URL后的参数，或者是POST传递，且Content-type为application/x-www-form-urlencoded方式，因为不管是GET方式还是用application/x-www-form-urlencoded方式传递，参数都是以键值对方式拼接的；
 
-@RequestBody接收**复杂对象**，包括List，实体类，Map对象等；该注解只能够接收POST传递，且Content-type为application/json方式，并且能把接收到的JSON数据绑定到JAVA对象中；一个方法中只能有一个@RequestBody注解，但是@RequestBody注解可以和@RequestParam注解一起使用，而且@RequestParam注解一个方法中可以有多个。
+@RequestBody接收**复杂对象(json字符串)**，包括List，实体类，Map对象等；该注解只能够接收POST传递，且Content-type为application/json方式，并且能把接收到的JSON数据绑定到JAVA对象中；一个方法中只能有一个@RequestBody注解，但是@RequestBody注解可以和@RequestParam注解一起使用，而且@RequestParam注解一个方法中可以有多个。
 
-不加注解接收参数，参数类型可以为**简单类型**，也可以为**复杂类型**（JAVA对象等，前端传递的参数会和类中的属性名对应并且绑定），但是不能接收Map类型的对象。而且GET请求和POST请求也都能用简单参数或实体类接收到参数。但是POST请求时，和@RequestParam注解一样，Content-type只能为x-www-form-urlencoded。
+不加注解接收参数，参数类型**(键值对，但是这里可以把java对象映射为多个属性值)**可以为**简单类型**，也可以为**复杂类型**（JAVA对象等，前端传递的参数会和类中的属性名对应并且绑定），但是不能接收Map类型的对象。而且GET请求和POST请求也都能用简单参数或实体类接收到参数。但是POST请求时，和@RequestParam注解一样，Content-type只能为application/x-www-form-urlencoded。
 
 
 
