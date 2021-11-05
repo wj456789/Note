@@ -311,9 +311,9 @@ $chmod +x filename		#给filename执行权限
 
 - `sticky bit`: 该位可以理解为防删除位.设置该位后, 目录和目录下的文件的其他用户即使有写权限也无法删除.移动等，只能被文件所有者删除，移动等
 
-> SUID占用属主x（执行）位，SGID占用组x位，如果该位有x权限，就用小写s，没有就用大写S，比如rws/rwS
+> SUID占用属主x（执行）位，SGID占用组x位，如果该位有x权限，就用小写s标识，没有就用大写S，比如rwS/rws
 >
-> sticky-bit占用其他x位
+> sticky-bit占用其他x位，如果该位有x权限，就用小写t标识，没有就用大写T，比如rwT/rwt
 
 ```sh
 #使用标志操作权限
@@ -329,10 +329,12 @@ $chmod o+t tempdir #为tempdir目录加上sticky标志 (sticky只对目录有效
 > 	4 : 只设置SUID 
 
 ```sh
+$chmod 7000 temp #--S--S--T
+
 $chmod 777 temp #rwxrwxrwx
-$chmod 4777 temp #rwSrwxrwx
-$chmod 2777 temp #rwxrwSrwx
-$chmod 1777 temp #rwSrwxrwt
+$chmod 4777 temp #rwsrwxrwx
+$chmod 2777 temp #rwxrwsrwx
+$chmod 1777 temp #rwxrwxrwt
 ```
 
 参考：
