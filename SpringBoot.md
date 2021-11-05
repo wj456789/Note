@@ -1193,6 +1193,343 @@ spring.mvc.view.suffix=.jsp
 
 最后手动创建web目录，并配置tomcat
 
+### HttpServletRequestWrapper 
+
+通常对安全性有要求的接口都会对请求参数做一些签名验证，而我们一般会把验签的逻辑统一放到过滤器或拦截器里，这样就不用每个接口都去重复编写验签的逻辑。
+
+在一个项目中会有很多的接口，而不同的接口可能接收不同类型的数据，例如表单数据和json数据，表单数据还好说，调用request的getParameterMap就能全部取出来。而json数据就有些麻烦了，因为json数据放在body中，我们需要通过request的输入流去读取。
+
+但问题在于request的输入流只能读取一次不能重复读取，所以我们在过滤器或拦截器里读取了request的输入流之后，请求走到controller层时就会报错。
+
+**使用HttpServletRequestWrapper + Filter解决输入流不能重复读取问题**
+
+- HttpServletRequestWrapper类是一个http请求包装器，其基于装饰者模式实现了HttpServletRequest，我们可以通过继承该类并实现想要重新定义的方法以达到包装原生HttpServletRequest对象的目的。
+
+- HttpServletRequest的输入流只能读一次，当我们调用`getInputStream()`方法获取输入流时得到的是一个InputStream对象，而实际类型是ServletInputStream，它继承于InputStream。ServletInputStream不支持重新读写，我们要定义一个容器，将输入流里面的数据存储到这个容器里，这个容器可以是数组或集合。然后我们重写getInputStream方法，每次都从这个容器里读数据，这样我们的输入流就可以读取任意次了。
+
+#### RequestWrapper 
+
+包装HttpServletRequest，目的是让其输入流可重复读
+
+```java
+package com.example.wrapperdemo.controller.wrapper;
+
+import lombok.extern.slf4j.Slf4j;
+
+import javax.servlet.ReadListener;
+import javax.servlet.ServletInputStream;
+import javax.servlet.ServletRequest;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletRequestWrapper;
+import java.io.*;
+import java.nio.charset.Charset;
+
+@Slf4j
+public class RequestWrapper extends HttpServletRequestWrapper {
+    /**
+     * 存储body数据的容器
+     */
+    private final byte[] body;
+
+    public RequestWrapper(HttpServletRequest request) throws IOException {
+        super(request);
+
+        // 将body数据存储起来
+        String bodyStr = getBodyString(request);
+        body = bodyStr.getBytes(Charset.defaultCharset());
+    }
+
+    /**
+     * 获取请求Body
+     *
+     * @param request request
+     * @return String
+     */
+    public String getBodyString(final ServletRequest request) {
+        try {
+            return inputStream2String(request.getInputStream());
+        } catch (IOException e) {
+            log.error("", e);
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * 获取请求Body
+     *
+     * @return String
+     */
+    public String getBodyString() {
+        final InputStream inputStream = new ByteArrayInputStream(body);
+
+        return inputStream2String(inputStream);
+    }
+
+    /**
+     * 将inputStream里的数据读取出来并转换成字符串
+     *
+     * @param inputStream inputStream
+     * @return String
+     */
+    private String inputStream2String(InputStream inputStream) {
+        StringBuilder sb = new StringBuilder();
+        BufferedReader reader = null;
+
+        try {
+            reader = new BufferedReader(new InputStreamReader(inputStream, Charset.defaultCharset()));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                sb.append(line);
+            }
+        } catch (IOException e) {
+            log.error("", e);
+            throw new RuntimeException(e);
+        } finally {
+            if (reader != null) {
+                try {
+                    reader.close();
+                } catch (IOException e) {
+                    log.error("", e);
+                }
+            }
+        }
+
+        return sb.toString();
+    }
+
+    @Override
+    public BufferedReader getReader() throws IOException {
+        return new BufferedReader(new InputStreamReader(getInputStream()));
+    }
+
+    @Override
+    public ServletInputStream getInputStream() throws IOException {
+
+        final ByteArrayInputStream inputStream = new ByteArrayInputStream(body);
+
+        return new ServletInputStream() {
+            @Override
+            public int read() throws IOException {
+                return inputStream.read();
+            }
+
+            @Override
+            public boolean isFinished() {
+                return false;
+            }
+
+            @Override
+            public boolean isReady() {
+                return false;
+            }
+
+            @Override
+            public void setReadListener(ReadListener readListener) {
+            }
+        };
+    }
+}
+```
+
+#### ReplaceStreamFilter 
+
+在过滤器里将原生的HttpServletRequest对象替换成我们的RequestWrapper对象
+
+```java
+package com.example.wrapperdemo.controller.filter;
+
+import com.example.wrapperdemo.controller.wrapper.RequestWrapper;
+import lombok.extern.slf4j.Slf4j;
+
+import javax.servlet.*;
+import javax.servlet.http.HttpServletRequest;
+import java.io.IOException;
+
+@Slf4j
+public class ReplaceStreamFilter implements Filter {
+    @Override
+    public void init(FilterConfig filterConfig) throws ServletException {
+        log.info("StreamFilter初始化...");
+    }
+
+    @Override
+    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
+        ServletRequest requestWrapper = new RequestWrapper((HttpServletRequest) request);
+        chain.doFilter(requestWrapper, response);
+    }
+
+    @Override
+    public void destroy() {
+        log.info("StreamFilter销毁...");
+    }
+}
+```
+
+#### SignatureInterceptor 
+
+在拦截器中获取json数据
+
+```java
+package com.example.wrapperdemo.controller.interceptor;
+
+import com.example.wrapperdemo.controller.wrapper.RequestWrapper;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
+import org.springframework.web.servlet.HandlerInterceptor;
+import org.springframework.web.servlet.ModelAndView;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+//签名拦截器
+@Slf4j
+public class SignatureInterceptor implements HandlerInterceptor {
+    @Override
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+        log.info("[preHandle] executing... request uri is {}", request.getRequestURI());
+        if (isJson(request)) {
+	        // 获取json字符串
+            String jsonParam = new RequestWrapper(request).getBodyString();
+            log.info("[preHandle] json数据 : {}", jsonParam);
+
+            // 验签逻辑...略...
+        }
+
+        return true;
+    }
+
+    @Override
+    public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView modelAndView) throws Exception {
+
+    }
+
+    @Override
+    public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
+
+    }
+
+    /**
+     * 判断本次请求的数据类型是否为json
+     *
+     * @param request request
+     * @return boolean
+     */
+    private boolean isJson(HttpServletRequest request) {
+        if (request.getContentType() != null) {
+            return request.getContentType().equals(MediaType.APPLICATION_JSON_VALUE) ||
+                    request.getContentType().equals(MediaType.APPLICATION_JSON_UTF8_VALUE);
+        }
+
+        return false;
+    }
+}
+```
+
+#### FilterConfig和InterceptorConfig 
+
+将过滤器和拦截器在配置类中进行注册
+
+```java
+package com.example.wrapperdemo.config;
+
+import com.example.wrapperdemo.controller.filter.ReplaceStreamFilter;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import javax.servlet.Filter;
+
+//过滤器配置类
+@Configuration
+public class FilterConfig {
+    /**
+     * 注册过滤器
+     *
+     * @return FilterRegistrationBean
+     */
+    @Bean
+    public FilterRegistrationBean someFilterRegistration() {
+        FilterRegistrationBean registration = new FilterRegistrationBean();
+        registration.setFilter(replaceStreamFilter());
+        registration.addUrlPatterns("/*");
+        registration.setName("streamFilter");
+        return registration;
+    }
+
+    /**
+     * 实例化StreamFilter
+     *
+     * @return Filter
+     */
+    @Bean(name = "replaceStreamFilter")
+    public Filter replaceStreamFilter() {
+        return new ReplaceStreamFilter();
+    }
+}
+```
+
+```java
+package com.example.wrapperdemo.config;
+
+import com.example.wrapperdemo.controller.interceptor.SignatureInterceptor;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+@Configuration
+public class InterceptorConfig implements WebMvcConfigurer {
+
+    @Bean
+    public SignatureInterceptor getSignatureInterceptor(){
+        return new SignatureInterceptor();
+    }
+
+    /**
+     * 注册拦截器
+     *
+     * @param registry registry
+     */
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(getSignatureInterceptor())
+                .addPathPatterns("/**");
+    }
+}
+```
+
+**测试**
+
+```java
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class UserParam {
+    private String userName;
+
+    private String phone;
+
+    private String password;
+}
+```
+
+```java
+@RestController
+@RequestMapping("/user")
+public class DemoController {
+
+    @PostMapping("/register")
+    public UserParam register(@RequestBody UserParam userParam){
+        return userParam;
+    }
+}
+```
+
+参考：
+
+[解决HttpServletRequest的输入流只能读取一次的问题](https://blog.51cto.com/zero01/2334836)
+
 ## 全局异常处理
 
 ### 定义错误码页面

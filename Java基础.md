@@ -1177,3 +1177,180 @@ public class HashMap<K,V> extends AbstractMap<K,V> implements Map<K,V>, Cloneabl
 }
 ```
 
+
+
+## Java序列化和反序列化
+
+### @JsonDeserialize和@JsonSerialize
+
+使用 @JsonDeserialize 和 @JsonSerialize 注解在对象序列化和反序列化时对参数进行处理
+
+- **@JsonDeserialize**
+  - 是在反序列化时，所以就是对参数进行封装，使用的是 setXxxx() 方法，所以需要将注解添加到对应的 set 方法上，若使用了 Lombok 需要自己定义相应的 set 方法。
+  - 需要使用 using 属性指定处理参数的类，该类需要继承 JsonDeserializer 类，并重写 deserialize()。
+
+- **@JsonSerialize**
+  - 是在序列化时，所以需要获取数据，那么需要使用到 getXxxx() 方法，故需要将注解添加到对应的 get 方法上，若使用了 Lombok 需要自己定义相应的 get 方法。
+  - 需要使用 using 属性指定处理参数的类，该类需要继承 JsonSerializer 类，并重写 serialize()。
+
+
+
+> 在前端性别显示“男 / 女”，而数据库中存储的是“1 / 0”，对应的 Pojo 也是使用的 Integer 类型，如何实现？
+
+#### Pojo 类
+
+```java
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Person implements Serializable {
+    private static final long serialVersionUID = 4346092911489022673L;
+
+    private Integer id;
+    private String name;
+    private Integer age;
+
+    /**
+     * 1 男，0 女
+     */
+    private Integer gender;
+
+    @JsonDeserialize(using = GenderJsonDeserializer.class)
+    public void setGender(Integer gender) {
+        this.gender = gender;
+    }
+
+    @JsonSerialize(using = GenderJsonSerializer.class)
+    public Integer getGender() {
+        return gender;
+    }
+}
+```
+
+#### GenderJsonDeserializer 类
+
+其作用是处理参数，按照规则封装到指定的属性中，通过 p.getText() 获取参数。
+
+```java
+@Component
+@Slf4j
+public class GenderJsonDeserializer extends JsonDeserializer {
+
+    @Override
+    public Integer deserialize(JsonParser jsonParser, DeserializationContext ctxt)
+            throws IOException, JsonProcessingException {
+            
+        if (ObjectUtils.isEmpty(jsonParser)) {
+            return null;
+        }
+
+        int gender = 0;
+
+        switch (jsonParser.getText()) {
+            case "男":
+                gender = 1;
+                break;
+            case "女":
+                break;
+            default:
+                throw new RuntimeException("传入的性别为非法字符！");
+        }
+
+        log.info("【 GenderJsonDeserializer.deserialize() 】  jsonParser.getText() ==> " 
+        				+ jsonParser.getText() + "，转换后的结果 ==> " + gender);
+
+        return gender;
+    }
+}
+```
+
+#### GenderJsonSerializer 类
+
+其作用是处理属性，按照规则封装到指定的参数中，通过value 获取属性，通过 gen.writeXxx() 方法写出参数。
+
+```java
+@Component
+@Slf4j
+public class GenderJsonSerializer extends JsonSerializer {
+    @Override
+    public void serialize(Object value, JsonGenerator gen, SerializerProvider serializers) 
+    		throws IOException {
+    		
+        log.info("【 GenderJsonSerializer.serialize() 】  value ==> " + value);
+        if (value.equals(1)) {
+            gen.writeString("男");
+        } else if (value.equals(0)) {
+            gen.writeString("女");
+        }
+    }
+}
+```
+
+#### PersonController 类
+
+```java
+@RestController
+@Slf4j
+public class PersonController {
+	// 使用集合模拟数据库中数据存储
+    private List<Person> persons = new ArrayList<>();
+	
+	// 用于初始化数据，@PostConstruct 注解标注的方法，在构造器执行之后自动执行，只会执行一次
+    @PostConstruct
+    public void init() {
+        persons.add(new Person(1, "张三", 18, 1));
+        persons.add(new Person(2, "李四", 33, 0));
+    }
+
+    @PostMapping("/save")
+    public Person savePerson(@RequestBody Person person) {
+        log.info("【 PersonController.savePerson() 】  person ===> " + person);
+        persons.add(person);
+        log.info("集合内容为 ===> " + persons);
+        return person;
+    }
+
+    @GetMapping("/find")
+    public Person findPersonById(Integer id) {
+        Person p = null;
+        for (Person person : persons) {
+           if (person.getId().equals(id)) {
+               p = person;
+               log.info("【 PersonController.findPersonById() 】  查询结果为：person ===> " + person);
+           }
+        }
+        return p;
+    }
+}
+```
+
+**测试**
+
+<img src="img_Java%E5%9F%BA%E7%A1%80/20200713181102333.png" alt="在这里插入图片描述" style="zoom:80%;" />
+
+控制台输出：
+
+```java
+【 GenderJsonDeserializer.deserialize() 】  p.getText() ==> 男，转换后的结果 ==> 1
+
+【 PersonController.savePerson() 】  person ===> Person(id=3, name=王五, age=88, gender=1)
+
+集合内容为 ===> [Person(id=1, name=张三, age=18, gender=1),
+							 Person(id=2, name=李四, age=33, gender=0), 
+							 Person(id=3, name=王五, age=88, gender=1)]
+							 
+【 GenderJsonSerializer.serialize() 】  value ==> 1
+```
+
+<img src="img_Java%E5%9F%BA%E7%A1%80/20200713181325537.png" alt="在这里插入图片描述" style="zoom:80%;" />
+
+
+
+控制台输出：
+
+```java
+【 PersonController.findPersonById() 】  查询结果为：person ===> Person(id=2, name=李四, age=33, gender=0)
+
+【 GenderJsonSerializer.serialize() 】  value ==> 0
+```
+
