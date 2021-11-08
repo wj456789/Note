@@ -737,9 +737,266 @@ $tracert www.baidu.com
 
 [traceroute和tracert用法详解](https://blog.csdn.net/zhouwei1221q/article/details/45370039)
 
+### 防火墙(centos7)
+
+#### firewalld
+
+> 启动： systemctl start firewalld
+>
+> 关闭： systemctl stop firewalld
+>
+> 查看状态： systemctl status firewalld 
+>
+> 开机禁用 ： systemctl disable firewalld
+>
+> 开机启用 ： systemctl enable firewalld
+
+#### systemctl
+
+> 启动一个服务：systemctl start firewalld.service
+> 关闭一个服务：systemctl stop firewalld.service
+> 重启一个服务：systemctl restart firewalld.service
+> 显示一个服务的状态：systemctl status firewalld.service
+> 在开机时启用一个服务：systemctl enable firewalld.service
+> 在开机时禁用一个服务：systemctl disable firewalld.service
+> 查看服务是否开机启动：systemctl is-enabled firewalld.service
+> 查看已启动的服务列表：systemctl list-unit-files|grep enabled
+> 查看启动失败的服务列表：systemctl --failed
+
+#### firewalld-cmd
+
+> 查看版本： firewall-cmd --version
+>
+> 查看帮助： firewall-cmd --help
+>
+> 显示状态： firewall-cmd --state
+>
+> 查看所有打开的端口： firewall-cmd --zone=public --list-ports
+>
+> 更新防火墙规则： firewall-cmd --reload
+>
+> 查看区域信息:  firewall-cmd --get-active-zones
+>
+> 查看指定接口所属区域： firewall-cmd --get-zone-of-interface=eth0
+>
+> 拒绝所有包：firewall-cmd --panic-on
+>
+> 取消拒绝状态： firewall-cmd --panic-off
+>
+> 查看是否拒绝： firewall-cmd --query-panic
 
 
-## rpm
+
+> 那怎么开启一个端口呢
+>
+> 添加
+>
+> firewall-cmd --zone=public --add-port=80/tcp --permanent   （--permanent永久生效，没有此参数重启后失效）
+>
+> 重新载入
+>
+> firewall-cmd --reload
+>
+> 查看
+>
+> firewall-cmd --zone=public --query-port=80/tcp
+>
+> 删除
+>
+> firewall-cmd --zone=public --remove-port=80/tcp --permanent
+
+
+
+参考：
+
+[Linux下防火墙iptables用法规则详及其防火墙配置](https://www.cnblogs.com/yi-meng/p/3213925.html)
+
+[Linux防火墙状态查看与修改命令（含centOS7操作命令）](https://www.cnblogs.com/wei-lu/articles/11104066.html)
+
+[Linux之 linux7防火墙基本使用及详解](https://blog.csdn.net/zhang123456456/article/details/78149206)
+
+## 服务管理
+
+### systemctl
+
+> Systemctl是一个systemd工具，主要负责控制systemd系统和服务管理器。systemd即为system daemon,是linux下的一种init软件。
+>
+> systemctl命令是系统服务管理器指令，它实际上将 service 和 chkconfig 这两个命令组合到一起。使用它可以永久性或只在当前会话中启用/禁用服务。
+
+```sh
+#列出所有可用单元
+$systemctl list-unit-files
+$systemctl list-units
+#列出所有服务
+$systemctl list-unit-files --type=service
+#列出所有失败单元
+$systemctl --failed		
+
+#检查是否配置开机启动
+$systemctl is-enabled httpd.service 	
+#开机启动
+$systemctl enable httpd.service 
+#开机不启动
+$systemctl disable httpd
+
+#启动，重启，停止服务，重新加载，查看服务运行状态
+$systemctl start httpd.service
+$systemctl restart httpd.service
+$systemctl stop httpd.service
+$systemctl reload httpd.service		#不关闭服务的情况下，重新载入配置文件，让设置生效。
+$systemctl status httpd.service
+```
+
+参考：
+[linux中systemctl详细理解及常用命令](https://blog.csdn.net/skh2015java/article/details/94012643)
+
+
+
+### service
+
+> service命令可以启动、停止、重新启动和关闭系统服务，还可以显示所有系统服务的当前状态。
+>
+> service命令的作用是去/etc/init.d(/etc/rc.d/init.d/)目录下寻找相应的服务，进行开启和关闭等操作。
+
+```sh
+#启动、停止、查看服务状态
+$service httpd start
+Redirecting to /bin/systemctl start  httpd.service
+$service httpd stop
+$service httpd status
+```
+
+> 如果使用管理MySQL的service命令，那么只需要将mysql.server脚本放到/etc/init.d目录下即可，如：
+>
+
+```sh
+#移动mysql.server脚本到/etc/init.d
+$cp /root/data/mysql-5.7.24/support-files/mysql.server  /etc/init.d/mysql
+#使用service命令启动mysql
+$service mysql start
+
+#systemctl命令兼容了service，即systemctl也会去/etc/init.d目录下，查看，执行相关程序，如：
+$systemctl start mysql
+```
+
+
+
+### chkconfig
+
+> chkconfig是管理系统服务(service)的命令行工具。所谓系统服务(service)，就是随系统启动而启动，随系统关闭而关闭的程序。
+>
+> chkconfig可以更新(启动或停止)和查询系统服务(service)运行级信息。更简单一点，chkconfig是一个用于维护/etc/rc[0-6].d目录的命令行工具。
+
+**设置服务是否开机启动**
+
+```sh
+##在Redhat7上，运行chkconfig命令，都会被转到systemctl命令上
+$chkconfig httpd on
+注意：正在将请求转发到“systemctl enable httpd.service
+
+$chkconfig httpd off/reset
+```
+
+- on、off、reset用于改变service的启动信息。
+- on表示开启，off表示关闭，reset表示重置。
+- 默认情况下，on和off开关只对运行级2，3，4，5有效，reset可以对所有运行级有效。
+
+**设置服务运行级别**
+
+```sh
+$ chkconfig --level 5 httpd on
+注意：正在将请求转发到“systemctl enable httpd.service”
+```
+
+该命令可以用来指定服务的运行级别，即指定运行级别2,3,4,5等。
+
+- 等级0表示：表示关机
+- 等级1表示：单用户模式
+- 等级2表示：无网络连接的多用户命令行模式
+- 等级3表示：有网络连接的多用户命令行模式
+- 等级4表示：不可用
+- 等级5表示：带图形界面的多用户模式
+- 等级6表示：重新启动
+
+**列出服务启动信息**
+
+```sh
+$ chkconfig --list [name]
+```
+
+```sh
+#如果不指定name，会列出所有services的信息
+$chkconfig --list
+netconsole      0:关    1:关    2:关    3:关    4:关    5:关    6:关
+network         0:关    1:关    2:开    3:开    4:开    5:开    6:关
+rhnsd           0:关    1:关    2:开    3:开    4:开    5:开    6:关
+```
+
+每个service每个运行级别都会有一个启动和停止脚本；当切换运行级别时，init不会重启已经启动的service，也不会重新停止已经停止的service。
+
+参考：
+
+[Linux下systemctl命令和service、chkconfig命令的区别](https://blog.csdn.net/qq_38265137/article/details/83081881)
+
+
+
+#### 系统运行级别
+
+> 运行级别就是操作系统当前正在运行的功能级别。 它让一些程序在一个级别启动，而另外一个级别的时候不启动。
+
+| 级别 | 说明                                                        |
+| ---- | ----------------------------------------------------------- |
+| 0    | 系统停机状态，系统默认运行级别不能设为0，否则不能正常启动   |
+| 1    | 单用户工作状态，root权限，用于系统维护，禁止远程登陆        |
+| 2    | 多用户状态(没有NFS)                                         |
+| 3    | 完全的多用户状态(有NFS)，登陆后进入控制台命令行模式         |
+| 4    | 系统未使用，保留                                            |
+| 5    | X11控制台，登陆后进入图形GUI模式                            |
+| 6    | 系统正常关闭并重启，默认运行级别不能设为6，否则不能正常启动 |
+
+标准的Linux运行级为3或者5，如果是3的话，系统就在多用户状态。如果是5的话，则是运行着X Window 系统。如果目前正在3或5，而你把运行级降低到2的话，init就会执行K45named脚本。
+
+
+
+**运行级别原理**
+
+1. 运行级别定义在/etc/inittab文件中。这个文件是init程序寻找的主要文件。init是Linux系统里的根进程，是系统所有进程的祖先。它的主要作用是根据记录在/etc/inittab里的一个脚本（script）程序产生进程。 这个文件通常用于控制用户的登录模式。
+2. 在/etc/rc.d下有7个名为rcN.d的目录，对应系统的7个运行级别。rcN.d目录下都是一些符号链接文件，这些链接文件都指向init.d目录下的service脚本文件，命名规则为K+nn+服务名或S+nn+服务名，其中nn为两位数字。
+3. 系统会根据指定的运行级别进入对应的rcN.d目录，并按照文件名顺序检索目录下的链接文件：对于以K开头的文件，系统将终止对应的服务；对于以S开头的文件，系统将启动对应的服务。
+4. 在目录/etc/rc.d/init.d下有许多服务器脚本程序，一般称为服务(service)
+
+```sh
+#查看运行级别
+$runlevel
+N 5
+
+#进入其它运行级别
+$init N
+
+#init 0为关机，init 6为重启系统
+```
+
+
+
+参考：
+
+[Linux系统的运行级别](https://www.cnblogs.com/l75790/p/9301775.html)
+
+[linux操作系统的7种运行级别的详细说明](https://blog.csdn.net/ymeng9527/article/details/102678485)
+
+[Linux的运行级别和chkconfig用法](https://www.cnblogs.com/itfat/p/7268122.html)
+
+
+
+## 软链接
+
+#ln -s /root/data/mysql-5.7.24/support-files/mysql.server /usr/bin
+
+
+
+## 常用命令
+
+### rpm
 
  如果使用RPM安装了一些包，一般来说，RPM默认安装路径如下：
 
@@ -785,11 +1042,11 @@ unzip-6.0-22.el7_9.x86_64
 
 参考：[Linux如何查看YUM的安装目录](https://www.cnblogs.com/kerrycode/p/6924153.html)
 
-## yum
+### yum
 
 YUM（全称为 Yellow dog Updater, Modified）是一个在Fedora和RedHat以及CentOS中的Shell前端软件包管理器。基于RPM包管理，能够从指定的服务器自动下载RPM包并且安装，可以自动处理依赖性关系，并且一次安装所有依赖的软件包，避免了手动安装的麻烦(寻找资源、下载；放到指定目录安装；处理依赖关系并下载依赖关系的包进行安装)。所以用yum安装，实质上是用RPM安装，所以RPM查询信息的指令都可用。
 
-### 语法
+#### 语法
 
 ```java
 #yum [options] [command] [package ...]
@@ -823,7 +1080,7 @@ YUM（全称为 Yellow dog Updater, Modified）是一个在Fedora和RedHat以及
 
   
 
-### 常见bug
+#### 常见bug
 
 1. centos运行yum报错：There was a problem importing one of the Python modules
 
@@ -833,13 +1090,13 @@ YUM（全称为 Yellow dog Updater, Modified）是一个在Fedora和RedHat以及
 
    rm -f /var/run/yum.pid
 
-## Expect
+### Expect
 
 Expect 是用来进行自动化控制和测试的工具，用来解决shelI脚本中不可交互的问题。比如，远程登录服务器，登录的过程是一个交互的过程，可能会需要输入yes/no，password等信息。为了模拟这种输入，可以使用Expect脚本。
 
 **一般流程：spawn 启动追踪 —> expect 匹配捕捉关键字 ——> 捕捉到将触发send 代替人为输入指令—> interact /expect eof**
 
-### 基本命令
+#### 基本命令
 
 - **spawn：**启动进程，并跟踪后续交互信息
 
@@ -858,7 +1115,7 @@ Expect 是用来进行自动化控制和测试的工具，用来解决shelI脚�
 
 - **$argv参数数组：**Expect脚本可以接受从bash传递的参数，可以使用 [lindex $argv n] 获得，n从0开始，分别表示第一个$1，第二个$2，第三个$3……参数 ($argvn没有空格则表示脚本名称 ； $argv n有空格则代表下标)
 
-### 语法
+#### 语法
 
 ```java
 expect "password" {send "mypassword\r"}
@@ -882,7 +1139,7 @@ expect {
 }
 ```
 
-### 执行
+#### 执行
 
 ssh远程免交互登录
 
@@ -932,11 +1189,11 @@ expect eof               //等待结束
 
 
 
-## sed
+### sed
 
 通过sed命令可以处理、编辑文本文件
 
-### 语法
+#### 语法
 
 ```java
 sed [-hnVi][-e<script>][-f<script文件>][文本文件]
@@ -949,7 +1206,7 @@ sed [-hnVi][-e<script>][-f<script文件>][文本文件]
 
 
 
-### 文本动作
+#### 文本动作
 
 - **a ：**新增， a 的后面可以接字串，而这些字串会在新的一行出现(目前的下一行)
 - **i ：**插入， i 的后面可以接字串，而这些字串会在新的一行出现(目前的上一行)
@@ -960,9 +1217,9 @@ sed [-hnVi][-e<script>][-f<script文件>][文本文件]
 
 
 
-### 实例
+#### 实例
 
-#### 新增
+##### 新增
 
 ```java
 //在testfile文件的第四行后添加一行，并将结果输出
@@ -979,7 +1236,7 @@ Linux test
 newline
 ```
 
-#### 插入
+##### 插入
 
 ```java
 //在第二行前插入
@@ -990,7 +1247,7 @@ drink tea
 3  daemon:x:2:2:daemon:/sbin:/sbin/nologin 
 ```
 
-#### 取代字符串
+##### 取代字符串
 
 ```java
 sed 's/要被取代的字串/新的字串/g'
@@ -1022,7 +1279,7 @@ UP BROADCAST RUNNING MULTICAST MTU:1500 Metric:1
 
 
 
-#### 取代行
+##### 取代行
 
 ```java
 //将第2-5行的内容取代成为"No 2-5 number"
@@ -1032,7 +1289,7 @@ No 2-5 number
 6 sync:x:5:0:sync:/sbin:/bin/sync
 ```
 
-#### 打印
+##### 打印
 
 ```java
 //仅列出 /etc/passwd 文件内的第 5-7 行
@@ -1063,7 +1320,7 @@ No 2-5 number
 
 
 
-#### 删除
+##### 删除
 
 ```java
 //将/etc/passwd的内容列出并且列印行号，同时，请将第 2~5 行删除
@@ -1086,7 +1343,7 @@ No 2-5 number
 
 
 
-## top
+### top
 
 ```bash
 #top
@@ -1106,14 +1363,14 @@ KiB Swap:  7812092 total,  7759268 free,    52824 used. 53242476 avail Mem
 这时可以使用以下命令操作屏幕
 f或者F：从当前显示中添加或者删除列。
 
-### 常用信息
+#### 常用信息
 
 - KiB Mem计算可用内存=free + buff/cache
 - KiB Swap中used数值变化表示内存不够用了
 - RES表明进程常驻内存
 - 计算某个进程所占的物理内存大小公式：RES – SHR
 
-### cpu状态信息
+#### cpu状态信息
 
 0.1%us【user space】— 用户空间占用CPU的百分比。
 0.2%sy【sysctl】— 内核空间占用CPU的百分比。
@@ -1123,13 +1380,13 @@ f或者F：从当前显示中添加或者删除列。
 0.0%hi【Hardware IRQ】— 硬中断占用CPU的百分比
 0.0%si【Software Interrupts】— 软中断占用CPU的百分比
 
-### 内存状态
+#### 内存状态
 
 ```bash
 KiB Mem : 65685108 total, 42266972 free,  8329524 used, 15088612 buff/cache(缓存的内存量)
 ```
 
-### swap交换分区信息
+#### swap交换分区信息
 
 ```bash
 KiB Swap:  7812092 total,  7759268 free,    52824 used. 53242476 avail Mem
@@ -1137,7 +1394,7 @@ KiB Swap:  7812092 total,  7759268 free,    52824 used. 53242476 avail Mem
 
 Linux会将文件缓存提高读写效率，但是程序运行结束后，Cache Memory也不会自动释放，导致可用物理内存变少，当系统的物理内存不够用的时候，就需要将物理内存中的一部分空间释放出来，以供当前运行的程序使用。这些被释放的空间被临时保存到Swap空间中，等到那些被释放的空间中的程序要运行时，再从Swap分区中恢复保存的数据到内存中。也就是说将暂时不用的物理内存释放，里面的内容备份在Swap空间中，等用的时候再从swap空间中恢复
 
-### 各进程（任务）的状态监控
+#### 各进程（任务）的状态监控
 
 PID — 进程id
 USER — 进程所有者
@@ -1164,47 +1421,7 @@ https://www.cnblogs.com/niuben/p/12017242.html
 
 
 
-## 服务管理
 
-Linux 服务管理两种方式service和systemctl
-
-service命令会在/etc/init.d/(/etc/rc.d/init.d/)目录下寻找指定的服务脚本，然后执行对应的脚本来完成命令。如果使用管理MySQL的service命令，那么只需要将mysql.server脚本放到/etc/init.d目录下即可，如：
-
-#移动mysql.server脚本到/etc/init.d
-cp /root/data/mysql-5.7.24/support-files/mysql.server  /etc/init.d/mysql
-#使用service命令启动mysql
-service mysql start
-
-
-systemctl命令兼容了service，即systemctl也会去/etc/init.d目录下，查看，执行相关程序，如：
-
-systemctl mysql start
-systemctl mysql stop
-
-### 服务开机自启
-systemctl enable mysql
-
-此命令的服务(unit)脚本放在目录/usr/lib/systemd/system(Centos)或/etc/systemd/system(Ubuntu)
-start：立刻启动后面接的 unit。
-stop：立刻关闭后面接的 unit。
-restart：立刻关闭后启动后面接的 unit，亦即执行 stop 再 start 的意思。
-reload：不关闭 unit 的情况下，重新载入配置文件，让设置生效。
-enable：设置下次开机时，后面接的 unit 会被启动。
-disable：设置下次开机时，后面接的 unit 不会被启动。
-status：目前后面接的这个 unit 的状态，会列出有没有正在执行、开机时是否启动等信息。
-show：列出 unit 的配置。
-
-systemctl list-units 列举已经启动的unit
-
-参考：
-linux中systemctl详细理解及常用命令
-https://blog.csdn.net/skh2015java/article/details/94012643
-
-https://blog.csdn.net/dufufd/article/details/80253561)
-
-## 软链接
-
-#ln -s /root/data/mysql-5.7.24/support-files/mysql.server /usr/bin
 
 ## 常用软件
 

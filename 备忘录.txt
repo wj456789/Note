@@ -19,6 +19,441 @@ https://www.cnblogs.com/flzs/p/11542181.html
 
 
 
+如何获取到Java对象的地址
+https://blog.csdn.net/zhoufanyang_china/article/details/86750351
+
+
+
+https://blog.csdn.net/tiantiandjava/article/details/108604242
+https://blog.csdn.net/weixin_44265992/article/details/107376537
+
+
+
+https://blog.csdn.net/yyzyq520/article/details/114646503
+https://bbs.csdn.net/topics/392357059
+https://www.cnblogs.com/nhdlb/p/11718607.html
+https://www.cnblogs.com/dai-tao/p/13124063.html
+https://blog.csdn.net/u012811805/article/details/106515386
+
+https://blog.csdn.net/wang0907/article/details/118069058
+https://blog.csdn.net/z69183787/article/details/109530730
+
+
+java代码实现LogBack动态输出日志【无配置文件纯代码】
+https://blog.csdn.net/weixin_42258128/article/details/81942796
+
+
+
+
+
+
+[]webMvcConfigurer和WebMvcConfigationSupport
+https://www.cnblogs.com/sueyyyy/p/11611676.html
+https://blog.csdn.net/jacksonary/article/details/84572701
+https://blog.csdn.net/zhangpower1993/article/details/89016503
+
+Spring Boot 系列：处理跨域请求
+https://blog.csdn.net/weixin_42036952/article/details/88564647
+
+[]HandlerMethodArgumentResolver用于统一获取当前登录用户
+https://blog.csdn.net/songzehao/article/details/99641594
+
+
+
+
+
+[]Spring的资源抽象Resource实体类
+https://wangji.blog.csdn.net/article/details/79143555
+
+
+[]@RequestBody的使用
+https://blog.csdn.net/justry_deng/article/details/80972817
+springboot之接受数据的三种方式:@requestParam,@requestBody和@PathVariable
+https://blog.csdn.net/weixin_42231650/article/details/101761117
+SpringBoot传递单一参数时@RequestParam和@RequestBody的区别
+https://blog.csdn.net/bachbrahms/article/details/85010338
+get 、post请求 后台@RequestParam、@RequestBody 接收的方法集合
+https://blog.csdn.net/weixin_37270353/article/details/84067715
+SpringBoot用实体接收Get请求传递过来的多个参数（绝对可用）
+https://blog.csdn.net/qq_19734597/article/details/88897710
+
+
+
+
+
+
+
+[]quartz 暂停后重新启动，在暂停时 被暂停后的任务，在启动后会补偿执行即 会连续多次调用job中的execute方法。
+https://blog.csdn.net/irabbit0708/article/details/49995783
+
+
+
+
+
+[]面试官：你了解大厂的接口设计原则么？就会curd的我当场自闭
+https://aobing.blog.csdn.net/article/details/109604398
+
+
+
+[]Mysql delete之后会释放空间吗
+https://blog.csdn.net/u013606475/article/details/80733539
+optimize table tablename
+https://www.cnblogs.com/HKUI/p/5453502.html
+为什么MySQL不建议使用delete删除数据？使用MySQL分区表进行数据交换清除
+https://aobing.blog.csdn.net/article/details/109735448
+
+SQLite--Vacuum命令（释放空间）
+https://blog.csdn.net/HardWorkingAnt/article/details/70667104
+解决Sqlite数据库，数据删除后占用空间不变的问题
+https://blog.csdn.net/liangyj66/article/details/79281114
+SQLite语法 ON CONFLICT
+https://blog.csdn.net/qjbagu/article/details/7033784
+SQLite剖析(4)：数据类型
+https://blog.csdn.net/zhoudaxia/article/details/8194577
+sqlite中varchar数据类型的最大大小限制是多少？
+http://cn.voidcc.com/question/p-ymbkczyy-qr.html
+
+
+
+
+
+
+
+
+
+[]SpringBoot下的策略模式，消灭了大量的ifelse，真香！
+https://hello.blog.csdn.net/article/details/109253234
+
+[]SpringBoot中@Transactional事务控制实现原理及事务无效问题排查
+https://hanchao.blog.csdn.net/article/details/90343882
+
+[]深入理解Java注解类型(@Annotation)
+https://blog.csdn.net/javazejian/article/details/71860633
+
+
+java调用soap接口协议
+https://blog.csdn.net/m0_37914467/article/details/107359564?ops_request_misc=&request_id=&biz_id=102&utm_term=java%E8%B0%83%E7%94%A8soap%E6%8E%A5%E5%8F%A3%E6%A1%88%E4%BE%8B&utm_medium=distribute.pc_search_result.none-task-blog-2~all~sobaiduweb~default-2-.first_rank_v2_pc_rank_v29&spm=1018.2226.3001.4187
+TR-069 协议完整的通信过程
+https://blog.csdn.net/u014530704/article/details/77575253
+
+Java实现SOAP协议之servlet
+https://www.cnblogs.com/timssd/p/4753737.html
+
+
+
+
+
+
+
+
+java.lang.IllegalStateException: It is illegal to call this method if the current request is not in asynchronous mode (i.e. isAsyncStarted() returns false)
+https://www.cnblogs.com/penghq/p/13045825.html
+
+
+
+
+
+
+关于cp: "conf/koi-win" 与"/usr/local/nginx/conf/koi-win" 为同一文件 报错
+https://blog.csdn.net/weixin_39588754/article/details/87873612
+嵌入式 常见错误Werror=unused-but-set-variable解决方案
+https://blog.csdn.net/skdkjzz/article/details/17072899
+
+基于Java使用Snmp4j进行监控与采集(snmptrap、snmpwalk、snmpget)
+https://blog.csdn.net/denglu2912/article/details/102091634
+利用SNMP4J实现 Snmp Trap 完整例子
+https://blog.csdn.net/gaohaicheng123/article/details/77962213
+Snmp学习总结系列
+https://blog.csdn.net/lyyybz/article/details/82284270
+
+
+
+
+java 重复请求过滤（并发访问）
+https://blog.csdn.net/u010704600/article/details/77799169
+
+
+
+Jenkins 持续集成——springboot项目一键打包发布
+https://blog.csdn.net/wshl1234567/article/details/78999920
+
+
+
+
+
+
+SpringBoot项目中，拦截器获取Post方法的请求body，重写HttpServletRequestWrapper 
+https://blog.csdn.net/weixin_42382291/article/details/109511620
+
+
+
+java实现调用http请求的几种常见方式
+https://riemann.blog.csdn.net/article/details/90539829
+
+如何保证缓存(redis)与数据库(MySQL)的一致性
+https://blog.csdn.net/wwd0501/article/details/106902856
+
+
+CentOS修改ssh端口号及ssh免密码登录
+https://www.jianshu.com/p/9b2b9d29ff03
+
+
+
+IDEA 2019.3 svn设置忽略提交文件
+https://blog.csdn.net/CharlesYooSky/article/details/105709809
+解决svn迁移过程中出现：SVN Error: is not the same repository as的问题
+https://www.cnblogs.com/hafiz/p/5601488.html
+SVN修改远程地址报E155024: Invalid relocation destination
+https://blog.csdn.net/qq_37493556/article/details/102581622
+IntelliJ IDEA SVN检出地址重新定位/切换
+https://xu3352.github.io/ide/2017/04/06/svn-location-url-switch
+
+springboot 2.0 Redis command timed out的解决
+https://blog.csdn.net/weixin_34194702/article/details/92086179
+Redis command timed out nested exception is io.lettuce.core.RedisCommandTimeoutException
+https://blog.csdn.net/single_cong/article/details/101019146
+
+
+将旧版本jQuery升级到新版本的jQuery
+https://blog.csdn.net/weixin_43241297/article/details/88046243
+jQuery版本升级问题汇总
+https://www.cnblogs.com/xuqiushuo/p/10638600.html
+
+
+求求你了，不要再自己实现这些逻辑了，开源工具类不香吗？
+https://blog.csdn.net/ityouknow/article/details/106110515
+
+IDEA中如何使用debug调试项目 一步一步详细教程
+https://blog.csdn.net/yxl_1207/article/details/80973622
+
+
+
+
+
+
+
+GitHub 搜索
+https://juejin.cn/post/6891056415440535565
+
+
+
+
+
+Linux系统进入单用户模式
+https://help.aliyun.com/document_detail/159899.html?spm=5176.22414175.sslink.6.417a49d7U2MPFW#title-6g4-1t6-ztk
+
+
+海康RTSP流转RTMP并推送至Web端展示
+https://blog.csdn.net/LLittleF/article/details/81111713
+
+
+
+
+
+【linux 】linux 添加开机启动项的三种方法
+https://blog.csdn.net/bandaoyu/article/details/90791601
+
+linux 指定用户 启动 程序
+https://www.cnblogs.com/lowmanisbusy/p/11573520.html
+
+Linux sudo命令
+https://www.runoob.com/linux/linux-comm-sudo.html
+
+Linux su 命令
+https://www.runoob.com/linux/linux-comm-su.html
+
+Linux sed命令
+https://www.runoob.com/linux/linux-comm-sed.html
+
+Linux 环境下/etc/profile和/etc/profile.d 的区别
+https://blog.csdn.net/chenbeiping888/article/details/103521870
+
+切换用户后，/etc/profile的配置不起效
+https://www.cnblogs.com/liujiangyi/p/9455960.html
+
+Nginx配置SSL证书时——nginx:[emerg]unknown directive ssl错误
+https://blog.csdn.net/weixin_38111957/article/details/81283121
+
+redis bind多个ip_redis连接认证及bind的注意事项
+https://blog.csdn.net/weixin_42518709/article/details/113538443
+
+Linux 查看端口占用情况
+https://www.runoob.com/w3cnote/linux-check-port-usage.html
+
+Nginx配置限制IP访问
+https://blog.csdn.net/weixin_43566469/article/details/89381216
+
+
+
+
+
+springboot（二）添加logback日志
+https://blog.csdn.net/u011493599/article/details/53420885
+
+
+
+
+
+
+
+
+swagger-ui api转word文档
+https://www.cnblogs.com/ejQiu-123/p/12030459.html
+
+
+将Swagger导出HTML、PDF和MARKDOWN
+https://blog.csdn.net/qq_16256793/article/details/79522749
+
+
+Swagger生成word文档
+https://blog.csdn.net/qq_45142744/article/details/105576801
+
+
+
+
+
+
+fastjson
+https://blog.csdn.net/weixin_44677409/article/details/105504101
+
+
+
+
+
+
+
+
+
+
+medusa
+https://www.cnblogs.com/kezi/p/11548162.html
+https://blog.csdn.net/leiman1986/article/details/51016850
+
+
+xss漏洞攻击
+https://blog.csdn.net/qq_35393693/article/details/86597707
+
+
+CSRF漏洞
+https://www.cnblogs.com/shikyoh/p/4959678.html
+https://blog.csdn.net/zitian886/article/details/46630085
+
+
+
+
+
+
+tomcat在conf/Catalina/localhost目录下配置项目路径
+https://blog.csdn.net/bao19901210/article/details/8695986
+
+java.lang.NullPointerException org.apache.jsp.WEB_002dINF.pages.imagecheck.test_jsp._jspInit(test_jsp.java:22)的原因
+https://www.cnblogs.com/zr520/p/4877282.html
+
+为什么项目放到linux服务器tomcat webapp下面的root目录下面有的页面报404
+https://ask.csdn.net/questions/698077
+
+window.location.replace和window.location.href区别
+https://www.cnblogs.com/whl4835349/p/9776956.html
+
+tomcat部署应用时设置context path为空的上下文路径问题
+https://www.cnblogs.com/nuccch/p/6792931.html
+
+java.lang.IllegalStateException: Web app root system property already set to different value
+https://blog.csdn.net/javaliuzhiyue/article/details/9364427
+
+java.lang.IllegalStateException: Web app root system property already set to different value
+https://blog.csdn.net/medivhq/article/details/77649830
+
+java.lang.IllegalStateException:Web app root system property already set to different value 错误原因及解决 Log4j
+https://www.cnblogs.com/renpei/p/5621850.html
+
+
+
+
+
+[]shiro框架
+
+
+最新SpringBoot实现JWT+延续token过期时间+修改密码失效token
+https://www.codeleading.com/article/62424661444/
+
+js-cookie设置token过期时间_SpringBoot + Shiro + JWT 权限管理，过期刷新
+https://blog.csdn.net/weixin_39916479/article/details/110610647
+
+springboot 集成jwt设置过期时间_传说中的jwt
+https://blog.csdn.net/weixin_39746282/article/details/111170020
+
+java实现图片验证码全套实现方式
+https://blog.csdn.net/u010800804/article/details/51320841
+patchca整合Spring MVC生成超炫的验证码
+https://blog.csdn.net/cdeyzx002/article/details/25953935
+SpringBoot之后端图形验证码实现
+https://www.cnblogs.com/yanl55555/p/12541815.html
+Session中短信验证码设置有效时间
+https://my.oschina.net/u/4337072/blog/3333417
+
+
+
+
+SpringBoot集成JWT实现token验证
+https://www.jianshu.com/p/e88d3f8151db
+
+【SpringBoot】集成 jwt + 验证码 实现登录校验、API鉴权
+https://www.pianshen.com/article/76031844090/
+
+SpringBoot+Shiro+JWT实现权限管理
+https://blog.csdn.net/qq_42109746/article/details/97102231
+
+Spring Boot集成无状态Shiro--内容详细介绍
+https://blog.csdn.net/qq_35981283/article/details/78619750
+
+基于jwt和session用户认证的区别和优缺点
+https://blog.csdn.net/weixin_38405253/article/details/100980865
+
+Shiro步步为营--如何优雅地与JWT集成
+https://blog.csdn.net/pengjunlee/article/details/95600843
+
+
+
+shiro框架 @RequiresPermissions注解怎么动态配置？
+https://bbs.csdn.net/topics/392140104
+
+shiro登陆成功保存用户信息到session
+https://www.cnblogs.com/zephyrus/p/7405932.html
+
+SpringBoot整合Shiro使用记住我登录，session中获取不到用户信息问题解决
+https://blog.csdn.net/weixin_45616246/article/details/103108389
+
+基于shiro的改造集成真正支持restful请求
+https://blog.csdn.net/sinat_25235033/article/details/80323762
+
+
+Shiro整合JWT：解决jwt注销和续签的问题
+https://blog.csdn.net/qq_42764468/article/details/107731844
+
+springboot + shiro 配置 ehcache 缓存
+https://blog.csdn.net/xhf852963/article/details/117293617
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -62,8 +497,7 @@ https://blog.csdn.net/iteye_18692/article/details/82676098
 IntelliJ IDEA启动Tomcat后访问HTML页面解决中文乱码
 https://blog.csdn.net/telyfox/article/details/107780648
 
-Linux防火墙命令大全
-https://blog.csdn.net/qq_38071435/article/details/82312562
+
 
 linux 添加开机自启动脚本
 https://blog.csdn.net/daidaineteasy/article/details/54864776
