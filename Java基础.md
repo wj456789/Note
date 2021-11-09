@@ -586,7 +586,7 @@ new Thread(new Runnable() {
 
 **总结：**
 
-单线程中`CopyOnWriteArrayList`需要使用`list.remove(value)`删除；`ArrayList`需要使用`it.remove()`删除；或者使用for循环遍历索引配合前两者都可以使用
+单线程中`CopyOnWriteArrayList`需要使用`list.remove(value)`删除；`ArrayList`需要使用`it.remove()`删除；或者使用for循环遍历索引配合`CopyOnWriteArrayList`和`ArrayList`都可以使用，此时只能用`list.remove(value)`;
 
 多线程中必须使用`CopyOnWriteArrayList`，使用`list.remove(value)`删除；或者使用for循环配合`CopyOnWriteArrayList`
 
@@ -810,7 +810,7 @@ public static void main(String[] args){
 
 实现排序需要重写`int compare(T o1, T o2);`方法
 
-对o1和o2进行排序，o1和o2传入compare方法顺序是o1、o2，根据Comparetor.compare(o1, o2)方法的返回值，如果返回的值小于零，则不交换两个o1和o2的位置；如果返回的值大于零，则交换o1和o2的位置；然后根据o1、o2传入值的大小和交换之后的排序，判断是升序或逆序
+对o1和o2进行排序，o1和o2传入compare方法顺序是o1、o2，根据Comparator.compare(o1, o2)方法的返回值，如果返回的值小于零，则不交换两个o1和o2的位置；如果返回的值大于零，则交换o1和o2的位置；然后根据o1、o2传入值的大小和交换之后的排序，判断是升序或逆序
 
 大小	前-后>0	小大	正序
 小大	前-后<0	小大	正序
