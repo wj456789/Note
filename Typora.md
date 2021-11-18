@@ -39,6 +39,17 @@
 
 可以使用**三个 ` 加Enter/空格+编程语言**来表示，快捷键ctrl+shirt+k
 
+#### 设置快捷键
+
+高级设置中打开conf.user.json,在这里边进行配置，找到“KeyBinding”，需要重启生效
+
+```java
+"keyBinding": {
+    "Always on Top": "Ctrl+Shift+P,
+    "Code Fences":"Ctrl+Alt+l"
+},
+```
+
 ### 链接
 
 ```

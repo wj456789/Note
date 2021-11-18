@@ -144,6 +144,208 @@ public static void main(String[] args){
 
 
 
+## 内部类
+
+### 成员内部类
+
+> 成员内部类也是最普通的内部类，它是外围类的一个成员，所以他是可以无限制的访问外围类的所有成员属性和方法。
+>
+> 但是外围类要访问内部类的成员属性和方法则需要通过内部类实例来访问。
+
+- 第一：成员内部类中不能存在任何static的变量和方法；
+- 第二：成员内部类是依附于外围类的，所以只有先创建了外围类才能够创建内部类。
+
+```java
+public class OuterClass {
+    private String str;
+    
+    public void outerDisplay(){
+        System.out.println("outerClass...");
+    }
+    
+    public class InnerClass{
+        public void innerDisplay(){
+            //使用外围类的属性
+            str = "chenssy...";
+            System.out.println(str);
+            //使用外围内的方法
+            outerDisplay();
+        }
+    }
+    
+    /*推荐使用getxxx()来获取成员内部类，尤其是该内部类的构造函数无参数时 */
+    public InnerClass getInnerClass(){
+        return new InnerClass();
+    }
+    
+    public static void main(String[] args) {
+        OuterClass outer = new OuterClass();
+        OuterClass.InnerClass inner = outer.getInnerClass();
+        inner.innerDisplay();
+    }
+}
+```
+
+### 局部内部类
+
+> 局部内部类嵌套在方法的方法体内。
+>
+> 想创建一个类来辅助我们的解决方案，到那时又不希望这个类是公共可用的，所以就产生了局部内部类，它的作用域只在该方法中。
+
+```java
+public class Parcel5 {
+    public Destionation destionation(String str){
+        
+        class PDestionation implements Destionation{
+            private String label;
+            private PDestionation(String whereTo){
+                label = whereTo;
+            }
+            public String readLabel(){
+                return label;
+            }
+        }
+        
+        return new PDestionation(str);
+    }
+    
+    public static void main(String[] args) {
+        Parcel5 parcel5 = new Parcel5();
+        Destionation d = parcel5.destionation("chenssy");
+    }
+}
+```
+
+### 匿名内部类
+
+```java
+public class OuterClass {
+    
+    public InnerClass getInnerClass(final int num,String str2){
+        return new InnerClass(){ // new 一个接口
+            int number = num + 3;
+            public int getNumber(){
+                return number;
+            }
+        };        /* 注意：分号不能省 */
+    }
+    
+    public static void main(String[] args) {
+        OuterClass out = new OuterClass();
+        InnerClass inner = out.getInnerClass(2, "chenssy");
+        System.out.println(inner.getNumber());
+    }
+}
+
+interface InnerClass {
+    int getNumber();
+}
+```
+
+### 静态内部类
+
+> 使用static修饰的内部类我们称之为静态内部类。
+>
+> 非静态内部类在编译完成之后会隐含地保存着一个引用，该引用是指向创建它的外围类，但是静态内部类却没有。
+>
+> - 它的创建是不需要依赖于外围类的。
+> - 它不能使用任何外围类的非static成员变量和方法。
+
+```java
+public class OuterClass {
+    private String sex;
+    public static String name = "chenssy";
+    
+    /**
+     *静态内部类
+     */
+    static class InnerClass1{
+        /* 在静态内部类中可以存在静态成员 */
+        public static String _name1 = "chenssy_static";
+        
+        public void display(){
+            /* 
+             * 静态内部类只能访问外围类的静态成员变量和方法
+             * 不能访问外围类的非静态成员变量和方法
+             */
+            System.out.println("OutClass name :" + name);
+        }
+    }
+    
+    /**
+     * 非静态内部类
+     */
+    class InnerClass2{
+        /* 非静态内部类中不能存在静态成员 */
+        public String _name2 = "chenssy_inner";
+        /* 非静态内部类中可以调用外围类的任何成员,不管是静态的还是非静态的 */
+        public void display(){
+            System.out.println("OuterClass name：" + name);
+        }
+    }
+    
+    /**
+     * @desc 外围类方法
+     * @author chenssy
+     * @data 2013-10-25
+     * @return void
+     */
+    public void display(){
+        /* 外围类访问静态内部类：内部类. */
+        System.out.println(InnerClass1._name1);
+        /* 静态内部类 可以直接创建实例不需要依赖于外围类 */
+        new InnerClass1().display();
+        
+        /* 非静态内部的创建需要依赖于外围类 */
+        OuterClass.InnerClass2 inner2 = new OuterClass().new InnerClass2();
+        /* 访问非静态内部类的成员需要使用非静态内部类的实例 */
+        System.out.println(inner2._name2);
+        inner2.display();
+    }
+    
+    public static void main(String[] args) {
+        OuterClass outer = new OuterClass();
+        outer.display();
+    }
+}
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ## 集合
