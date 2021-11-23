@@ -1,0 +1,142 @@
+云计算之概念——IaaS、SaaS、PaaS、Daas
+云计算通俗来说就是输入/输出和计算不在一个主机上。计算要用到计算设备，计算设备一般是指CPU、内存和硬盘，输入/输出设备一般是指键盘、鼠标、显示器、耳机、音响、话筒等外设。而我们的个人计算机是使用主板将这些东西连接到一起来协调工作。
+
+一个软件在执行以完成某项任务的时候，如果用到的计算设备和输入/输出设备不是通过主板连接，而是通过网络连接，那么这个过程就叫云计算。
+
+一个完整的云计算环境由云端、计算机网络和终端三部门组成（也就是常说的云、管、端）。云端就是指计算设备，负责完成软件的计算；终端是指我们用来完成输入/输入的设备；计算机网络负责将云端和终端连接起来，完成信息传输（将终端的输入指令传输到云端，将云端的执行结果反馈给终端）。
+    
+公有云服务商组建了云端并对外出租计算设备，那么出租类型也就是我们常说的——IaaS SaaS、PaaS、DaaS。
+
+
+1、数据信息层
+数据信息
+2、应用软件层
+应用软件
+3、平台软件层
+中间件/运行库
+数据库
+操作系统
+4、基础设施层
+服务器/虚拟机
+磁盘柜
+计算机网络
+机房基础设备
+
+
+
+IaaS(基础设施及服务)
+租户管理
+123
+云端公司管理
+4
+
+PaaS(平台即服务)
+租户管理
+12
+云端公司管理
+34
+
+SaaS(软件即服务)
+租户管理
+1
+云端公司管理
+234
+
+DaaS(数据即服务)
+租户直接查询结果
+云端公司管理
+1234
+
+
+
+
+
+
+【String canonicalPath = file.getCanonicalPath();//返回文件的绝对路径
+对于文件路径校验场景，获取文件路径时，必须使用getCanonicalPath()，禁止使用getAbsolutePath()。】
+
+【使用assert断言语是对代码进行诊断测试的方便机制。当使用有副作用的断言表达式时，assert语句的行为
+
+取决于运行时属性的状态，启用时，assert语句会计算表达式的值，如果值为false时抛出AssertionError异常；当关闭断言时，assert语句(断言表达式)不执行，导致程序的运行结果不一致。所以应该禁止在断言
+
+中使用有副作用的表达式。有副作用的表达式一般指更改对象状态或修改变量值等操作的语句。
+
+private ArrayList<String> names;
+void process(int index) {
+    boolean nullsRemoved = names.remove(null);
+    assert nullsRemoved; // No side effect
+    // ...
+}
+】
+
+【
+//正确示例
+//整型
+private int count = 0;
+private final Integer lock = new Integer(count);
+public void doSomething() {
+    synchronized (lock) {
+    	count++;
+    	// ...
+    }	
+}
+
+//字符串实例,字符串对象与字符串常量不同，字符串实例具有唯一的引用，其内置锁与其他字符串对象也不相同。
+private final String lock = new String("LOCK");
+public void doSomething() {
+    synchronized (lock) {
+        // ...
+    }
+}
+
+//private final锁对象
+private final Object lock = new Object();
+public void doSomething() {
+    synchronized (lock) {
+    	// ...
+    }
+}
+
+
+
+	
+//错误示例
+//Boolean型锁对象,基于Boolean型的锁对象实现同步,Boolean只有两个值：true和false。包含相同值的Boolean数据，在Java虚拟机中共享同一个Boolean类示例。
+private final Boolean initialized = Boolean.FALSE;
+public void doSomething() {
+    synchronized (initialized) {
+    	// ...
+    }
+}
+
+//封包过的基础数据类型,使用封包的Integer对象实现同步，封包过的数据类型会使用整型范围内的同一个实例
+private int count = 0;
+private final Integer lock = count; // Boxed primitive Lock is shared
+public void doSomething() {
+    synchronized (lock) {
+        count++;
+        // ...		
+    }
+}
+//通常来说，基于封包的数值对象进行同步都是不安全的
+
+//Interned String对象,当调用String.intern()方法时，如果字符串常量池中存在相同的String时，会返回该字符串的地址。否则，该字符串会加入到常量池中，并返回该字符串在常量池中的引用。
+private final String lock = new String("LOCK").intern();
+public void doSomething() {
+	synchronized (lock) {
+    	// ...
+    }
+}
+
+//字符串常量,字符串常量会会自动调用String.intern()方法
+private final String lock = "LOCK";
+public void doSomething() {
+    synchronized (lock) {
+    	// ...
+    }
+}
+】
+【
+调用Thread.start()方法表示启动一个线程，并执行该线程对应的run()方法。但是直接调用Thread.run()方
+法，run()方法中的语句是由当前线程执行而不是新创建线程来执行。
+】
