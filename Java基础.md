@@ -146,6 +146,61 @@ public static void main(String[] args){
 
 ## 内部类
 
+> 每个内部类都能独立地继承一个（接口的）实现，所以无论外围类是否已经继承了某个（接口的）实现，对于内部类都没有影响。使用内部类最大的优点就在于它能够非常好的解决多重继承的问题。
+>
+> 内部类的其他特性：
+>
+> - 内部类可以用多个实例，每个实例都有自己的状态信息，并且与其外围对象的信息相互独立。
+>
+> - 在单个外围类中，可以让多个内部类以不同的方式实现同一个接口，或者继承同一个类。
+>
+> - 内部类提供了更好的封装，除了该外围类，其他类都不能访问。
+
+### 基本语法
+
+> - 当我们在创建某个外围类的内部类对象时，此时内部类对象必定会捕获一个指向那个外围类对象的引用，只要我们在访问外围类的成员时，就会用这个引用来选择外围类的成员。
+> - 生成对外部类对象的引用时，内部类会自动创建一个隐式的外部类对象的引用。可以使用OuterClassName.this引用外部类的引用。
+> - 引用内部类我们需要指明这个对象的类型，必须要利用外部类的对象通过.new来创建内部类： `OuterClass.InnerClass innerClass = outerClass.new InnerClass();`
+
+```java
+public class OuterClass {
+    private String name ;
+    private int age;
+
+    /**省略getter和setter方法**/
+    
+    public void display(){
+        System.out.println("OuterClass...");
+    }
+    
+    public class InnerClass{
+        public InnerClass(){
+            name = "chenssy";
+            age = 23;
+        }
+        
+        public void display(){
+            System.out.println("name：" + getName() +"   ;age：" + getAge());
+        }
+        
+        public OuterClass getOuterClass(){
+            return OuterClass.this;
+        }
+    }
+    
+    public static void main(String[] args) {
+        OuterClass outerClass = new OuterClass();
+   		//实例化内部类，必须要依赖外部类的对象
+        OuterClass.InnerClass innerClass = outerClass.new InnerClass();
+        innerClass.display();
+        
+        innerClass.getOuterClass().display();
+    }
+}
+```
+
+> 内部类是个编译时的概念，一旦编译成功后，它就与外围类属于两个完全不同的类（当然他们之间还是有联系的）。对于一个名为OuterClass的外围类和一个名为InnerClass的内部类，在编译成功后，会出现这样两个class文件：OuterClass.class和OuterClass$InnerClass.class。
+
 ### 成员内部类
 
 > 成员内部类也是最普通的内部类，它是外围类的一个成员，所以他是可以无限制的访问外围类的所有成员属性和方法。
