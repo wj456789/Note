@@ -166,3 +166,27 @@ System.getenv还可以获取自己设置的环境变量，但是被归为不可�
 
 一台电脑,配置两个git仓库
 https://blog.csdn.net/xy3233/article/details/113616028
+
+
+
+
+
+
+
+
+
+
+maven dependencies 里面的包怎么导出
+进入工程pom.xml 所在的目录下，
+输入以下命令：mvn dependency:copy-dependencies -DoutputDirectory=lib
+更简单的 mvn dependency:copy-dependencies 会导出到target/jar 下面
+
+
+
+
+
+
+
+
+
+
