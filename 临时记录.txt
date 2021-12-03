@@ -181,8 +181,8 @@ maven dependencies 里面的包怎么导出
 输入以下命令：mvn dependency:copy-dependencies -DoutputDirectory=lib
 更简单的 mvn dependency:copy-dependencies 会导出到target/jar 下面
 
-
-
+https://blog.csdn.net/qq_27093465/article/details/90665167
+https://www.cnblogs.com/shengulong/p/9643562.html
 
 
 
