@@ -197,3 +197,77 @@ Convert 表示使用新编码进行转换，新编码会保存到文件中，重
 含有中文的代码文件，Convert 之后可能会使中文变成乱码，所以在转换成请做好备份，不然可能出现转换过程变成乱码，无法还原。
 
 
+
+
+
+
+插件和普通依赖不同的是，Maven会区别对待普通依赖的远程仓库与插件的远程仓库，当Maven需要的插件在本地仓库不存在时是不会去我们以前配置的远程仓库查找插件的，而是需要有专门的插件远程仓库
+配置插件远程仓库:
+<pluginRepositories>
+        <pluginRepository>
+            <id>nexus</id>
+            <name>nexus</name>
+            <url>【我的地址】</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </pluginRepository>
+</pluginRepositories>
+
+超级父POM：\org\apache\maven\model\pom-4.0.0.xml，它是所有Maven POM的父POM，所有Maven项目都继承该配置。在该文件中可以查看默认的远程插件仓库配置：
+<pluginRepositories>
+    <pluginRepository>
+      <id>central</id>
+      <name>Central Repository</name>
+      <url>http://repo.maven.apache.org/maven2</url>
+      <layout>default</layout>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+      <releases>
+        <updatePolicy>never</updatePolicy>
+      </releases>
+    </pluginRepository>
+</pluginRepositories>
+
+maven项目先找本地仓库，再优先私服，最后中央仓库
+
+
+
+Maven继承
+解决多个模块使用相同的依赖，在继承中，父模块知识为了消除配置的重读，本身不包含除了pom.xml的其他文件，不需要src/main/java之类的文件。
+子模块的pom.xml
+<parent>
+    <groupId>com.huawei.mae.ci</groupId>
+    <artifactId>mae-starter-java-app-without-db</artifactId>
+    <version>220.100.1-SNAPSHOT</version>
+</parent>
+
+
+maven聚合
+项目往往会被划分为好几个模块，我们需要一次构件多个模块，而不用每个模块都去mvn clean install一次，Maven聚合就是用来实现这个需求的
+父模块
+  <groupId>com.uidp</groupId>
+  <artifactId>UidpWeb</artifactId>
+  <packaging>pom</packaging>
+  <version>0.0.1-SNAPSHOT</version>
+  <name>UidpWeb</name>
+  <url>http://maven.apache.org</url>
+  <modules>
+    <module>【我的模块】</module>
+  </modules>
+
+
+对于聚合模块来说，它知道有哪些被聚合的模块，但那些被聚合的模块不知道这个聚合模块的存在。
+对于继承关系的父POM来说，它不知道有哪些子模块继承于它，但那些子模块都必须知道自己的父POM是什么。
+
+
+版本一共可以分为几个层次，一般来说，版本可以分为：总版本号.分支版本号.小版本号-里程碑版本。
+
+总版本号：一般表示框架的变动。
+分支版本号：一般表示增加了一些功能。
+小版本号：在分支版本上面进行bug的修复。
+里程碑：SNAPSHOT–>alpha–>beta–>release–>GA
