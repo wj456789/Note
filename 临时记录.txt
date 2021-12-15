@@ -271,3 +271,8 @@ maven聚合
 分支版本号：一般表示增加了一些功能。
 小版本号：在分支版本上面进行bug的修复。
 里程碑：SNAPSHOT–>alpha–>beta–>release–>GA
+
+
+
+
+dependency和plugin标签都有相应的dependencyManagement和pluginManagement，plugins 和 pluginManagement的区别，和我们前面研究过的dependencies 和 dependencyManagement的区别是非常类似的。plugins 下的 plugin 是真实使用的，而 pluginManagement 下的 plugins下的 plugin 则仅仅是一种声明，子项目中可以对 pluginManagement下的 plugin 进行信息的选择、继承、覆盖等。
