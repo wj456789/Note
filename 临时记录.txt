@@ -283,3 +283,30 @@ dependency和plugin标签都有相应的dependencyManagement和pluginManagement�
 
 kubectl简介
 https://www.cnblogs.com/faberbeta/p/13391905.html
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@Autowired
+https://blog.csdn.net/qq_28163609/article/details/108769977
+https://www.cnblogs.com/acm-bingzi/p/springAutowired.html
+@Autowired 可以对成员变量、方法以及构造函数进行注释。
+Spring Bean的生命周期是先实例化然后再进行属性注入的
+
+private User user;
+@Autowired
+public UserAccountServiceImpl(User user){
+	this.user = user;
+	this.school = user.getSchool();
+}
+Java变量的初始化顺序为：静态变量或静态语句块–>实例变量或初始化语句块–>构造方法–>@Autowired
