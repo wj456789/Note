@@ -334,3 +334,27 @@ Java变量的初始化顺序为：静态变量或静态语句块–>实例变量
 
 
 TypeReference
+
+
+https://www.cnblogs.com/jsStudyjj/p/6145623.html
+    public static void main(String[] args) {
+        Pattern pat = Pattern.compile("([0-9])(a)[0-9]");
+        Matcher matcher = pat.matcher("d0a1s2d3as4d5a6sd");
+        while (matcher.find()) {
+            System.out.println(matcher.group(0));
+            System.out.println(matcher.group(1));
+            System.out.println(matcher.start(1));
+            System.out.println(matcher.end(1));
+        }
+    }
+    
+0a1
+0
+1
+2
+
+
+5a6
+5
+12
+13
