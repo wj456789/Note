@@ -277,8 +277,28 @@ maven聚合
 
 dependency和plugin标签都有相应的dependencyManagement和pluginManagement，plugins 和 pluginManagement的区别，和我们前面研究过的dependencies 和 dependencyManagement的区别是非常类似的。plugins 下的 plugin 是真实使用的，而 pluginManagement 下的 plugins下的 plugin 则仅仅是一种声明，子项目中可以对 pluginManagement下的 plugin 进行信息的选择、继承、覆盖等。
 
+group是针对（）来说的，group（0）就是指的整个串，group（1） 指的是第一个括号里的东西，group（2）指的第二个括号里的东西。
+public static void main(String[] args) {
+	Pattern pat = Pattern.compile("([0-9])(a)[0-9]");
+	Matcher matcher = pat.matcher("d0a1s2d3as4d5a6sd");
+	while (matcher.find()) {
+	//group配合find使用，输出匹配到的字符串
+		System.out.println(matcher.group(0));//0或空输出所有
+		System.out.println(matcher.group(1));//输出匹配到的第一个括号中的值
+		System.out.println(matcher.start(1));//第一个括号中的值开头索引
+		System.out.println(matcher.end(1));//第一个括号中的值最后的索引+1
+	}
+}
 
+0a1
+0
+1
+2
 
+5a6
+5
+12
+13
 
 
 kubectl简介
