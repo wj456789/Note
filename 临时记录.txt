@@ -358,3 +358,27 @@ https://www.cnblogs.com/jsStudyjj/p/6145623.html
 5
 12
 13
+
+
+
+
+
+
+
+
+
+
+
+
+IDEA设置忽略的文件夹和文件
+File->Settings->Editor->FileType->Ignore files ans folders
+
+
+
+
+
+
+
+
+
+
