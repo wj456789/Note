@@ -379,6 +379,10 @@ restTemplate发送get与post请求 并且带参数
 https://blog.csdn.net/qq_38976693/article/details/84107455
 
 
+@jsonProperty是 Jackson的包，而@jsonfield是fastjson的包
+都可以将json字段和bean属性在序列化反序列化之间互相转换
 
+@JSONField这个注解可以用于get、set以及属性上面
+@JSONproperty这个注解用于属性上面
 
-
+@JsonProperty(value=“name”)   @JsonField(value=“name”)   
