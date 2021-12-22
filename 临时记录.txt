@@ -375,8 +375,8 @@ File->Settings->Editor->FileType->Ignore files ans folders
 
 
 
-
-
+restTemplate发送get与post请求 并且带参数
+https://blog.csdn.net/qq_38976693/article/details/84107455
 
 
 
