@@ -143,6 +143,7 @@ public void doSomething() {
 
 
 HTTP中PATCH方法是新引入的，是对PUT方法的补充，用来对已知资源进行局部更新
+put方法会将修改后的完整对象直接传给后台，patch局部更新，只传送更新字段，后端也只会更新收到的字段
 
 
 
