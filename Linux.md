@@ -368,49 +368,59 @@ CentOS Linux release 7.7.1908 (Core)
 
 ## 用户
 
---添加用户
-#useradd
+```sh
+#添加用户
+$ useradd
+
 -g	指定用户所属的群组。
 -m	自动建立用户的登入目录，在/home目录下创建同名文件夹，可以用此用户账号直接登录
 -r	建立系统帐号，系统帐号就是系统用的帐号，区别于个人帐号，一般系统帐号编号都是 <500，是专门用来跑对外提供服务程序的帐号，使用系统账号可以隔离个人账号中的个人信息数据
+```
 
---修改用户
-#usermod
+```sh
+#修改用户
+$ usermod
+
 -g	修改用户的初始组，或修改 /etc/passwd 文件目标用户信息的第 4 个字段（GID）
+```
 
---删除用户
-#userdel
+```sh
+#删除用户
+$ userdel
+
 -r	表示在删除用户的同时删除用户的家目录。
+```
 
---查看用户
-
-```java
-#cat /etc/passwd	查看所有用户信息
+```sh
+#查看用户
+$ cat /etc/passwd	查看所有用户信息
 root:x:0:0:root:/root:/bin/bash
+
+username password UserID GroupID comment home directory shell(用冒号分开)
+用户名、密码、用户id、用户所在组id、备注、用户家目录、shell命令所在目录
 ```
 
-username password UserID GroupID comment home directory shell(用冒号分开)
-用户名、密码、用户id、用户所在组id、备注、用户家目录、shell命令所在目录
 
-username password UserID GroupID comment home directory shell(用冒号分开)
-用户名、密码、用户id、用户所在组id、备注、用户家目录、shell命令所在目录
 
---查看所有组信息
-
-```java
-#cat /etc/group
+```sh
+#查看所有组信息
+$ cat /etc/group
 root:x:0:
+
 用户组、用户组口令、OID、用户组包含用户
 ```
 
-用户组、用户组口令、OID、用户组包含用户
+```sh
+#查看用户组
+$ groups
 
---查看用户组
-#groups
 当前登录用户所属组
 
-#groups 用户	
+$ groups 用户	
 用户：用户所属组
+```
+
+
 
 ## 命令重导向
 

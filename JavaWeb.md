@@ -528,15 +528,11 @@ public ResultView<LoginResp> login(@RequestParam String username.@RequestParam S
 
 
 
-@RequestParam只能接收**简单参数类型(键值对)**；接收GET请求拼接在URL后的参数，或者是POST传递，且Content-type为application/x-www-form-urlencoded方式，因为不管是GET方式还是用application/x-www-form-urlencoded方式传递，参数都是以键值对方式拼接的；
+**@RequestParam只能用简单类型接收键值对**；接收GET请求或是POST请求拼接在URL后的参数，或者是POST传递，且Content-type为application/x-www-form-urlencoded方式接收的请求体参数，因为不管是GET方式还是用application/x-www-form-urlencoded方式传递，参数都是以键值对方式拼接的；
 
-@RequestBody接收**复杂对象(json字符串)**，包括List，实体类，Map对象等；该注解只能够接收POST传递，且Content-type为application/json方式，并且能把接收到的JSON数据绑定到JAVA对象中；一个方法中只能有一个@RequestBody注解，但是@RequestBody注解可以和@RequestParam注解一起使用，而且@RequestParam注解一个方法中可以有多个。
+**@RequestBody只能用复杂对象接收json字符串**，包括List，实体类，Map对象等；该注解只能够接收POST传递，且Content-type为application/json方式，并且能把接收到的JSON数据绑定到JAVA对象中；一个方法中只能有一个@RequestBody注解，但是@RequestBody注解可以和@RequestParam注解(接收拼接在URL后的参数)一起使用，而且@RequestParam注解一个方法中可以有多个。
 
-不加注解接收参数，参数类型**(键值对，但是这里可以把java对象映射为多个属性值)**可以为**简单类型**，也可以为**复杂类型**（JAVA对象等，前端传递的参数会和类中的属性名对应并且绑定），但是不能接收Map类型的对象。而且GET请求和POST请求也都能用简单参数或实体类接收到参数。但是POST请求时，和@RequestParam注解一样，Content-type只能为application/x-www-form-urlencoded。
-
-
-
-
+**不加注解可以用简单类型或实体类接收键值对**，GET请求和POST请求都能用简单参数或实体类接收，因为这里可以将对象和属性值相互映射，使用实体类时前端传递的参数会和类中的属性名对应并且绑定，但是不能使用Map类型的对象；而且POST请求时，想要接收请求体中参数，Content-type只能为application/x-www-form-urlencoded。
 
 
 
