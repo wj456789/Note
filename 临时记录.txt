@@ -1,5 +1,12 @@
 
+新建本地分支localserverfix，并且拉取并跟踪远程分支origin/serverfix
+git checkout -b localserverfix origin/serverfix
 
+新建本地分支serverfix，并且拉取并跟踪远程分支origin/serverfix
+git checkout --track origin/serverfix
+
+已有本地分支拉取并跟踪远程分支origin/serverfix
+git branch -u/--set-upstream-to origin/serverfix
 
 
 
