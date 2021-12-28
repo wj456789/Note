@@ -4,6 +4,8 @@
 
 IntelliJ IDEA中@Autowired注入报错
 inspections-->Autowiring for bean class-->Severity的级别从Error改成Warning
+IDEA自动导包
+Editor-->general-->auto import-->勾选add unambiguous ...和Optimize imports on ...
 
 
 
