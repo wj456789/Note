@@ -2,6 +2,14 @@
 
 
 
+
+
+在仓库新建分支
+IDEA-->页头git-->pull-->ctrl+F5更新分支-->页尾git-->选中remote新分支右键-->new branch from selected-->输入名称创建本地分支-->右键本地分支checkout切换分支
+https://git-scm.com/book/zh/v2/Git-%E5%88%86%E6%94%AF-%E8%BF%9C%E7%A8%8B%E5%88%86%E6%94%AF
+
+
+
 IntelliJ IDEA中@Autowired注入报错
 inspections-->Autowiring for bean class-->Severity的级别从Error改成Warning
 IDEA自动导包
