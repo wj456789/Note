@@ -1,3 +1,15 @@
+
+
+
+
+IntelliJ IDEA中@Autowired注入报错
+inspections-->Autowiring for bean class-->Severity的级别从Error改成Warning
+
+
+
+
+
+
 云计算之概念——IaaS、SaaS、PaaS、Daas
 云计算通俗来说就是输入/输出和计算不在一个主机上。计算要用到计算设备，计算设备一般是指CPU、内存和硬盘，输入/输出设备一般是指键盘、鼠标、显示器、耳机、音响、话筒等外设。而我们的个人计算机是使用主板将这些东西连接到一起来协调工作。
 
