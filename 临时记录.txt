@@ -1,32 +1,14 @@
 
-新建本地分支localserverfix，并且拉取并跟踪远程分支origin/serverfix
-git checkout -b localserverfix origin/serverfix
-
-新建本地分支serverfix，并且拉取并跟踪远程分支origin/serverfix
-git checkout --track origin/serverfix
-
-已有本地分支拉取并跟踪远程分支origin/serverfix
-git branch -u/--set-upstream-to origin/serverfix
 
 
 
 
-在仓库新建分支
-IDEA-->页头git-->pull-->ctrl+F5更新分支-->页尾git-->选中remote新分支右键-->new branch from selected-->输入名称创建本地分支-->右键本地分支checkout切换分支
-
-切换分支时
-Smart Checkout会把当前分支改动过的内容 与 要到达的分支合并（到达分支也会添加上当前分支的内容，减少的内容 将会提示合并选项）
-Force Chexkout 会把当前分支的变动取消 然后切换到想要到达的分支
-如果切换分支前 把改动提交就不会有提示切换选项
-
-https://git-scm.com/book/zh/v2/Git-%E5%88%86%E6%94%AF-%E8%BF%9C%E7%A8%8B%E5%88%86%E6%94%AF
 
 
 
-IntelliJ IDEA中@Autowired注入报错
-inspections-->Autowiring for bean class-->Severity的级别从Error改成Warning
-IDEA自动导包
-Editor-->general-->auto import-->勾选add unambiguous ...和Optimize imports on ...
+
+
+
 
 
 

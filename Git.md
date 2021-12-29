@@ -67,7 +67,7 @@ Remote：远程仓库
 1. 输入`git pull git@github.com:wj456789/Note.git`同步远程仓库
 2. 输入`git add .`添加所有文件到暂存区
    		`git commit –m 无`提交所有文件到本地仓库
-   		`git push origin master  `推送本地仓库分支master所有文件到远程仓库origin分支master 	
+      		`git push origin master  `推送本地仓库分支master所有文件到远程仓库origin分支master 	
 3. `git push -u origin master`指定默认分支，之后就可以输入`git push`和`git pull`来推送和拉取文件
 
 参考：[使用git和github进行文件同步](https://blog.csdn.net/u011622208/article/details/80637661)
@@ -133,17 +133,16 @@ $ git branch --set-upstream-to=remote-branch local-branch	//关联本地分支�
 
 ### 新建代码库
 
-在当前目录新建一个Git代码库
-
+```sh
+#在当前目录新建一个Git代码库
 $ git init
 
-新建一个目录，将其初始化为Git代码库
-
+#新建一个目录，将其初始化为Git代码库
 $ git init [project-name]
 
-下载一个项目和它的整个代码历史
-
+#下载一个项目和它的整个代码历史
 $ git clone [url]
+```
 
 
 
@@ -458,6 +457,21 @@ $ git stash pop
 
 
 ### 分支
+
+```sh
+#新建本地分支localserverfix，并且拉取并跟踪远程分支origin/serverfix
+$ git checkout -b localserverfix origin/serverfix
+
+#新建本地分支serverfix，并且拉取并跟踪远程分支origin/serverfix
+$ git checkout --track origin/serverfix
+
+#已有本地分支拉取并跟踪远程分支origin/serverfix
+$ git branch -u/--set-upstream-to origin/serverfix
+```
+
+[Git 分支 - 远程分支](https://git-scm.com/book/zh/v2/Git-%E5%88%86%E6%94%AF-%E8%BF%9C%E7%A8%8B%E5%88%86%E6%94%AF)
+
+
 
 列出所有本地分支，当前分支前面会添加一个星号
 
