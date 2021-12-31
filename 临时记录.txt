@@ -1,4 +1,135 @@
 
+/*
+ * Copyright (c) Huawei Technologies Co., Ltd. 2021-2021. All rights reserved.
+ */
+
+package com.huawei.universe.common.utils;
+
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JavaType;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.google.json.JsonSanitizer;
+import com.huawei.universe.common.exception.PaaSException;
+import lombok.extern.slf4j.Slf4j;
+
+import javax.ws.rs.core.Response.Status;
+import java.io.IOException;
+
+/**
+ * json模型转换类
+ *
+ * @author g00373247
+ * @since 2019-10-23
+ */
+@Slf4j
+public class JacksonConvertHelper {
+    private static ObjectMapper MAPPER;
+
+    private static synchronized ObjectMapper getMapperInstance() {
+        if (MAPPER == null) {
+            MAPPER = new ObjectMapper();
+            MAPPER.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+            MAPPER.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
+            MAPPER.setSerializationInclusion(Include.NON_NULL);
+        }
+        return MAPPER;
+    }
+
+
+    /**
+     * getJavaBeanByString
+     *
+     * @param jsonString param
+     * @param clazz      param
+     * @param <T>        param
+     * @return obj
+     * @throws PaaSException PaaSException
+     */
+    public static <T> T getJavaBeanByString(String jsonString, Class<T> clazz) throws PaaSException {
+        T obj = null;
+        try {
+            if (jsonString != null && !jsonString.isEmpty()) {
+                jsonString = JsonSanitizer.sanitize(jsonString);
+                obj = getMapperInstance().readValue(jsonString, clazz);
+            }
+            return obj;
+        } catch (IOException e) {
+            log.error("cannot get java bean by string.", e);
+            throw new PaaSException(Status.INTERNAL_SERVER_ERROR, "cannot get java bean by string");
+        }
+    }
+
+    /**
+     * getStringByJavaBean
+     *
+     * @param value param
+     * @return value
+     * @throws PaaSException PaaSException
+     */
+    public static String getStringByJavaBean(Object value) throws PaaSException {
+        try {
+            String jsonString = getMapperInstance().writeValueAsString(value);
+            return JsonSanitizer.sanitize(jsonString);
+        } catch (IOException e) {
+            log.error("cannot get string by java bean.", e);
+            throw new PaaSException(Status.INTERNAL_SERVER_ERROR, "cannot get string by java bean");
+        }
+    }
+
+    /**
+     * getCollectionJavaBeanByString
+     *
+     * @param jsonString      param
+     * @param collectionClazz param
+     * @param clazz           param
+     * @param <T>             param
+     * @param <K>             param
+     * @return obj
+     * @throws PaaSException PaaSException
+     */
+    public static <T, K> T getCollectionJavaBeanByString(String jsonString, Class<K> collectionClazz, Class<T> clazz)
+        throws PaaSException {
+        T obj = null;
+        try {
+            if (jsonString != null && !jsonString.isEmpty()) {
+                jsonString = JsonSanitizer.sanitize(jsonString);
+
+                JavaType javaType = getMapperInstance().getTypeFactory()
+                    .constructParametricType(collectionClazz, clazz);
+                obj = getMapperInstance().readValue(jsonString, javaType);
+            }
+            return obj;
+        } catch (IOException e) {
+            log.error("cannot get collection java bean by string", e);
+            throw new PaaSException(Status.INTERNAL_SERVER_ERROR, "cannot get collection java bean by string");
+        }
+    }
+
+    /**
+     * getJavaBeanByString
+     *
+     * @param jsonString    param
+     * @param typeReference param
+     * @param <T>           param
+     * @return typeReference
+     */
+    public static <T> T getJavaBeanByString(String jsonString, TypeReference<T> typeReference) {
+        try {
+            log.info("******Start to exec method getJavaBeanByString");
+            if (jsonString != null && !jsonString.isEmpty()) {
+                log.info("******End to exec method getJavaBeanByString");
+                jsonString = JsonSanitizer.sanitize(jsonString);
+                return getMapperInstance().readValue(jsonString, typeReference);
+            }
+        } catch (Exception e) {
+            log.error("JacksonParser error", e);
+        }
+        return null;
+    }
+}
 
 
 
