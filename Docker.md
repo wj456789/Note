@@ -398,13 +398,14 @@ Hello world
 
 ```sh
 #下面的命令会让Docker容器在后台以守护态(Daemonized)形式运行，容器启动后会返回一个唯一的id
-$ docker run -d centos /bin/sh -c "while true; do echo hello world; sleep 1;done"
+$ docker run -d centos:7 /bin/sh -c "while true; do echo hello world; sleep 1;done"
 ce554267d7a4c34eef c92c5517051dc37b918b588736d0823e4c846596b04d83
 
 #-d也是走一个生命周期结束，加上-c执行命令，命令终止之前不会退出
+#可以同时使用-dit容器以后台方式运行，不进入伪终端并且会以交互模式运行不会终止
 ```
 
-#### 查看容器输出
+#### 查看容器输出 
 
 ```sh
 #-t，-timestamps:显示时间戳信息;
@@ -582,6 +583,145 @@ $ docker cp  data/  test:/tmp/
 #查看容器内文件系统的变更
 #查看test容器内的数据修改
 $ docker container diff  test
+```
+
+## 数据管理
+
+- 在容器内创建数据卷，并且把本地的目录或文件挂载到容器内的数据卷中。
+
+- 使用数据卷容器，使得容器和容器之间共享数据，并实现数据的备份和恢复。
+
+### 数据卷
+
+数据卷(Data Volumes)是一个在容器内的特殊目录，这个目录和宿主机里的某个目录有特殊的映射关系
+
+- 数据卷可以在容器之间共享和重用，容器间传递数据将变得高效与方便;
+- 对数据卷内数据的修改会立马生效，无论是容器内操作还是宿主机本地操作;
+- 对数据卷的更新不会影响镜像，解耦开应用和数据;
+- 数据卷会一直存在，直到没有容器使用，可以安全地卸载它。
+
+#### 创建
+
+```sh
+$ docker volume create [-d  local]  test   
+
+#使用-d参数可以指定不同的驱动，本地卷是内置的local驱动，本地卷只能被所在节点(这里所在节点是本地)的容器使用，第三方驱动可以通过插件方式接入
+```
+
+**卷插件：**
+
+- 块存储：相对性能更高，适用于对小块数据的随机访问负载。
+- 文件存储：包括 NFS 和 SMB 协议的系统，同样在高性能场景下表现优异。
+- 对象存储：适用于较大且长期存储的、很少变更的二进制数据存储。通常对象存储是根据内容寻址，并且性能较低。
+
+> 使用 local 驱动创建的卷在 Docker 主机上均有其专属目录，
+>
+> 在 Linux 中位于 `/var/lib/docker/volumes` 目录下，
+>
+> 在 Windows 中位于`C:\ProgramData\Docker\volumes` 目录下。
+
+```sh
+#查看本地卷，只能查看volumes/目录下的数据卷，也就是说只能查看普通数据卷，无法查看bind绑定数据卷
+$ docker volume ls
+
+#查看详情
+$ docker volume inspect test
+#Driver 和 Scope 都是 local。这意味着卷使用默认 local 驱动创建，只能用于当前 Docker 主机上的容器。
+#Mountpoint 属性说明卷位于 Docker 主机上的位置。
+```
+
+<img src="img_Docker/clipboard-1641476970861.png" alt="img" style="zoom:80%;" />
+
+
+
+#### 删除
+
+```sh
+#删除未装入到容器或者服务的所有卷
+$ docker volume prune
+
+#删除指定卷
+$ docker volume rm test
+
+#两种删除命令都不能删除正在被容器或者服务使用的卷
+```
+
+```sh
+#删除正在被使用的数据卷，可以和最后一个和该数据卷绑定的容器删除，一起删除
+$ docker [container] rm -v  xxxid
+```
+
+#### 使用
+
+使用run命令+--mount选项来使用数据卷
+
+**--mount选项支持三种类型的数据卷，包括:**
+
+- volume:普通数据卷，映射到主机/var/lib/docker/volumes路径下; 
+- bind:绑定数据卷，映射到主机指定路径下;
+- tmpfs:临时数据卷，只存在于内存中。
+
+```sh
+#使用centos:7镜像创建一个centos容器，并创建一个数据卷挂载到容器的/test目录:
+$ docker container run -dit --name centos  --mount  type=volume,source=testvolume, destination=/test  centos:7 #source指定数据卷名称
+$ docker container run -dit --name centos1  --mount  type=bind,source=/root/abc,destination=/test centos:7 #数据卷名称随机
+
+
+#宿主机目录：容器目录，宿主机目录省略时默认使用volumn数据卷，不省略即为bind写法
+$ docker container run -dit --name centos2  -v  /root/abc:/test/  centos:7 
+
+#本地目录的路径必须是绝对路径，容器内路径可以为相对路径。如果目录不存在，Docker会自动创建。
+```
+
+```sh
+#Docker挂载数据卷的默认权限是读写(rw), 用户也可以通过ro指定为只读，加了:ro之后，容器内对所挂载数据卷内的数据就无法修改了
+$ docker container run -dit --name centos3  -v  /root/abc:/test:ro  centos:7
+```
+
+**注意：**
+
+- 同一个目录可以和多个容器建立关联
+
+- 推荐挂载文件所在的目录到容器内进行同步，挂载的时候也是可以把一个文件同步到容器，但是使用文件编辑工具，可能会造成文件inode的改变，可能会导致报错。
+
+### 数据卷容器
+
+数据卷容器也是一个容器，但是它的目的是专门提供数据卷给其他容器挂载，可以实现在多个容器之间共享一些持续更新的数据。
+
+```sh
+#首先创建一个容器dbdata,并让宿主机创建一个数据卷挂载到centos容器里的目录/dbdata:
+$ docker run -it -v /dbdata --name dbdata centos:7   
+
+#然后，可以在其他容器中使用--volumes-from来挂载dbdata容器中的数据卷
+#例如创建db1和db2两个容器，并从dbdata容器挂载数据卷:
+$ docker run -it --volumes-from dbdata --name db1 centos:7   
+$ docker run -it --volumes-from dbdata --name db2 centos:7   
+
+#容器db1和db2都挂载同一个数据卷到相同的/dbdata目录，三个容器任何一方在该目录下的写人，其他容器都可以看到，容器dbdata即称为数据卷容器
+```
+
+如果删除了挂载的容器某一个(包括dbdata、db1和db2 )，数据卷并不会被自动删除，必须在删除最后一个还挂载着它的容器时显式使用`docker rm -v` 命令来指定同时删除关联的数据卷
+
+#### 备份
+
+```sh
+$ docker  run --volumes-from dbdata -v  $(pwd):/backup --name worker centos:7  tar  cvf  /backup/backup.tar /dbdata
+
+#docker run --name worker centos:7 利用centos:7镜像创建了一个容器worker
+#--volumes-from dbdata -v $(pwd):/backup 指定多个数据卷
+	#使用--volumes-from dbdata 参数来让worker容器挂载dbdata容器的数据卷
+	#使用-v $(pwd):/backup参数来挂载本地的当前目录到worker容器的/backup目录。
+#worker容器启动后，使用tar cvf /backup/backup.tar /dbdata命令将/dbdata下内容打包为容器内的/backup/backup.tar
+
+#dbdata中/dbdata-->worker中/dbdata-->worker中/backup-->本地的当前目录
+```
+
+#### 恢复
+
+```sh
+$ docker run --volumes-from dbdata -v $(pwd):/backup --name newworker  centos:7  tar xvf  /backup/backup.tar -C /
+
+#本地的当前目录backup.tar-->newworker中/backup/backup.tar-解压到newworker根目录，之前把/dbdata打包->newworker中/dbdata-->dbdata中/dbdata
 ```
 
 
