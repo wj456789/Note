@@ -13,16 +13,17 @@ public static void main(String[] args) {
 	String str=JSON.toJSONString(map);
 	Map<String, String> envMap = JSON.parseObject(str, new TempTypeReference());
 	Map<String, String> envMap1 = JSON.parseObject(str, new TypeReference<Map<String,String>>(){});
-	System.out.println(envMap.toString());
-	System.out.println(envMap1.toString());
+	System.out.println(JSON.toJSONString(envMap));
+	System.out.println(JSON.toJSONString(envMap1));
 }
+
 static class TempTypeReference extends  TypeReference<Map<String, String>>{
 	public TempTypeReference(){}
 }
 输出：
 {"1":"dsadas","2":"hgrfhgf"}
-{1=dsadas, 2=hgrfhgf}
-{1=dsadas, 2=hgrfhgf}
+{"1":"dsadas","2":"hgrfhgf"}
+{"1":"dsadas","2":"hgrfhgf"}
 
 
 
