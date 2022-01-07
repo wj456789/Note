@@ -1,4 +1,25 @@
 
+
+
+
+
+
+fastjson
+Map<String, String> envMap = JSON.parseObject(env, new TypeReference<Map<String, String>>() {});
+Map<String, String> envMap = JSON.parseObject(str, new TempTypeReference());
+
+
+static class TempTypeReference extends  TypeReference<Map<String, String>>{
+	public TempTypeReference(){}
+}
+
+
+
+
+
+
+
+
 /*
  * Copyright (c) Huawei Technologies Co., Ltd. 2021-2021. All rights reserved.
  */
