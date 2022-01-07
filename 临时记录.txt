@@ -5,16 +5,24 @@
 
 
 fastjson
-Map<String, String> envMap = JSON.parseObject(env, new TypeReference<Map<String, String>>() {});
-Map<String, String> envMap = JSON.parseObject(str, new TempTypeReference());
-
-
+public static void main(String[] args) {
+	Map<String,String> map=new HashMap<>();
+	map.put("1","dsadas");
+	map.put("2","hgrfhgf");
+	System.out.println(JSON.toJSONString(map));
+	String str=JSON.toJSONString(map);
+	Map<String, String> envMap = JSON.parseObject(str, new TempTypeReference());
+	Map<String, String> envMap1 = JSON.parseObject(str, new TypeReference<Map<String,String>>(){});
+	System.out.println(envMap.toString());
+	System.out.println(envMap1.toString());
+}
 static class TempTypeReference extends  TypeReference<Map<String, String>>{
 	public TempTypeReference(){}
 }
-
-
-
+输出：
+{"1":"dsadas","2":"hgrfhgf"}
+{1=dsadas, 2=hgrfhgf}
+{1=dsadas, 2=hgrfhgf}
 
 
 
