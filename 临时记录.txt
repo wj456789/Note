@@ -29,12 +29,6 @@ static class TempTypeReference extends  TypeReference<Map<String, String>>{
 
 
 
-/*
- * Copyright (c) Huawei Technologies Co., Ltd. 2021-2021. All rights reserved.
- */
-
-package com.huawei.universe.common.utils;
-
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -42,7 +36,6 @@ import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.google.json.JsonSanitizer;
-import com.huawei.universe.common.exception.PaaSException;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.ws.rs.core.Response.Status;
@@ -51,8 +44,6 @@ import java.io.IOException;
 /**
  * json模型转换类
  *
- * @author g00373247
- * @since 2019-10-23
  */
 @Slf4j
 public class JacksonConvertHelper {
