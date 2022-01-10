@@ -1,6 +1,27 @@
 
 
+public static void main(String[] args) {
+        List<RedisInstancesInfo> redisInstanceList=new ArrayList<>();
+        RedisInstancesInfo redisInstancesInfo=new RedisInstancesInfo();
+        redisInstancesInfo.setRedisId(78);
+        redisInstancesInfo.setRedisInfo("dsadasda");
+        redisInstanceList.add(redisInstancesInfo);
 
+        JSONObject requestJson = new JSONObject();
+        requestJson.put("clusterId", "10");
+        requestJson.put("clusterRedisList", redisInstanceList);
+        System.out.println(requestJson.toJSONString());
+
+        JSONObject requestJson1 = new JSONObject();
+        requestJson1.put("clusterId", "10");
+        requestJson1.put("clusterRedisList", JSONArray.parseArray(JSONObject.toJSONString(redisInstanceList)));
+        System.out.println(requestJson1.toJSONString());
+
+    }
+    
+    输出：
+    {"clusterRedisList":[{"inCluster":false,"redisId":78,"redisInfo":"dsadasda"}],"clusterId":"10"}
+{"clusterRedisList":[{"inCluster":false,"redisId":78,"redisInfo":"dsadasda"}],"clusterId":"10"}
 
 
 
