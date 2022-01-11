@@ -1,3 +1,78 @@
+public static void main(String[] args) {
+        Map<String, Integer> map = new HashMap<>();
+        map.put("1", 5);
+        map.put("7", 12);
+        map.put("3", 8);
+        map.put("8", 2);
+        map.put("5", 6);
+        map.put("6", 9);
+
+        map.keySet().stream().sorted(Comparator.comparing((String hostName) -> map.get(hostName)).reversed()).forEach(hostName -> {
+            System.out.println(hostName + ":" + map.get(hostName));
+            if (hostName.equals("6")) {
+                map.remove("1");
+                return;
+            }
+            System.out.println(map.size());
+        });
+}
+输出
+7:12
+6
+6:9
+3:8
+5
+5:6
+5
+1:null
+5
+8:2
+5
+	
+public static void main(String[] args) {
+        Map<String, List<RedisInstancesInfo>> listMap = new HashMap<>();
+        List<RedisInstancesInfo> redisInstancesInfos=new ArrayList<>();
+        RedisInstancesInfo redisInstancesInfo=new RedisInstancesInfo();
+        redisInstancesInfo.setRedisInfo("dsadasdsadas");
+        redisInstancesInfo.setRedisId(12);
+        redisInstancesInfos.add(redisInstancesInfo);
+
+        RedisInstancesInfo redisInstancesInfo1=new RedisInstancesInfo();
+        redisInstancesInfo1.setRedisInfo("hgfdkhbg");
+        redisInstancesInfo1.setRedisId(56);
+        redisInstancesInfos.add(redisInstancesInfo1);
+        listMap.put("a",redisInstancesInfos);
+        listMap.put("b",redisInstancesInfos);
+
+        listMap.keySet().stream().sorted(Comparator.comparing((String hostName) -> listMap.get(hostName).size()).reversed()).forEach(hostName -> {
+            System.out.println(hostName + ":" + listMap.get(hostName));
+
+            List<RedisInstancesInfo> newList = new ArrayList<>();
+            newList.addAll(listMap.get(hostName));
+
+            RedisInstancesInfo redisInstancesInfo11=new RedisInstancesInfo();
+            redisInstancesInfo11.setRedisInfo("dsadasdsadas");
+            redisInstancesInfo11.setRedisId(12);
+            newList.remove(redisInstancesInfo11);
+            listMap.put(hostName,newList);
+
+            System.out.println(hostName + ":" + listMap.get(hostName));
+            System.out.println(listMap.size());
+        });
+}
+输出
+a:[RedisInstancesInfo(peerId=null, hostName=null, roleName=null, nodeId=null, port=null, clusterid=null, clusterSeq=null, healthStatus=null, inCluster=false, masterId=null, slaveId=null, redisInfo=dsadasdsadas, type=null, masterHostName=null, masterRoleName=null, master=null, redisId=12, businessip=null, ip=null, instanceGroupName=null, omClusterId=null, maxMemory=null, memoryUsage=null), RedisInstancesInfo(peerId=null, hostName=null, roleName=null, nodeId=null, port=null, clusterid=null, clusterSeq=null, healthStatus=null, inCluster=false, masterId=null, slaveId=null, redisInfo=hgfdkhbg, type=null, masterHostName=null, masterRoleName=null, master=null, redisId=56, businessip=null, ip=null, instanceGroupName=null, omClusterId=null, maxMemory=null, memoryUsage=null)]
+a:[RedisInstancesInfo(peerId=null, hostName=null, roleName=null, nodeId=null, port=null, clusterid=null, clusterSeq=null, healthStatus=null, inCluster=false, masterId=null, slaveId=null, redisInfo=hgfdkhbg, type=null, masterHostName=null, masterRoleName=null, master=null, redisId=56, businessip=null, ip=null, instanceGroupName=null, omClusterId=null, maxMemory=null, memoryUsage=null)]
+2
+b:[RedisInstancesInfo(peerId=null, hostName=null, roleName=null, nodeId=null, port=null, clusterid=null, clusterSeq=null, healthStatus=null, inCluster=false, masterId=null, slaveId=null, redisInfo=dsadasdsadas, type=null, masterHostName=null, masterRoleName=null, master=null, redisId=12, businessip=null, ip=null, instanceGroupName=null, omClusterId=null, maxMemory=null, memoryUsage=null), RedisInstancesInfo(peerId=null, hostName=null, roleName=null, nodeId=null, port=null, clusterid=null, clusterSeq=null, healthStatus=null, inCluster=false, masterId=null, slaveId=null, redisInfo=hgfdkhbg, type=null, masterHostName=null, masterRoleName=null, master=null, redisId=56, businessip=null, ip=null, instanceGroupName=null, omClusterId=null, maxMemory=null, memoryUsage=null)]
+b:[RedisInstancesInfo(peerId=null, hostName=null, roleName=null, nodeId=null, port=null, clusterid=null, clusterSeq=null, healthStatus=null, inCluster=false, masterId=null, slaveId=null, redisInfo=hgfdkhbg, type=null, masterHostName=null, masterRoleName=null, master=null, redisId=56, businessip=null, ip=null, instanceGroupName=null, omClusterId=null, maxMemory=null, memoryUsage=null)]
+2
+
+
+
+
+
+
 
 
 public static void main(String[] args) {
