@@ -1,4 +1,30 @@
 public static void main(String[] args) {
+        System.out.println("ceil2.0:"+Math.ceil(2.0));
+        System.out.println("ceil2.5:"+Math.ceil(2.5));
+        System.out.println("floor2.0:"+Math.floor(2.0));
+        System.out.println("floor2.5:"+Math.floor(2.5));
+    }
+    输出
+ceil2.0:2.0
+ceil2.5:3.0
+floor2.0:2.0
+floor2.5:2.0
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+public static void main(String[] args) {
         Map<String, Integer> map = new HashMap<>();
         map.put("1", 5);
         map.put("7", 12);
