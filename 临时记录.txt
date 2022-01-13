@@ -1,3 +1,53 @@
+
+
+
+git pull可以理解为 git fetch 的操作 + git merge的操作，其详细说明如下：
+git fetch origin master #从远程主机的master分支拉取最新内容 
+git merge FETCH_HEAD #将拉取下来的最新内容合并到当前所在的分支中
+在merge的时候，会将有冲突不能合并的内容做出提示。
+
+git pull origin remotebranch
+出现冲突
+
+使用git status查看冲突文件所在路径【both modified标记对应的就是冲突文件，即test002.txt文件为冲突文件】
+<<<<<<<HEAD
+本地代码
+=======
+远程代码
+>>>>>>>a4fsd54sdfsdfwe
+
+Git很智能的将两个人的修改同时显示出来，并用“=======”分割开来
+“<<<<<<<HEAD” 与 “=======” 中间的是冲突位置中对应的本地仓库的修改。
+“=======” 与 “>>>>>>>” 中间的是冲突位置中对应的远程仓库的修改（也就是刚拉取下来的内容）。
+“>>>>>>>” 后面是本次的提交ID。
+“<<<<<<<HEAD”、“=======”、“>>>>>>>”、提交ID并非实际编写的代码，解决冲突时注意删除。
+
+
+
+
+
+
+
+
+
+
+
+
+git commit --no-edit无需提交message
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 public static void main(String[] args) {
         System.out.println("ceil2.0:"+Math.ceil(2.0));
         System.out.println("ceil2.5:"+Math.ceil(2.5));
