@@ -285,6 +285,26 @@ static class TempTypeReference extends  TypeReference<Map<String, String>>{
 
 
 
+
+
+
+ArrayList和JSONArray 相互转换
+
+ArrayList 转成 JSONArray
+JSONArray studentJsonArray = JSONArray.parseArray(JSONObject.toJSONString(studentList));
+JSONArray studentJsonArray = JSONArray.parseArray(JSON.toJSONString(studentList));
+
+JSONArray转成ArrayList
+List<Student> studentList = studentJSONArray.toJavaList(Student.class);
+List<Student> studentList = JSON.parseArray(studentJSONArray.toJSONString(), Student.class);
+List<Student> studentList = JSONObject.parseArray(studentJSONArray.toJSONString(), Student.class);
+List<Student> studentList = JSONArray.parseArray(studentJSONArray.toJSONString(), Student.class);
+
+
+
+
+
+
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
