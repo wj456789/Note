@@ -320,6 +320,10 @@ $ curl http://localhost:5000/v2/centos/tags/list
 
 ## Docker容器
 
+同一个宿主机上的容器依赖同一个操作系统，但是每个容器又可以看成独立的微型操作系统
+
+
+
 容器是整个Docker技术栈的核心，命令选项主要包括如下几大类:与容器运行模式相关、与容器环境配置相关、与容器资源限制和安全保护相关：
 
 ![img](img_Docker/clipboard-1640949466760.png)
@@ -723,6 +727,108 @@ $ docker run --volumes-from dbdata -v $(pwd):/backup --name newworker  centos:7 
 
 #本地的当前目录backup.tar-->newworker中/backup/backup.tar-解压到newworker根目录，之前把/dbdata打包->newworker中/dbdata-->dbdata中/dbdata
 ```
+
+
+
+
+
+**为了满足服务访问的基本需求，Docker提供的两个功能**
+
+- 一个是允许映射容器内应用的服务端口到本地宿主主机;
+- 另一个是互联机制实现多个容器间便捷互访，多个容器中应用进行快速交互。
+
+## 端口映射
+
+从外部访问容器中运行的应用，需要通过-P或-p参数来指定端口映射。
+
+```sh
+#小p后面跟着： 宿主机端口号：容器里的应用使用的端口号
+$ docker run -d -p 8081:8080 tomcat:8.0.52
+
+#大P表示： 宿主机端口号取随机：容器里的应用使用的端口号
+$ docker run -d -P tomcat:8.0.52
+```
+
+```sh
+#查到随机分配的端口号
+$ docker ps
+```
+
+![img](img_Docker/clipboard-1642085048947.png)
+
+
+
+
+
+```sh
+#查看端口配置
+$ docker port 346cf7a666b5
+```
+
+![img](img_Docker/clipboard-1642085195808.png)
+
+
+
+```sh
+$ docker run -d -p 8084:8080 -p 8082:8080  tomcat:8.0.52     #可以设置多组小p，映射多对端口号
+$ docker run -d -p 192.168.17.128:8083:8080 tomcat:8.0.52          #宿主机的端口号前还可以加上ip地址
+$ docker run -d -p 192.168.17.128::8080 --name tomcat5 tomcat:8.0.52       #宿主机的端口号还可不写，表示宿主机端口号随机
+$ docker run -d -p 192.168.17.128:8085:8080/udp tomcat:8.0.52          #默认是tcp协议，还可改为udp协议
+```
+
+
+
+**创建出来的容器是有自己的内部网络和IP地址，使用docker [container] inspect + 容器ID可以获取容器的具体信息。**
+
+![img](img_Docker/clipboard-1642085347971.png)
+
+## 容器互联
+
+- 在两个互联的容器之间直接创建连接关系，让多个容器中的应用进行快速交互，不需要通过宿主机
+
+- 相当于在两个互联的容器之间创建了一个虚机通道，而且不用映射它们的端口到宿主主机上。
+
+```sh
+#先创建一个新的数据库容器db
+$ docker run --name db  -e MYSQL_ROOT_PASSWORD=admin  -d mysql:5.7 
+
+#然后创建一个新的web容器，并将它连接到db容器
+$  docker run -d -p 80:8080 --name web --link db:dbbm  tomcat:8.0.52
+#此时，db容器和web容器建立互联关系
+
+#使用--link参数可以让容器之间安全地进行交互，--link参数的格式为--link name:alias，其中name是要链接的容器的名称，alias是要链接的容器的别名
+```
+
+### 查看链接信息
+
+- 查看web容器环境变量
+- 查看web容器/etc/hosts文件
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
