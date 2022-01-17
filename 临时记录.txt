@@ -1,6 +1,54 @@
 
 
 
+
+---
+
+Java安全管理器对同一种权限只能配置一次   错
+
+---
+
+JAVA程序CPU高的原因一般有如下几种：
+代码中存在死循环
+代码中线程过多，导致上下文切换次数变多，这种情况可通过vmstat查看
+gc次数太多，这种情况可以看到占用CPU的线程为GC线程，也可通过GC日志辅助查看
+
+---
+
+
+JVM抛出的OOM一般有如下几种：
+java.lang.OutOfMemoryError:Java heap space: 对应堆内存不足。
+java.lang.OutOfMemoryError: Metaspace 对应metaspace空间不足
+java.lang.OutOfMemoryError: 可能为直接内存溢出（一般为通过NIO或JNI不断分配内存导致）
+
+---
+
+即时编译器JIT(Just In Time)的触发条件：
+方法被执行多次
+方法中的循环体被执行多次
+---
+
+类一般会在如下过程被初始化：
+JVM启动时，先初始化用户指定的主类
+初始化子类之前，先初始化父类
+访问类的静态变量或静态方法
+创建类实例
+反射调用类
+
+---
+清除算法(sweep)：
+原理：
+将垃圾对象所占据的内存标记为空闲内存，然后存在一个空闲列表(free list)中。当需要创建对象时，从空闲列表中寻找空闲内存，分配给新创建的对象
+优缺点：
+优点：速度快
+缺点：容易造成内存碎片，分配效率低
+---
+Class.forName()
+---
+
+逻辑运算符包括&&、||、!三种，部分教材里把&、|也归为逻辑运算，事实上是用位运算来代替逻辑运算，容易混淆概念。
+
+---
     public static void main(String[] args) {
         String s="sdas";
         switch (s){
@@ -14,7 +62,7 @@ switch中参数可以是byte\short\int\char\String,甚至是空字符串
 但是不能是long\double\float
 https://www.cnblogs.com/oldthree3/p/9088029.html
 
-
+---
 
 List浅拷贝
 1、遍历循环复制
