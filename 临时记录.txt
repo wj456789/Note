@@ -12,7 +12,7 @@
     }
 switch中参数可以是byte\short\int\char\String,甚至是空字符串
 但是不能是long\double\float
-
+https://www.cnblogs.com/oldthree3/p/9088029.html
 
 
 
