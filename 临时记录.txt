@@ -1,7 +1,17 @@
 
 
 
-
+    public static void main(String[] args) {
+        String s="sdas";
+        switch (s){
+            case "as":
+                System.out.println("a");
+            default:
+                System.out.println("d");
+        }
+    }
+switch中参数可以是byte\short\int\char\String,甚至是空字符串
+但是不能是long\double\float
 
 
 
