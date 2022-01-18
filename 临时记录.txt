@@ -5,12 +5,56 @@
 
 
 
+---
+
+public String test(){
+	int i=0;
+	try{
+		i=1;
+		return ""+(++i);
+	}catch(Exception e){
+	
+	}finally{
+		System.out.println(i);
+		i=10;
+		return ""+i;
+	}
+	return "0";
+}
+
+输出2
+return 10
+finally中如执行返回（return或抛异常），会代替原有返回逻辑。
 
 
 
 
 
+public String test(){
+	int i=0;
+	try{
+		i=1;
+		return ""+(++i);
+	}catch(Exception e){
+	
+	}finally{
+		System.out.println(i);
+		i=10;
+	}
+	return "0";
+}
 
+输出2
+return 2
+finally执行语句不会影响原有返回值
+
+
+finally执行时机在try/catch代码块退出前。即，所有代码块后，跳出逻辑前
+---
+
+只有finally块，执行完成之后，才会回来执行try或者catch块中的return或者throw语句，如果finally中使用了return或者throw等终止方法的语句，则就不会跳回执行，直接停止
+编写多重catch语句时，需要先小后大，即先子类再父类
+---
 
 
   数据类型   	类型  	存储空间	取值（包装类中MIN_VALUE和MAX_VALUE）             	默认值      	精度           
@@ -86,9 +130,9 @@ Class.forName()
         String s="sdas";
         switch (s){
             case "as":
-                System.out.println("a");
+                System.out.println("a"); break;
             default:
-                System.out.println("d");
+                System.out.println("d"); break;
         }
     }
 switch中参数可以是byte\short\int\char\String,甚至是空字符串
