@@ -1001,6 +1001,24 @@ dependency和plugin标签都有相应的dependencyManagement和pluginManagement�
 Matcher类的groupCount 方法返回一个 int 值，表示matcher对象当前有多个捕获组。
 group(0)）是一个特殊的组，代表整个表达式。该组不包括在 groupCount 的返回值中。
 
+public static void main(String[] args) {
+	Pattern pat = Pattern.compile("(\\D*)(\\d+)(.*)");
+	Matcher matcher = pat.matcher("This order was placed for QT3000! OK?");
+	while (matcher.find()) {
+	//group配合find使用，输出匹配到的字符串
+		System.out.println(matcher.group(0));
+		System.out.println(matcher.group(1));
+		System.out.println(matcher.group(2));
+		System.out.println(matcher.group(3));
+	}
+}
+
+输出
+Found value: This order was placed for QT3000! OK?
+Found value: This order was placed for QT
+Found value: 3000
+Found value: ! OK?
+
 
 ---
 https://www.cnblogs.com/jsStudyjj/p/6145623.html
@@ -1026,6 +1044,28 @@ public static void main(String[] args) {
 5
 12
 13
+
+
+
+
+
+---
+
+正则表达式并不仅限于某一种语言，但是在每种语言中有细微的差别。
+
+在其他的语言中（如Perl），一个反斜杠 \ 就足以具有转义的作用，而在 Java 中正则表达式中则需要有两个反斜杠才能被解析为其他语言中的转义作用。
+
+Java 的正则表达式中，两个 \\ 代表其他语言中的一个 \，这也就是为什么表示一位数字的正则表达式是 \\d，而表示一个普通的反斜杠是 \\\\。
+
+
+
+
+
+
+
+
+
+
 
 ---
 kubectl简介
