@@ -990,6 +990,20 @@ maven聚合
 
 dependency和plugin标签都有相应的dependencyManagement和pluginManagement，plugins 和 pluginManagement的区别，和我们前面研究过的dependencies 和 dependencyManagement的区别是非常类似的。plugins 下的 plugin 是真实使用的，而 pluginManagement 下的 plugins下的 plugin 则仅仅是一种声明，子项目中可以对 pluginManagement下的 plugin 进行信息的选择、继承、覆盖等。
 
+
+---
+
+
+捕获组
+捕获组是把正则表达式中多个字符当一个单独单元进行处理的方法，它通过对括号内的字符分组来创建。
+捕获组是通过从左至右计算其开括号来编号。例如，在表达式((A)(B(C)))，有四个这样的组：((A)(B(C)))、(A)、(B(C))、(C)。
+
+Matcher类的groupCount 方法返回一个 int 值，表示matcher对象当前有多个捕获组。
+group(0)）是一个特殊的组，代表整个表达式。该组不包括在 groupCount 的返回值中。
+
+
+---
+https://www.cnblogs.com/jsStudyjj/p/6145623.html
 group是针对（）来说的，group（0）就是指的整个串，group（1） 指的是第一个括号里的东西，group（2）指的第二个括号里的东西。
 public static void main(String[] args) {
 	Pattern pat = Pattern.compile("([0-9])(a)[0-9]");
@@ -1013,7 +1027,7 @@ public static void main(String[] args) {
 12
 13
 
-
+---
 kubectl简介
 https://www.cnblogs.com/faberbeta/p/13391905.html
 
@@ -1049,28 +1063,7 @@ Java变量的初始化顺序为：静态变量或静态语句块–>实例变量
 TypeReference
 
 
-https://www.cnblogs.com/jsStudyjj/p/6145623.html
-    public static void main(String[] args) {
-        Pattern pat = Pattern.compile("([0-9])(a)[0-9]");
-        Matcher matcher = pat.matcher("d0a1s2d3as4d5a6sd");
-        while (matcher.find()) {
-            System.out.println(matcher.group(0));
-            System.out.println(matcher.group(1));
-            System.out.println(matcher.start(1));
-            System.out.println(matcher.end(1));
-        }
-    }
-    
-0a1
-0
-1
-2
 
-
-5a6
-5
-12
-13
 
 
 
