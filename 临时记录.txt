@@ -3,18 +3,22 @@
 
 
 
+
+
+
+
+
+
+
+
+
+Java也可使用内部类的方式来实现类的多继承特性。
+
+
+---
+
+
 Java标准流（System.in, System.out, System.error）
-
-
-
-
-
-
-
-
-
-
-
 
 
 ---
