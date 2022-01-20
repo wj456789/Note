@@ -985,12 +985,56 @@ public class JacksonConvertHelper {
     }
 }
 
+---
 
 
 
 
+    //异常不捕获可以一直向上传递，每个异常只能捕获一次，异常捕获处理之后程序可以继续进行
+    public static void main(String[] args) {
+        try {
+            test1();
+        } catch (Exception e){
+            System.out.println("0");
+            e.printStackTrace();
+        }
+        System.out.println("1");
+    }
+
+    static void test1(){
+        try {
+            test2();
+        } catch (Exception e){
+            e.printStackTrace();
+        }
+        System.out.println("2");
+    }
+
+    static void test2(){
+        test3();
+        System.out.println("3");
+    }
+
+    static void test3(){
+        try {
+            int i=1/0;
+        } catch (Exception e){
+            throw new ArithmeticException();
+        }
+        System.out.println("4");
+    }
 
 
+输出
+java.lang.ArithmeticException
+	at com.huawei.broker.hbase.operation.HbaseOperation.test3(HbaseOperation.java:99)
+	at com.huawei.broker.hbase.operation.HbaseOperation.test2(HbaseOperation.java:91)
+	at com.huawei.broker.hbase.operation.HbaseOperation.test1(HbaseOperation.java:83)
+	at com.huawei.broker.hbase.operation.HbaseOperation.main(HbaseOperation.java:73)
+2
+1
+
+---
 
 
 throws抛出一类异常，throw抛出一个异常，异常不处理程序中断，但是无论throws和throw只要异常被catch处理程序就会向下运行
@@ -1024,7 +1068,7 @@ throws抛出一类异常，throw抛出一个异常，异常不处理程序中断
 4
 5
 
-
+---
 
 云计算之概念——IaaS、SaaS、PaaS、Daas
 云计算通俗来说就是输入/输出和计算不在一个主机上。计算要用到计算设备，计算设备一般是指CPU、内存和硬盘，输入/输出设备一般是指键盘、鼠标、显示器、耳机、音响、话筒等外设。而我们的个人计算机是使用主板将这些东西连接到一起来协调工作。
