@@ -4,13 +4,225 @@
 
 
 
+---
+
+@Slf4j
+public class HttpClientPoolUtil {
+    // pool管理器
+    private static PoolingHttpClientConnectionManager HttpPhc;
+
+    private static PoolingHttpClientConnectionManager HttpsPhc;
+
+    // 最大连接数
+    private static final int MAX_TOTAL = 200;
+
+    // 每个连接的路由数
+    private static final int DEFAULT_MAX_PER_ROUT = 20;
+
+    static {
+        try {
+            SSLContext sslContext =
+                    new SSLContextBuilder()
+                            .loadTrustMaterial(
+                                    null,
+                                    new TrustSelfSignedStrategy() {
+                                        /**
+                                         * 默认信任所有证书
+                                         *
+                                         * @param arg0 arg0
+                                         * @param arg1 arg1
+                                         * @return boolean
+                                         * @throws CertificateException
+                                         */
+                                        public boolean isTrusted(X509Certificate[] arg0, String arg1)
+                                                throws CertificateException {
+                                            return true;
+                                        }
+                                    })
+                            .build();
+
+            // https请求  不进行主机名验证
+            Registry<ConnectionSocketFactory> httpsRregistry =
+                    RegistryBuilder.<ConnectionSocketFactory>create()
+                            .register(
+                                    "https", new SSLConnectionSocketFactory(sslContext, NoopHostnameVerifier.INSTANCE))
+                            .build();
+            HttpsPhc = new PoolingHttpClientConnectionManager(httpsRregistry);
+            HttpsPhc.setMaxTotal(MAX_TOTAL);
+            HttpsPhc.setDefaultMaxPerRoute(DEFAULT_MAX_PER_ROUT);
+
+            // http请求
+            Registry<ConnectionSocketFactory> httpRegistry =
+                    RegistryBuilder.<ConnectionSocketFactory>create()
+                            .register("http", new PlainConnectionSocketFactory())
+                            .build();
+            HttpPhc = new PoolingHttpClientConnectionManager(httpRegistry);
+            HttpPhc.setMaxTotal(MAX_TOTAL);
+            HttpPhc.setDefaultMaxPerRoute(DEFAULT_MAX_PER_ROUT);
+        } catch (NoSuchAlgorithmException | KeyStoreException | KeyManagementException e) {
+            log.warn(e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 获取httpclient
+     *
+     * @param isHttps https|http请求
+     * @return HttpClient
+     */
+    public static CloseableHttpClient getHttpClient(boolean isHttps) {
+        CloseableHttpClient httpclientDemo;
+        if (isHttps) {
+            httpclientDemo =
+                    HttpClients.custom()
+                            .setUserAgent("MyService")
+                            .setDefaultCookieStore(new BasicCookieStore())
+                            .setConnectionManager(HttpsPhc)
+                            .setConnectionManagerShared(true)
+                            .build();
+        } else {
+            httpclientDemo =
+                    HttpClients.custom()
+                            .setDefaultCookieStore(new BasicCookieStore())
+                            .setConnectionManager(HttpPhc)
+                            .setConnectionManagerShared(true)
+                            .build();
+        }
+        return httpclientDemo;
+    }
+
+    /**
+     * https请求
+     *
+     * @param url        连接地址
+     * @param paramJson  参数
+     * @param headers    请求头
+     * @param httpMethod 方法类型
+     * @return 返回结果信息
+     */
+    public static String request(String url, String paramJson, Map<String, String> headers, HttpMethod httpMethod) {
+        String result;
+        BasicClassicHttpRequest httpRequest;
+        boolean isHttps = true;
+        if (url.split(":")[0].equals("http")) {
+            isHttps = false;
+        }
+        // 获取client
+        try (CloseableHttpClient httpClient = getHttpClient(isHttps)) {
+            switch (httpMethod) {
+                case GET:
+                    httpRequest = new HttpGet(url);
+                    break;
+                case POST:
+                    httpRequest = new HttpPost(url);
+                    break;
+                case DELETE:
+                    httpRequest = new HttpDelete(url);
+                    break;
+                case PUT:
+                    httpRequest = new HttpPut(url);
+                    break;
+                default:
+                    throw new BrokerException(String.valueOf(HttpStatus.SC_SERVER_ERROR), "miss method type.");
+            }
+            // 添加请求头
+            if (headers != null) {
+                for (Map.Entry<String, String> entry : headers.entrySet()) {
+                    httpRequest.addHeader(entry.getKey(), entry.getValue());
+                }
+            }
+            // 添加参数
+            if (paramJson != null) {
+                StringEntity entityDemo =
+                        new StringEntity(
+                                paramJson,
+                                org.apache.hc.core5.http.ContentType.APPLICATION_JSON,
+                                "application/json",
+                                false);
+                httpRequest.setEntity(entityDemo);
+            }
+            log.info("request FI url: {}", url);
+            HttpClientResponseHandler<String> fiHttpClientResponseHandler = new CommonResponseHandler();
+            // 发送请求
+            result = httpClient.execute(httpRequest, fiHttpClientResponseHandler);
+        } catch (IOException e) {
+            log.warn("request FI url: {} error：", url, e);
+            String errorMsg = e.getMessage();
+            throw new BrokerException(String.valueOf(HttpStatus.SC_SERVER_ERROR), errorMsg);
+        }
+        return result;
+    }
+
+    /**
+     * 调用接口下载文件
+     *
+     * @param url url
+     * @return 文件流
+     */
+    public static byte[] getForEntity(String url) {
+        // 获取client
+        try (CloseableHttpClient httpClient = getHttpClient(true)) {
+            HttpGet httpGet = new HttpGet(url);
+            log.info("request FI url: {}", url);
+            // 创建响应处理器处理服务器响应内容
+            HttpClientResponseHandler<byte[]> bytesHttpClientResponseHandler = new BytesResponseHandler();
+            // 发送请求
+            byte[] result = httpClient.execute(httpGet, bytesHttpClientResponseHandler);
+            return result;
+        } catch (IOException e) {
+            log.warn("request FI url: {} error：", url, e);
+            String errorMsg = e.getMessage();
+            throw new BrokerException(String.valueOf(HttpStatus.SC_SERVER_ERROR), errorMsg);
+        }
+    }
+}
 
 
 
 
+    //三层下载
+    @GetMapping("/download")
+    public void download(HttpServletResponse response) {
+        String fileName = "", downloadUrl = "", fileTempPath = "";
+        File fileTemp = new File(fileTempPath);
+        try {
+            //下载到临时文件中
+            byte[] rsp = requestForEntity(downloadUrl);
+            FileOutputStream fileOutputStream = new FileOutputStream(fileTempPath, true);
+            DataOutputStream out = new DataOutputStream(fileOutputStream);
+            out.write(rsp);
+            //放在response返回
+            InputStream inputStream = new FileInputStream(fileTemp);
+            OutputStream outputStream = response.getOutputStream();
+            response.setContentType("application/x-download");
+            response.addHeader("Content-Disposition", "attachment;filename=" + fileName);
+            response.addHeader("Content-Length", "" + fileTemp.length());
+            IOUtils.copy(inputStream, outputStream);
+            outputStream.flush();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            fileTemp.delete();
+        }
+    }
 
-
-
+    public byte[] requestForEntity(String url) {
+        // 获取client
+        try {
+            CloseableHttpClient httpClient = HttpClientPoolUtil.getHttpClient(true);
+            HttpGet httpGet = new HttpGet(url);
+            // 创建响应处理器处理服务器响应内容
+            HttpClientResponseHandler<byte[]> bytesHttpClientResponseHandler = new BytesResponseHandler();
+            // 发送请求
+            byte[] result = httpClient.execute(httpGet, bytesHttpClientResponseHandler);
+            return result;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
 
 
 
