@@ -187,10 +187,14 @@ public class HttpClientPoolUtil {
         File fileTemp = new File(fileTempPath);
         try {
             //下载到临时文件中
+	    1、byte方法
             byte[] rsp = requestForEntity(downloadUrl);
             FileOutputStream fileOutputStream = new FileOutputStream(fileTempPath, true);
             DataOutputStream out = new DataOutputStream(fileOutputStream);
             out.write(rsp);
+	    2、String方法
+	    String content = HttpClientPoolUtil.request(url, null, FIUtil.getFIHeaders(), HttpMethod.GET);
+	    FileUtils.writeStringToFile(new File(fileTempPath), content, StandardCharsets.UTF_8.name());
             //放在response返回
             InputStream inputStream = new FileInputStream(fileTemp);
             OutputStream outputStream = response.getOutputStream();
