@@ -1,0 +1,356 @@
+1.1 基本数据类型及应用
+字符集比如ASCII,GBK,Unicode中有许多字符，编码时会将字符映射为数字，再将数字映射为二进制
+Unicode编码，字符“A”映射为16进制整数41(字符串表示形式"\u0041")，然后再将41直接映射为二进制数0100 0001
+unicode字符集中，字符char=十进制数字0-65535=二进制
+也可以用转义字符串String表示字符char
+比如字符char可以用转义的八进制和十六进制字符串String表示，八进制范围"\000"-"\377",十六进制"\u0000"-"\uffff"
+有些特殊字符比如换行符可以用十进制数字10或转义字符串'\n'表示
+
+类型提升：当一个算数表达式包含多个基本类型的值时，整个算术表达式的数据类型将发生自动提升
+byte、char、short自动提升至int
+整个表达式的数据类型自动提升至表达式中的最高数据类型
+允许自动类型转换的标准是表数范围小的类型赋值给表数范围大的类型
+强制类型转换可用于所有基础数值类型之间的转换，很多场合特指表数范围大的类型给表数范围小的类型赋值
+
+虽然shot可以容纳char，但提升的最低类型为int
+char c=0;
+short s=0;
+s=s+c;编译错误
+char c=10;
+c+=c;编译成功
+即便表达式的操作数是同类型，只要有多个操作数就会发生提升
+short s=0;
+s=s+s;编译错误
+char c="t";编译错误
+char c='t';编译成功
+
+浮点数不能直接==比较,浮点转换为二进制后，由于精度问题，会出现计算偏差，无法用==比较
+for(float f=0.1f;f!=10.0f;f+=0.1f){
+	syso(f)
+}
+9.700001
+9.800001
+9.900002
+10.000002
+
+包装类就是把基本数据类型和其辅助方法的封装到类中
+包装类装箱是指把基本类型装入包装类的过程，拆箱是从包装类对象中取出基本类型
+Integer a=Integer.valueof(5);装箱
+int b=a.intValue();拆箱
+自动拆装箱
+Integer a=5;装箱
+int b=a;拆箱
+Integer s=0;
+for(int i=0;i<1000;i++){
+	s+=i;
+}
+这个循环，被编译器转换为右侧代码，一共执行了1000次拆箱和装箱，申请/释放了1000次Integer对象。
+Integer s=0;
+for(int i=0;i<1000;i++){
+	s=Integer.valueof(s.intvalue+i);
+}
+byte类型达到127，再加1会反转变为-128
+包装类默认值为null，自动拆箱时会报 NullPointerException
+Integer i;
+if(i>0){//NullPointerException
+	syso(...);
+}
+包装类比较必须使用equals()，‘==’比较的是两个引用是否指向一个对象
+包装类的创建很浪费性能，因此Java对简单数字（ -128 ~ 127 ）对应的包装类进行了缓存，称为常量池。
+通过直接量赋值的包装类如果在此范围内，会直接使用常量池中的引用，因此‘==’返回true。
+Integer i1=100;
+Integer i2=100;
+syso(i1==i2)//true
+Integer i3=new Integer(100);
+syso(i1==i3)//false
+
+
+
+1.2 引用数据类型及应用
+
+
+
+
+1.3 Java基本语法
+finally语句块总是会被执行。只有finally块执行完成之后，才会回来执行try或者catch块中的return或者throw语句，如果finally中使用了return或者throw等终止方法的语句，则就不会跳回执行，直接停止。
+try或者catch块中的return或者throw语句会延迟执行，但是finally执行语句不会影响try或者catch块中的return或者throw执行结果，除非是在finally中的return或throw替代
+
+
+
+public String test(){
+	int i=0;
+	try{
+		i=1;
+		return ""+(++i);
+	}catch(Exception e){
+	}finally{
+		System.out.println(i);
+		i=10;
+		return ""+i;
+	}
+	return "0";
+}
+输出2
+return 10
+finally中如执行返回（return或抛异常），会代替原有返回逻辑。
+public String test(){
+	int i=0;
+	try{
+		i=1;
+		return ""+(++i);
+	}catch(Exception e){
+	
+	}finally{
+		System.out.println(i);
+		i=10;
+	}
+	return "0";
+}
+输出2
+return 2
+finally执行语句不会影响原有返回值
+finally执行时机在try/catch代码块退出前。即，所有代码块后，跳出逻辑前
+只有finally块，执行完成之后，才会回来执行try或者catch块中的return或者throw语句，如果finally中使用了return或者throw等终止方法的语句，则就不会跳回执行，直接停止
+编写多重catch语句时，需要先小后大，即先子类再父类
+
+final关键字
+final 修饰类，则该类不允许被继承。
+final 修饰方法，则该方法不允许被覆写。
+final 修饰属性，则该类的该属性不会进行隐式的初始化，构造方法中必须唯一赋值。
+final 修饰变量，则该变量的值只能赋一次值，在声明变量的时候也能赋值，即变为常量。
+
+this关键字：
+在类中作为关键字，可以引用成员变量、方法、以及对当前对象的引用。
+作为构造方法，可以在构造方法中通过this来调用其他构造方法且要放在首行，普通方法中不能使用。
+不能通过this递归调用构造方法。
+super关键字：
+如果自己用super关键字在子类里调用父类的构造方法，则必须在子类的构造方法中的第一行。
+如果子类的构造方法中没有显示调用父类的构造方法，则系统默认调用父类无参的构造方法，而此时若父类没有无参的构造方法，则编译出错。
+//编译成功
+class father{
+	final int a;
+	father(){
+		this.a=10;
+		System.out.println("123");
+	}
+	father(int a){
+		this.a=a;
+	}
+	father(int a,int b){
+		this(10);
+	}
+	public void testFinal(){
+		final int b;
+		b=10;
+	}
+}
+class child extends father{
+	child(){
+	}
+}
+public static void main(String[] args) {
+	new child();
+}
+输出123
+
+Java也可使用内部类的方式来实现类的多继承特性。
+Interface可以使用反射的代理方法，但Abstract Class无法实现反射代理。
+Interface里面的方法只能声明，不能有具体的实现。(但在Java 8中引入了default关键字，此关键字标注接口方法后，允许接口进行默认实现)
+
+
+
+1.4 Lamda表达式
+
+1.5 IO编程
+
+1.6 正则表达式
+
+1.7 JAVA面向对象特性
+多态的表现形式
+引用多态：
+向上类型转换(隐式类型转换，父类->子类)； 向下类型转换(强制类型转换，子类->父类)。
+使用instanceof运算符，解决引用对象的类型，避免类型转换的安全性问题。
+public static void main(String[] args) {
+	father f=new child();
+	child c=(child)new father();
+}
+
+方法多态：
+创建本类对象时，调用本类方法；创建子类对象时，调用为子类重写方法或者继承的方法。
+重载 (Overload)：一个同名方法可以传入多个参数组合。 
+覆写 (Override)：由于继承关系中的子类有一个和父类同名同参数的方法，会覆盖掉父类的方法。
+基本数据类型存在一个方法匹配调用顺序char -> int -> long ->double，同时也会进行自动装箱，调用包装类方法。
+public static void main(String[] args) {
+	Child child=new Child();
+	child.test('a','a');
+}
+class Child{
+	/*public void test(char i,char j){
+		System.out.println("Child.test1");
+	}*/
+
+	public void test(int i,int j){
+		System.out.println("Child.test2"+i+j);
+	}
+
+	public void test(long i,long j){
+		System.out.println("Child.test3");
+	}
+
+	public void test(double i,double j){
+		System.out.println("Child.test4");
+	}
+}
+默认调用test1
+注释test1，会调用test2，输出"Child.test2 97 97"
+注释test1 2，会调用test3，输出同上
+注释test1 2 3，会调用test4，输出"Child.test2 97.0 97.0"
+
+
+
+2.1 Java反射机制
+Java反射主要涉及的类如Class在java.lang下，Method、Field等都在java.lang.reflet包下
+通过反射，可以突破Java语言提供的对象成员，类成员的保护机制，访问一般方式不能访问的成员，反射可以更改类的访问限制，因为private、protected等关键字是编译期的定义
+反射可以新增类，但是不能修改本身存在的类的字节码
+
+Java的反射（reflection）机制是指在程序的运行状态中，动态获取程序信息以及动态调用对象的功能。其中主要功能有
+在运行时判断一个对象所属的类
+在运行时构造一个类的对象
+在运行时判断一个类所具有的成员变量和方法
+在运行时调用一个对象的方法
+
+
+
+2.2 Java常用类库
+ArrayList list = new ArrayList(20);中的list初始化时直接分配大小，不存在扩充情况；add等操作时才可能会发生扩充
+
+
+
+2.3 Java线程同步
+
+2.4 Java线程规范与管理
+
+3.1 垃圾回收
+java采用自动内存管理技术，内存分配后由虚拟机自动管理，垃圾回收分为垃圾识别和内存回收
+垃圾识别引用计数法算法：记录每个对象被引用的数量，当被引用的数量为0时，则标记为垃圾
+垃圾识别可达性分析算法：从GC Roots开始遍历对象，没有被遍历到的对象为垃圾
+
+GC Roots：
+方法栈使用到的参数、局部变量、临时变量等
+方法区中类静态属性引用的变量
+方法区中常量引用的对象
+本地方法栈中JNI引用的对象
+
+Minor GC触发条件：
+Eden区空间不足
+
+Full GC触发条件：
+老年代空间不足
+方法区(Metaspace)空间不足
+通过minor GC进入老年代的平均大小大于老年代的可用内存
+老年代被写满
+调用System.GC，系统建议执行full GC，但不一定执行。 禁止使用主动GC（除非在密码、RMI等方面），尤其是在频繁/周期性的逻辑中
+
+
+
+3.2 类加载
+类加载过程：
+加载：
+	将java字节码从不同数据源读到jvm中，数据源包括zip压缩包，网络，运行时计算生成，其他文件生成，数据库等
+链接：
+	验证：验证字节码信息是否符合jvm规范
+	准备：分配内存，并为静态变量赋初始值
+	解析：将常量池中的符号引用转换为直接引用。也可以在初始化之后再开始，来支持java的运行时绑定
+初始化：
+	执行静态初始化块(static{})和类变量赋值.先初始化父类，后初始化子类
+	不要在static块中抛出异常，否则会导致类初始化失败，抛ExceptionInInitializerError异常，进而导致其他异常
+
+
+ClassLoader层次结构:
+启动类加载器会加载jre/lib和-Xbootclasspath指定路径中的类
+扩展类加载器加载jre/lib/ext和java.ext.dirs指定路径中的类
+应用类加载器加载classpath中的类
+自定义类加载器
+特点：
+双亲委派：先由父类加载器加载，加载不到后再由子类加载器加载
+如果Class文件不在父类的加载路径中，则由子类加载，如果仍然找不到，抛ClassNotFound异常
+先加载JDK中的类，再加载用户的类
+
+
+类初始化过程:
+JVM启动时，先初始化用户指定的主类
+初始化子类之前，先初始化父类
+访问类的静态变量或静态方法
+创建类实例
+反射调用类
+
+
+对象初始化顺序：
+父类静态代码块
+子类静态代码块
+父类代码块
+父类构造函数
+子类代码块
+子类构造函数
+
+
+
+3.3 Java编译与优化
+
+3.4 疑难问题定位
+远程调试
+
+内存问题
+java.lang.OutOfMemoryError:可能为直接内存溢出。一般为通过NIO或JNI不断分配内存导致。通过-XX:MaxDirectMemorySize配置
+
+虚拟机栈是线程隔离的，即每个线程都有自己独立的虚拟机栈。JVM会为每个线程的虚拟机栈分配一定的内存大小（-Xss参数），也就是栈内存。
+虚拟机栈是用于描述java方法执行的内存模型。每个java方法在执行时，会创建一个栈帧，栈帧的结构分为“局部变量表、操作数栈、动态链接、方法出口”几个部分，局部变量表存放了一个方法的所有局部变量。方法调用时，创建栈帧，并压入虚拟机栈；方法执行完毕，栈帧出栈并被销毁。若单个线程请求的栈深度大于虚拟机允许的深度，则会抛出StackOverflowError（栈溢出错误）。可以通过无结束条件的递归函数调用模拟异常。
+虚拟机栈的OutOfMemoryError指的是当整个虚拟机栈内存耗尽，并且无法再申请到新的内存时抛出的异常。JVM未提供设置整个虚拟机栈占用内存的配置参数。虚拟机栈的最大内存大致上等于“JVM进程能占用的最大内存（依赖于具体操作系统）-最大堆内存-最大方法区内存-程序计数器内存（可以忽略不计）-JVM进程本身消耗内存”。当虚拟机栈能够使用的最大内存被耗尽后，便会抛出OutOfMemoryError，可以通过不断开启新的线程来模拟这种异常
+本地方法栈服务的对象是JVM执行的native方法，而虚拟机栈服务的是JVM执行的java方法。
+线程内存=虚拟机栈+本地方法栈+程序计数器
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+错题
