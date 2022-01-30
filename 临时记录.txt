@@ -2,14 +2,14 @@
 
 
 
+使用Java8 Stream API对Map按键或值进行排序
+https://www.cnblogs.com/zimug/p/11781375.html
+
+File->Other Settings->Default Settings ->Editor->File Encodings 设置默认的编辑文件的格式
 
 
-
-
-
-
-
-
+BasicConfigurator.configure();
+插入到入口点Main方法处，是一个快速的系统配置，可以自动快速地使用缺省Log4j环境。
 
 ---
 
