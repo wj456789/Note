@@ -1,7 +1,33 @@
 
 
+public static void main(String[] args) {
+        System.out.println(0.0000000000000001);
+        System.out.println(11540*0.35);
 
+        DecimalFormat fnum = new DecimalFormat("00000000000000000000.###################################");
+        BigDecimal value = new BigDecimal("0.0000000000000001");
+        BigDecimal value1 = new BigDecimal("200000.00000");
+        System.out.println(fnum.format(value));
+        System.out.println(fnum.format(value1));
 
+        //int i = Integer.parseInt(null);
+        //String s = String.valueOf(null);
+
+        Integer i1=1000;
+        Integer i2=1000;
+        System.out.println(i1==i2);
+
+        Integer _i1=100;
+        Integer _i2=100;
+        System.out.println(_i1==_i2);
+    }
+输出：
+1.0E-16			
+4038.9999999999995	
+00000000000000000000.0000000000000001
+00000000000000200000
+false
+true
 
 
 DecimalFormat 中0和#的作用
