@@ -1,5 +1,42 @@
 
 
+BigDecimal
+https://blog.csdn.net/u014369799/article/details/50995874
+https://blog.csdn.net/BADAO_LIUMANG_QIZHI/article/details/84618023
+
+
+ctrl+shift+t 切换测试方法
+ctrl+alt+m 提取方法
+ctrl+shift+alt+t 重构
+shift+f6 整体修改参数名称
+旧的不变，新的创建，一步切换，旧的再见
+
+
+
+
+
+HDFS: 分布式文件存储;
+YARN: 分布式资源管理;
+MapReduce: 分布式计算
+Hbase: Hadoop database 分布式数据库，是一个分布式高并发k-v存储系统，只不过它底层的文件系统是通过HDFS来支持的
+Hive: 数据仓库工具，定义了简单的类SQL查询语言HQL，提供完整的sql查询功能，可以将sql语句转换为MapReduce任务进行运行；数据存储在HDFS上，使用的计算模型是MapReduce；
+
+
+
+lamda获取参数集合去空_仅当在Java8中使用lambda不为null时才过滤值
+https://blog.csdn.net/weixin_39784460/article/details/111816189
+Linux curl命令详解
+https://www.cnblogs.com/duhuo/p/5695256.html
+Error:java: Compilation failed: internal java compiler error 解决办法
+https://blog.csdn.net/ruoxiyun/article/details/88256928
+JSON序列化后按对象中声明顺序序列化或者指定顺序序列化
+https://blog.csdn.net/Be_insighted/article/details/120713930
+linux中shell变量$#,$@,$0,$1,$2的含义解释
+https://www.cnblogs.com/fhefh/archive/2011/04/15/2017613.html
+linux命令 dirname
+https://www.cnblogs.com/rohens-hbg/p/7604839.html
+
+
 
 
 使用Java8 Stream API对Map按键或值进行排序
