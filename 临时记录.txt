@@ -1,5 +1,16 @@
 
 
+
+
+
+
+DecimalFormat 中0和#的作用
+https://blog.csdn.net/u013394527/article/details/78722095
+
+0可以整数和小数补充0，小数切掉四舍五入
+#小数去掉0，小数切掉四舍五入
+
+
 BigDecimal
 https://blog.csdn.net/u014369799/article/details/50995874
 https://blog.csdn.net/BADAO_LIUMANG_QIZHI/article/details/84618023
