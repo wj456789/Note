@@ -1,3 +1,15 @@
+
+
+
+
+
+
+FileOutputStream中构造方法的true属性表示每次stream流开启关闭添加在文件后面
+false表示每次流开启之后复写
+
+
+
+
 public static void main(String[] args) {
 	List<Entity> list=new ArrayList<>();
 	list.add(new Entity(1,4));
