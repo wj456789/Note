@@ -74,6 +74,7 @@ for (float f = 0.1f; f != 10.0f; f += 0.1f) {
 9.800001
 9.900002
 10.000002
+10.100003
 ```
 
 
@@ -237,13 +238,14 @@ child-test
 
 ## final关键字
 
-- 修饰变量，被final修饰的变量必须要初始化，赋初值后不能再重新赋值，即变量被初始化后便不可改变。
-  - 注意：局部变量不在我们讨论的范畴，因为局部变量本身就有作用范围，不使用private、public等词修饰。虽然final可以修饰局部变量，但是一般情况下，我们在实际应用中几乎不会这么干！没多大的意义！
-  - 如果final修饰的变量是对象类型，那么不可更改指的是该变量不可以再指向别的对象，但是对象的值是可以更改的
+- final 修饰变量
+  
+  - final 修饰成员变量，则该成员变量不会进行隐式的初始化，必须要初始化。
+- final 修饰变量，则该变量的值只能赋一次值。
+  
+- final 修饰方法，则该方法不允许被覆写。
 
-- 修饰方法，被final修饰的方法代表不能重写。
-
-- 修饰类，被final修饰的类，不能够被继承。
+- final 修饰类，则该类不允许被继承。
 
   注意：final修饰的类，类中的所有成员方法都被隐式地指定为final方法。
 
@@ -259,6 +261,63 @@ child-test
 ## 变量类型
 
 类中定义的变量称为成员变量，成员变量分为静态变量(全局变量)和实例变量，方法中定义的变量称为局部变量。
+
+## 错误
+
+### catch
+
+编写多重catch语句时，需要先小后大，即先子类再父类
+
+### finally
+
+- finally语句块总是会被执行。只有finally块执行完成之后，才会回来执行try或者catch块中的return或者throw语句，如果finally中使用了return或者throw等终止方法的语句，则就不会跳回执行，直接停止。
+
+  ```java
+  public String test() {
+      int i = 0;
+      try {
+          i = 1;
+          return "" + (++i);
+      } catch (Exception e) {
+  
+      } finally {
+          System.out.println(i);
+          i = 10;
+          return "" + i;
+      }
+      return "0";
+  }
+  
+  输出2
+  return 10
+  ```
+
+- try或者catch块中的return或者throw语句会延迟执行，但是finally执行语句不会影响try或者catch块中的return或者throw执行结果，除非是在finally中的return或throw替代。
+
+  ```java
+  public String test() {
+      int i = 0;
+      try {
+          i = 1;
+          return "" + (++i);
+      } catch (Exception e) {
+  
+      } finally {
+          System.out.println(i);
+          i = 10;
+      }
+      return "0";
+  }
+  
+  输出2
+  return 2
+  ```
+
+  也就是说，**finally执行语句不会影响原有返回值，但是finally中如执行返回（return或抛异常），会代替原有返回逻辑。**
+
+  finally执行时机在try/catch代码块退出前。即，所有代码块后，跳出逻辑前。只有finally块执行完成之后，才会回来执行try或者catch块中的return或者throw语句，如果finally中使用了return或者throw等终止方法的语句，则就不会跳回执行，直接停止
+
+  
 
 ## 抽象类和接口
 

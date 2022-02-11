@@ -1,51 +1,16 @@
 
 1.3 Java基本语法
-finally语句块总是会被执行。只有finally块执行完成之后，才会回来执行try或者catch块中的return或者throw语句，如果finally中使用了return或者throw等终止方法的语句，则就不会跳回执行，直接停止。
-try或者catch块中的return或者throw语句会延迟执行，但是finally执行语句不会影响try或者catch块中的return或者throw执行结果，除非是在finally中的return或throw替代
 
 
 
-public String test(){
-	int i=0;
-	try{
-		i=1;
-		return ""+(++i);
-	}catch(Exception e){
-	}finally{
-		System.out.println(i);
-		i=10;
-		return ""+i;
-	}
-	return "0";
-}
-输出2
-return 10
-finally中如执行返回（return或抛异常），会代替原有返回逻辑。
-public String test(){
-	int i=0;
-	try{
-		i=1;
-		return ""+(++i);
-	}catch(Exception e){
-	
-	}finally{
-		System.out.println(i);
-		i=10;
-	}
-	return "0";
-}
-输出2
-return 2
-finally执行语句不会影响原有返回值
-finally执行时机在try/catch代码块退出前。即，所有代码块后，跳出逻辑前
-只有finally块，执行完成之后，才会回来执行try或者catch块中的return或者throw语句，如果finally中使用了return或者throw等终止方法的语句，则就不会跳回执行，直接停止
-编写多重catch语句时，需要先小后大，即先子类再父类
 
-final关键字
-final 修饰类，则该类不允许被继承。
-final 修饰方法，则该方法不允许被覆写。
-final 修饰属性，则该类的该属性不会进行隐式的初始化，构造方法中必须唯一赋值。
-final 修饰变量，则该变量的值只能赋一次值，在声明变量的时候也能赋值，即变为常量。
+
+
+
+
+
+
+
 
 this关键字：
 在类中作为关键字，可以引用成员变量、方法、以及对当前对象的引用。
