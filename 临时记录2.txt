@@ -3,6 +3,44 @@
 
 
 
+Intellij IDEA 中如何查看maven项目中所有jar包的依赖关系图
+https://blog.csdn.net/yangxiaobo118/article/details/79890124
+
+SpringBoot | 第三十三章：Spring web Servcies集成和使用
+https://www.jianshu.com/p/cfe7d976481d
+
+WebService技术详解 (一)
+https://blog.csdn.net/c99463904/article/details/76018436
+
+
+【webshell】
+是以asp、php、jsp或者cgi等网页文件形式存在的一种代码执行环境，主要用于网站管理、服务器管理、权限管理等操作。使用方法简单，只需上传一个代码文件，通过网址访问，便可进行很多日常操作，极大地方便了使用者对网站和服务器的管理。正因如此，也有小部分人将代码修改后当作后门程序使用，以达到控制网站服务器的目的。顾名思义，“web”的含义是显然需要服务器开放web服务，“shell”的含义是取得对服务器某种程度上操作命令。webshell主要用于网站和服务器管理，由于其便利性和功能强大，被特别修改后的webshell也被部分人当作网站后门工具使用。
+
+
+
+【学习知识点】
+k8s/kubectl
+docker
+Spring Cloud Service Broker框架
+Docker容器
+单点登录(SSO)
+GBase集群
+
+
+Service：相关端口的集合，包括其关联的接口、操作、消息等。
+Binding：特定端口类型的具体协议和数据格式规范
+portType: 服务端点，描述 web service可被执行的操作方法，以及相关的消息，通过binding指向portType
+message: 定义一个操作（方法）的数据参数
+types: 定义 web service 使用的全部数据类型
+
+WSDL文档应该从下往上阅读。
+1.先看service标签，看相应port的binding属性，然后通过值查找上面的binding标签。
+2.通过binding标签可以获得具体协议等信息，然后查看binding的type属性
+3.通过binding的type属性，查找对应的portType，可以获得可操作的方法和参数、返回值等。
+4.通过portType下的operation标签的message属性，可以向上查找message获取具体的数据参数信息。
+
+
+
 
 FileOutputStream中构造方法的true属性表示每次stream流开启关闭添加在文件后面
 false表示每次流开启之后复写
