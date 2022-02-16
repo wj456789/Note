@@ -68,10 +68,6 @@ Error:java: Compilation failed: internal java compiler error 解决办法
 https://blog.csdn.net/ruoxiyun/article/details/88256928
 JSON序列化后按对象中声明顺序序列化或者指定顺序序列化
 https://blog.csdn.net/Be_insighted/article/details/120713930
-linux中shell变量$#,$@,$0,$1,$2的含义解释
-https://www.cnblogs.com/fhefh/archive/2011/04/15/2017613.html
-linux命令 dirname
-https://www.cnblogs.com/rohens-hbg/p/7604839.html
 
 
 
