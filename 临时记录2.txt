@@ -32,16 +32,7 @@ https://blog.csdn.net/qq_35868412/article/details/89085500
 CommandLineRunner和ApplicationRunner作用及区别——SpringBoot
 https://blog.csdn.net/u010132847/article/details/108044044
 
--------------------
 
-Apache Ant的使用——基础使用教程
-https://blog.csdn.net/qq_33360240/article/details/83028728
-ant 是一个将软件编译、测试、部署等步骤联系在一起加以自动化的一个工具，大多用于Java环境中的软件开发。Ant是由一个内置任务和可选任务组成的，用ant任务就像是在dos中写命令行一样。Ant运行时需要一个XML文件(构建文件)。 Ant通过调用target树，就可以执行各种task。
-
-MAVEN和ANT的差别
-https://www.cnblogs.com/liguangsunls/p/6984243.html
-
-Ant是一种基于Java的build工具,Maven除了以程序构建能力之外，还提供高级项目管理工具。Ant通过build.xml构建任务，Maven通过写plugin的方式，非常easy就实现build过程的复用，那些繁琐的路径配置信息，以及复杂的第三方库下载设置，Maven 以及它的plugin都帮你实现了。
 
 ---------------
 Intellij IDEA 中如何查看maven项目中所有jar包的依赖关系图
