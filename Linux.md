@@ -1429,6 +1429,19 @@ SHR共享内存：不同进程之间共享的内存通常为同一段物理内�
 Linux top命令详解
 https://www.cnblogs.com/niuben/p/12017242.html
 
+### dirname
+
+获取给定路径的目录部分 
+
+```sh
+$ dirname /usr/sbin/cron
+/usr/sbin
+$ dirname /usr/sbin/
+/usr
+$ dirname /usr/sbin
+/usr
+```
+
 
 
 

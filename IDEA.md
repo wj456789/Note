@@ -15,10 +15,33 @@
 - 取消代码一行显示		"Code Folding"-->"One-line methods"
 - terminal设置shell		"terminal"-->"Application settings"-->"Shell path"-->"D:\Git\bin\bash.exe"
 - svn忽略文件		"File Types"-->在下方 Ignore files and folders 追加如下 表达式
-  				*.iml;*.idea;*.gitignore;*.sh;*.classpath;*.project;*.settings;target;
+  				`*.iml;*.idea;*.gitignore;*.sh;*.classpath;*.project;*.settings;target;`
 - IDEA自动导包        Editor-->general-->auto import-->勾选add unambiguous ...和Optimize imports on ...
 
+- 创建代码模板         Editor->Live Templates
 
+  ```java
+  /**
+   * $END$
+   *
+   * @author w30021900
+   * @since $date$
+   */
+  ```
+
+  - 预定义变量
+
+    `$END$`预定义变量，表示模板结束后的光标位置 ；
+
+    自定义`$date$`变量；
+
+    使用Edit variables编辑模板变量，会和系统内置函数关联
+
+    | Name | Expression         | Default value | Skip if defined |
+    | ---- | ------------------ | ------------- | --------------- |
+    | date | date("yyyy/MM/dd") |               | 选中            |
+
+    
 
 
 

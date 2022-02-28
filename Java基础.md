@@ -431,21 +431,20 @@ public static void main(String[] args){
 
 ## 内部类
 
-> 每个内部类都能独立地继承一个（接口的）实现，所以无论外围类是否已经继承了某个（接口的）实现，对于内部类都没有影响。使用内部类最大的优点就在于它能够非常好的解决多重继承的问题。
->
-> 内部类的其他特性：
->
-> - 内部类可以用多个实例，每个实例都有自己的状态信息，并且与其外围对象的信息相互独立。
->
-> - 在单个外围类中，可以让多个内部类以不同的方式实现同一个接口，或者继承同一个类。
->
-> - 内部类提供了更好的封装，除了该外围类，其他类都不能访问。
+> 每个内部类都能独立地继承类，所以无论外围类是否已经继承了某个类，对于内部类都没有影响。使用内部类最大的优点就在于它能够非常好的解决多重继承的问题。
+
+内部类的其他特性：
+
+- 内部类可以用多个实例，每个实例都有自己的状态信息，并且与其外围对象的信息相互独立。
+
+- 在单个外围类中，可以让多个内部类以不同的方式实现同一个接口，或者继承同一个类。
+
+- 内部类提供了更好的封装，除了该外围类，其他类都不能访问。
 
 ### 基本语法
 
-> - 当我们在创建某个外围类的内部类对象时，此时内部类对象必定会捕获一个指向那个外围类对象的引用，只要我们在访问外围类的成员时，就会用这个引用来选择外围类的成员。
-> - 生成对外部类对象的引用时，内部类会自动创建一个隐式的外部类对象的引用。可以使用OuterClassName.this引用外部类的引用。
-> - 引用内部类我们需要指明这个对象的类型，必须要利用外部类的对象通过.new来创建内部类： `OuterClass.InnerClass innerClass = outerClass.new InnerClass();`
+- 内部类会自动创建一个隐式的外部类对象的引用`OuterClassName.this`，可以通过这个引用访问外部对象
+- 创建内部类时必须要利用外部类的对象通过.new来创建： `OuterClass.InnerClass innerClass = outerClass.new InnerClass();`
 
 ```java
 public class OuterClass {
@@ -484,7 +483,7 @@ public class OuterClass {
 }
 ```
 
-> 内部类是个编译时的概念，一旦编译成功后，它就与外围类属于两个完全不同的类（当然他们之间还是有联系的）。对于一个名为OuterClass的外围类和一个名为InnerClass的内部类，在编译成功后，会出现这样两个class文件：OuterClass.class和OuterClass$InnerClass.class。
+内部类是个编译时的概念，一旦编译成功后，它就与外围类属于两个完全不同的类（当然他们之间还是有联系的）。对于一个名为`OuterClass`的外围类和一个名为`InnerClass`的内部类，在编译成功后，会出现这样两个class文件：`OuterClass.class`和`OuterClass$InnerClass.class`。
 
 ### 成员内部类
 
@@ -529,55 +528,59 @@ public class OuterClass {
 ### 局部内部类
 
 > 局部内部类嵌套在方法的方法体内。
->
-> 想创建一个类来辅助我们的解决方案，到那时又不希望这个类是公共可用的，所以就产生了局部内部类，它的作用域只在该方法中。
+
+想创建一个类来辅助我们的解决方案，到那时又不希望这个类是公共可用的，所以就产生了局部内部类，它的作用域只在该方法中。
 
 ```java
-public class Parcel5 {
-    public Destionation destionation(String str){
-        
-        class PDestionation implements Destionation{
+public class OuterClass {
+    public String destionation(String str){
+        class InnerClass implements Destionation{
             private String label;
-            private PDestionation(String whereTo){
+            private InnerClass(String whereTo){
                 label = whereTo;
             }
             public String readLabel(){
                 return label;
             }
         }
-        
-        return new PDestionation(str);
+        final InnerClass innerClass = new InnerClass(str);
+        return innerClass.readLabel();
     }
-    
+
     public static void main(String[] args) {
-        Parcel5 parcel5 = new Parcel5();
-        Destionation d = parcel5.destionation("chenssy");
+        OuterClass outerClass = new OuterClass();
+        String label = outerClass.destionation("chenssy");
+        System.out.println(label);
     }
+}
+
+interface Destionation{
+    String readLabel();
 }
 ```
 
 ### 匿名内部类
 
 ```java
-public class OuterClass {
-    
-    public InnerClass getInnerClass(final int num,String str2){
-        return new InnerClass(){ // new 一个接口
+public class MainClass {
+    public OuterClass getOuterClass(final int num){
+        final OuterClass outerClass = new OuterClass() { // new 一个接口，outerClass指向这个匿名内部类
             int number = num + 3;
-            public int getNumber(){
+            public int getNumber() {
                 return number;
             }
-        };        /* 注意：分号不能省 */
+        };
+        return outerClass;
     }
-    
+
     public static void main(String[] args) {
-        OuterClass out = new OuterClass();
-        InnerClass inner = out.getInnerClass(2, "chenssy");
-        System.out.println(inner.getNumber());
+        MainClass main = new MainClass();
+        OuterClass outer = main.getOuterClass(2);
+        System.out.println(outer.getNumber());
     }
 }
 
-interface InnerClass {
+interface OuterClass {
     int getNumber();
 }
 ```
@@ -585,11 +588,11 @@ interface InnerClass {
 ### 静态内部类
 
 > 使用static修饰的内部类我们称之为静态内部类。
->
-> 非静态内部类在编译完成之后会隐含地保存着一个引用，该引用是指向创建它的外围类，但是静态内部类却没有。
->
-> - 它的创建是不需要依赖于外围类的。
-> - 它不能使用任何外围类的非static成员变量和方法。
+
+非静态内部类在编译完成之后会隐含地保存着一个引用，该引用是指向创建它的外围类，但是静态内部类却没有。
+
+- 它的创建是不需要依赖于外围类的。
+- 它不能使用任何外围类的非static成员变量和方法，可以使用外部类中所有静态属性和所有的静态方法，其他使用方法和普通类相同
 
 ```java
 public class OuterClass {
@@ -691,29 +694,30 @@ public class OuterClass {
 ## 集合
 
 Collection 接口的接口 对象的集合（单列集合）
-├——-List 接口：元素按进入先后有序保存，可重复
-│—————-├ LinkedList 接口实现类， 链表， 插入删除， 没有同步， 线程不安全
-│—————-├ ArrayList 接口实现类， 数组， 随机访问， 没有同步， 线程不安全
-│—————-└ Vector 接口实现类 数组， 同步， 线程安全
-│ ———————-└ Stack 是Vector类的实现类
-└——-Set 接口： 仅接收一次，不可重复，并做内部排序
-├—————-└HashSet 使用hash表（数组）存储元素，无序
-│————————└ LinkedHashSet 链表维护元素的插入次序
-└ —————-TreeSet 底层实现为二叉树，元素排好序
+
+- List 接口：元素按进入先后有序保存，可重复
+  - LinkedList 接口实现类， 链表， 插入删除， 没有同步， 线程不安全
+  - ArrayList 接口实现类， 数组， 随机访问， 没有同步， 线程不安全
+  - Vector 接口实现类 数组， 同步， 线程安全
+    - Stack 是Vector类的实现类
+
+- Set 接口： 仅接收一次，不可重复，并做内部排序
+  - HashSet 使用hash表（数组）存储元素，无序
+    - LinkedHashSet 链表维护元素的插入次序
+  - TreeSet 底层实现为二叉树，元素排好序
 
 Map 接口 键值对的集合 （双列集合）
-├———Hashtable 接口实现类， 同步， 线程安全，不能放null
-├———HashMap 接口实现类 ，没有同步， 线程不安全，key或value可以为null，key最多只能有一个null
-│—————–├ LinkedHashMap 双向链表和哈希表实现
-│—————–└ WeakHashMap
-├ ——–TreeMap 红黑树对所有的key进行排序
-└———IdentifyHashMap
+
+- Hashtable 接口实现类， 同步， 线程安全，不能放null
+- HashMap 接口实现类 ，没有同步， 线程不安全，key或value可以为null，key最多只能有一个null
+  - LinkedHashMap 双向链表和哈希表实现
+  - WeakHashMap
+- TreeMap 红黑树对所有的key进行排序
+- IdentifyHashMap
 
 Vector与ArrayList一样，也是通过数组实现的，不同的是它支持线程的同步，并且当Vector或ArrayList中的元素超过它的初始大小时，Vector会将容量翻倍，ArrayList只增加50%的大小。
 
 参考：[java集合超详解](https://blog.csdn.net/feiyanaffection/article/details/81394745)
-
-
 
 ### hash
 
