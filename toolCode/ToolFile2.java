@@ -33,52 +33,57 @@ public class ToolFile2 {
         }
     }
 
-    public static void decompressTar(String destTempDir, byte[] sourceData) {
-        File dirFile = new File(destTempDir);
-        FileUtil.deleteDirectory(dirFile);
-        dirFile.mkdirs();
+	private static final int BUFFER = 512;
+	private static final int TOOBIG = 0x6400000; // max size of unzipped data, 100MB
+	private static final int TOOMANY = 1024; // max number of files
+
+
+    public static void decompressTar(String sourcePath, String destDir) {
         TarEntry entry;
-        TarInputStream tis = null;
-        FileOutputStream fos = null;
-        try {
-            tis = new TarInputStream(new ByteArrayInputStream(sourceData));
-            while ((entry = tis.getNextEntry()) != null) {
-                int count;
-                int total = 0;
-                int entries = 0;
-                byte[] data = new byte[BUFFER];
-                String nameTemp = FileUtil.sanitzeFileName(entry.getName(), destTempDir);
-                fos = new FileOutputStream(nameTemp);
-                while ((count = tis.read(data, 0, BUFFER)) != -1) {
-                    total += count;
-                    if (total > TOOBIG) {
-                        throw new BrokerException(
-                                HttpStatus.INTERNAL_SERVER_ERROR.name(), "fileSize in package is too big");
-                    }
-                    fos.write(data, 0, count);
-                }
-                if (++entries > TOOMANY) {
-                    throw new BrokerException(
-                            HttpStatus.INTERNAL_SERVER_ERROR.name(), "fileNum in package is too many");
-                }
-            }
-        } catch (IOException e) {
-            log.error("decompressTar error", e);
-            throw new BrokerException(HttpStatus.INTERNAL_SERVER_ERROR.name(), "decompressTar error");
-        } finally {
-            try {
-                if (Objects.nonNull(fos)) {
-                    fos.close();
-                }
-                if (Objects.nonNull(tis)) {
-                    tis.close();
-                }
-            } catch (IOException e) {
-                log.error("decompressTar error", e);
-                throw new BrokerException(HttpStatus.INTERNAL_SERVER_ERROR.name(), "decompressTar error");
-            }
-        }
+		//接收byte[]数据  TarInputStream tis = new TarInputStream(new ByteArrayInputStream(sourceData))
+		try (FileInputStream fis = new FileInputStream(sourcePath);
+			 TarInputStream tis = new TarInputStream(fis)) {
+			while ((entry = tis.getNextEntry()) != null) {
+				int total = 0;
+				int entries = 0;
+				byte[] data = new byte[BUFFER];
+				String destPath = FileUtil.sanitzeFileName(entry.getName(), destDir);
+				int count;
+				try (FileOutputStream fos = new FileOutputStream(destPath)) {
+					while ((count = tis.read(data, 0, BUFFER)) != -1) {
+						total += count;
+						if (total > TOOBIG) {
+							log.error("fileSize in package is too big");
+						}
+						fos.write(data, 0, count);
+					}
+					if (++entries > TOOMANY) {
+						log.error("fileNum in package is too many");
+					}
+				}
+			}
+		} catch (IOException e) {
+			log.error("decompressTar error", e);
+		}
     }
+	
+	/**
+	 * 文件路径检查
+	 *
+	 * @param entryName 文件名称
+	 * @param intendedDir 文件路径
+	 * @return 文件全路径
+	 * @throws IOException
+	 */
+	public static String sanitzeFileName(String entryName, String intendedDir) throws IOException {
+		String canonicalPath = new File(intendedDir, entryName).getCanonicalPath();
+		String canonicalID = new File(intendedDir).getCanonicalPath();
+		if (canonicalPath.startsWith(canonicalID)) {
+			return canonicalPath;
+		} else {
+			throw new IllegalStateException("File is outside extraction target directory.");
+		}
+	}
 
     public static boolean deleteDirectory(File dir) {
         if (!dir.exists()) {

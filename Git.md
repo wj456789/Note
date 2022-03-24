@@ -127,7 +127,59 @@ $ git push origin local-branch		//远程库无local-branch同名分支则自动�
 $ git branch --set-upstream-to=remote-branch local-branch	//关联本地分支和远程分支 
 ```
 
+### 首次提交代码到远程仓库
 
+1. 首先，登录GitLab，创建一个新项目的私人仓库； 
+
+2. 然后，在本地仓库（就是你写代码文件夹），右键，Git Bash Here，打开Git命令窗口； 
+
+3. 按照如下步骤，添加远程仓库地址，并提交代码；  
+
+   ```sh
+   git init                           #初始化仓库
+   git add .						 #把所有文件和文件夹添加到；
+   git commit -m "first commit"       #把代码提交到本地仓库，并备注信息；
+   git remote add origin 仓库地址      #设置远程仓库地址，创建远程主分支；
+   git pull origin master 		       #把本地仓库的变化连接到远程仓库主分支
+   git push -u origin master          #提交代码到远程仓库，master分支；
+   ```
+
+   **问题：**
+
+   1) 添加远程仓库可能报错：`fatal: remote origin already exists.` 
+
+   ```sh
+   git remote -v：             #查看远程仓库详细信息，可以看到仓库名称
+   git remote rm origin        #先删除远程 Git 仓库
+   git remote add origin 仓库地址      #再添加远程 Git 仓库
+   
+   #也可以手动修改gitconfig文件的内容，把 [remote “origin”] 那一行删掉就好了
+   vi .git/config              
+   ```
+
+   2) 不使用 pull 直接 push 可能报如下错误：`Updates were rejected because the remote contains work that you do`
+
+   3) 直接使用 pull 可能报如下错误：`fatal: refusing to merge unrelated histories` 
+
+   ```sh
+   git pull origin master --allow-unrelated-histories
+   ```
+
+   
+
+### 将文件取消版本控制
+
+以 idea 为例：
+
+如果在 .gitignore 文件中没有指定忽略 .idea 文件夹（这个文件夹包含的是本地对项目的配置，如 maven，字符编码等，不需要共享，所以无需提交），那么提交时就会将其提交到远程代码库中。如果已经 .idea 已经在远程仓库，那么再修改 .gitignore 文件就已经没用了，所以需要通过命令将远程的 .idea 文件夹取消版本控制
+
+```sh
+git rm -r --cached "要取消版本控制的文件或文件夹"		#将文件或文件夹取消版本控制
+git commit -m "提交的信息"						  #提交到本地仓库 
+git push origin master				#提交到远程分支，远程仓库的文件或文件夹将会被删除
+```
+
+最后在 .gitignore 文件中添加忽略 .idea 文件夹，并提交到远程仓库，如果需要将 .idea 文件夹添加版本控制，只需要将 .gitignore 文件中的 .idea/ 删除即可
 
 ## 常用git命令
 

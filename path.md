@@ -166,3 +166,82 @@ user.home : C:\Users\***.***
 user.dir : E:\workspace\TestCode
 ```
 
+### jar包加载文件路径
+
+a.txt 和 Application.java 在同一个目录下，b.txt 在类路径下
+
+```java
+public class Application {
+    public static void main(String[] args) throws IOException {
+        System.out.println(Application.class.getResource(""));
+        System.out.println(Application.class.getResource("a.txt"));
+
+        System.out.println(Application.class.getResource("/"));
+        System.out.println(Application.class.getResource("/b.txt"));
+        getFileContent(Application.class.getResource("/b.txt").getPath());
+
+        System.out.println(Application.class.getClassLoader().getResource(""));
+        System.out.println(Application.class.getClassLoader().getResource("b.txt"));
+        getFileContent(Application.class.getClassLoader().getResource("b.txt").getPath());
+
+        //报错空指针异常
+        /*InputStream is = Application.class.getResourceAsStream("a.txt");
+        byte[] bytes = new byte[100];
+        is.read(bytes);
+        System.out.println(new String(bytes));*/
+        InputStream is2 = Application.class.getClassLoader().getResourceAsStream("b.txt");
+        byte[] bytes2 = new byte[5];
+        is2.read(bytes2);
+        System.out.println(new String(bytes2));
+
+    }
+
+    private static void getFileContent(String path) throws IOException {
+        FileInputStream fi=new FileInputStream(path);
+        byte[] bytes = new byte[5];
+        fi.read(bytes);
+        System.out.println(new String(bytes));
+    }
+}
+
+//本地输出
+file:/E:/IdeaProjects/redis-master/redis-test/target/classes/com/huawei/fusioninsight/test/
+null
+    
+file:/E:/IdeaProjects/redis-master/redis-test/target/classes/
+file:/E:/IdeaProjects/redis-master/redis-test/target/classes/b.txt
+bbbbb
+
+file:/E:/IdeaProjects/redis-master/redis-test/target/classes/
+file:/E:/IdeaProjects/redis-master/redis-test/target/classes/b.txt
+bbbbb
+
+bbbbb
+
+//打成jar包输出
+PS E:\IdeaProjects\redis-master\redis-test\target\jars> java -jar redis-test.jar
+
+jar:file:/E:/IdeaProjects/redis-master/redis-test/target/jars/redis-test.jar!/com/huawei/fusioninsight/test/
+null
+    
+null
+jar:file:/E:/IdeaProjects/redis-master/redis-test/target/jars/redis-test.jar!/b.txt
+java.io.FileNotFoundException: file:\E:\IdeaProjects\redis-master\redis-test\target\jars\redis-test.jar!\b.txt (文件名、目录名或卷标语法不正确。)
+
+null
+jar:file:/E:/IdeaProjects/redis-master/redis-test/target/jars/redis-test.jar!/b.txt
+java.io.FileNotFoundException: file:\E:\IdeaProjects\redis-master\redis-test\target\jars\redis-test.jar!\b.txt (文件名、目录名或卷标语法不正确。)
+
+bbbbb
+```
+
+- 编译时只会加载在类路径下的文件
+- 打成 jar 包后无法获取类路径目录，但是可以获取类路径下具体文件路径
+- 读取文件无法识别 redis-test.jar! 目录，只能使用 getResourceAsStream 方法读取文件
+
+[Java代码打成jar后 classgetClassLoadergetResource("")返回为null](https://blog.csdn.net/wqc19920906/article/details/79263269)
+
+[读取Jar包中的资源问题探究](https://blog.csdn.net/withiter/article/details/11924095)
+
+
+

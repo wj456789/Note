@@ -20,6 +20,52 @@ Java的基本类型占用空间和系统位数无关，只和类型本身有关�
 - 允许自动类型转换的标准是表数范围小的类型赋值给表数范围大的类型
 - 强制类型转换可用于所有基础数值类型之间的转换，很多场合特指表数范围大的类型给表数范围小的类型赋值
 
+##### 类型强转
+
+```java
+Object obj;
+List<Integer> list = castList(obj,Integer.class);
+//list强转
+private static <T> List<T> castList(Object obj, Class<T> clazz) {
+    List<T> result = new ArrayList<T>();
+    if (obj instanceof List<?>) {
+        for (Object o : (List<?>) obj) {
+            result.add(clazz.cast(o));
+        }
+        return result;
+    }
+    return null;
+}
+```
+
+```java
+Object obj;
+Map<String,Object> map = castHashMap(obj,String.class,Object.class);
+
+/**
+ * 防止出现强转警告
+ *
+ * @param obj 强转对象
+ * @param clazz1 HashMap的key
+ * @param clazz2 HashMap的value
+ * @param <K> Key泛型
+ * @param <V> Value泛型
+ * @return 强转后对象
+ */
+private <K, V> HashMap<K, V> castHashMap(Object obj, Class<K> clazz1, Class<V> clazz2) {
+    HashMap<K, V> result = new HashMap<K, V>();
+    if (obj instanceof HashMap<?, ?>) {
+        for (Object o : ((HashMap<?, ?>) obj).keySet()) {
+            result.put(clazz1.cast(o), clazz2.cast(((HashMap<?, ?>) obj).get(o)));
+        }
+        return result;
+    }
+    return null;
+}
+```
+
+
+
 #### 类型提升
 
 当一个算数表达式包含多个基本类型的值时，整个算术表达式的数据类型将发生自动提升
@@ -180,6 +226,78 @@ public class Test {
 
 逻辑运算符包括`&&、||、!`三种，部分教材里把`&、|`也归为逻辑运算，事实上是用位运算来代替逻辑运算，容易混淆概念。
 
+## 数据运算越界检查
+
+> oldAcc + (newVal * scale)
+
+### 先决条件检查
+
+```java
+public int safeAdd(int left, int right) {
+    if (right > 0 ? left > Integer.MAX_VALUE - right
+        : left < Integer.MIN_VALUE - right) {
+        throw new ArithmeticException("Integer overflow");
+    }
+    return left + right;
+}
+
+//Java数据类型的合法取值范围是不对称的（最小值的绝对值比最大值大1），所以对最小值取负时，会导致溢出。
+public int safeMultiply(int left, int right) {
+    if (right > 0 ? left > Integer.MAX_VALUE / right
+        || left < Integer.MIN_VALUE / right
+        : (right < -1 ? left > Integer.MIN_VALUE / right 
+           || left < Integer.MAX_VALUE / right
+           : right == -1 && left == Integer.MIN_VALUE)) {
+        throw new ArithmeticException("Integer overflow");
+    }
+    return left * right;
+}
+```
+
+### 向上类型转换 
+
+该方式对long类型不适用。 
+
+```java
+public static long intRangeCheck(long value) {
+    // 向上类型转换
+    if ((value < Integer.MIN_VALUE) || (value > Integer.MAX_VALUE)) {
+        throw new ArithmeticException("Integer overflow");
+    }
+    return value;
+}
+
+public static int multAccum(int oldAcc, int newVal, int scale) {
+    final long res = intRangeCheck(((long) oldAcc) +
+                                   intRangeCheck((long) newVal * (long) scale));
+    return (int) res; // Safe downcast
+}
+```
+
+### BigInteger 
+
+```java
+private static final BigInteger bigMaxInt = BigInteger.valueOf(Integer.MAX_VALUE);
+private static final BigInteger bigMinInt = BigInteger.valueOf(Integer.MIN_VALUE);
+// BigInteger检查是否存在溢出
+public static BigInteger intRangeCheck(BigInteger val) {
+    if (val.compareTo(bigMaxInt) == 1 || val.compareTo(bigMinInt) == -1) {
+        throw new ArithmeticException("Integer overflow");
+    }
+    return val;
+}
+
+public static int multAccum(int oldAcc, int newVal, int scale) {
+    BigInteger product = BigInteger.valueOf(newVal).multiply(BigInteger.valueOf(scale));
+    BigInteger res = intRangeCheck(BigInteger.valueOf(oldAcc).add(product));
+    return res.intValue(); // Safe conversion
+}
+```
+
+## 
+
+
+
 ## static关键字
 
 方便在没有创建对象的情况下来进行调用（方法/变量），只要类被加载了，就可以通过类名去进行访问，不需要依赖于对象来进行访问。
@@ -317,7 +435,179 @@ child-test
 
   finally执行时机在try/catch代码块退出前。即，所有代码块后，跳出逻辑前。只有finally块执行完成之后，才会回来执行try或者catch块中的return或者throw语句，如果finally中使用了return或者throw等终止方法的语句，则就不会跳回执行，直接停止
 
-  
+
+
+
+### try-with-resource
+
+- 传统的`try-finally`方式存在复杂易出错和异常抑制(Suppressed)等问题。 使用`try-with-resource`，可以更安全、简洁地申请和关闭资源，同时解决了异常抑制问题。 
+- `try-with-resource`是语法糖，其最终仍然会被编译成`try-finally`方式并调用close方法关闭资源。 
+- 为了支持`try-with-resource`，资源类必须要实现`AutoClosable接口`，否则无法使用。在使用`try-with-resource`之前，请务必确认下资源类是否已经实现了`AutoClosable接口`。
+- `try-with-resource`使用方式
+  - `try-with-resource`使用很简单，申请资源的代码写在try后面的()中即可，无需显式调用`close方法`来关闭资源。 
+  - 为了使程序更加健壮，在`try-with-resouce`中使用装饰器时，建议显式声明被装饰/包裹对象的引用。 
+
+#### 使用
+
+能够借助`try-with-resource`关闭资源的类必须实现`AutoClosable接口`，重写`close方法`。如果是自定义资源类， 为了支持`try-with-resource`，请务必实现`AutoClosable接口`。 
+
+```java
+//申请资源的代码写在try后面的()中即可，资源关闭无需显式close
+public void twrClose2NotCatch(String src, String dst) throws IOException {
+    try (FileInputStream ins = new FileInputStream(src);
+         OutputStream outs = new FileOutputStream(dst)) {
+        byte[] buf = new byte[BUF_SIZE];
+        int n;
+        while ((n = ins.read(buf)) >= 0) {
+            outs.write(buf, 0, n);
+        }
+    }
+}
+```
+
+`try-with-resource`主要做了两件事：
+
+- 添加调用close方法的代码，关闭资源。
+- 使用addSuppressed方法附加异常，消除异常抑制的问题。
+
+##### try-finally举例
+
+###### 异常抑制
+
+异常抑制（Suppressed）也有叫异常覆盖和异常屏蔽
+
+```java
+public class ConnectionNormal {
+    public void send() throws Exception {
+        throw new SendException("send fail.");
+    }
+
+    public void close() throws Exception {
+        throw new CloseException("close fail");
+    }
+}
+
+//按照程序逻辑，应该先抛出SendException，再抛出CloseException：
+public static void main(String[] args) {
+    try {
+        test();
+    } catch (Exception e) {
+        e.printStackTrace();
+    }
+}
+
+
+private static void test() throws Exception {
+    ConnectionNormal conn = null;
+    try {
+        conn = new ConnectionNormal();
+        conn.send();
+    } finally {
+        if (conn != null) {
+            conn.close();
+        }
+    }
+}
+
+//运行后我们发现：
+com.CloseException: close fail
+at com.ConnectionNormal.close(ConnectionNormal.java:10)
+    at com.TryWithResource.test(TryWithResource.java:20)
+    at com.TryWithResource.main(TryWithResource.java:6)
+```
+
+SendException明明先被抛出了，但是没有丝毫痕迹，被后抛的CloseException给抑制了，这就是异常抑制，SendException被称为Suppressed Exception。关键的异常信息丢失，这会导致某些bug变得极其隐蔽而难以发现！
+
+##### try-with-resource举例
+
+`try-with-resource`为`Throwable类`新增了`addSuppressed方法`，支持将一个异常附加到另一个之上，从而解决异常抑制。
+
+```java
+public class ConnectionAutoClose implements AutoCloseable{
+    public void send() throws Exception {
+        throw new SendException("send fail.");
+    }
+    @Override
+    public void close() throws Exception {
+        throw new CloseException("close fail");
+    }
+}
+
+private static void test2() {
+    try (ConnectionAutoClose conn = new ConnectionAutoClose()) {
+        conn.send();
+    } catch (Exception e) {
+        e.printStackTrace();
+    }
+}
+
+运行结果：
+com.SendException: send fail.
+    at com.ConnectionAutoClose.send(ConnectionAutoClose.java:5)
+    at com.TryWithResource.test2(TryWithResource.java:27)
+    at com.TryWithResource.main(TryWithResource.java:6)
+    Suppressed: com.CloseException: close fail
+at com.ConnectionAutoClose.close(ConnectionAutoClose.java:10)
+        at com.TryWithResource.test2(TryWithResource.java:28)
+        ... 1 more
+```
+
+#### 原理
+
+```java
+//try-with-resource反编译.class
+private static void test2() {
+    try {
+        ConnectionAutoClose conn = new ConnectionAutoClose();
+        Throwable var1 = null;
+        try {
+            conn.send();
+        } catch (Throwable var11) {
+            var1 = var11;
+            throw var11;
+        } finally {
+            if (conn != null) {
+                if (var1 != null) {
+                    try {
+                        conn.close();
+                    } catch (Throwable var10) {
+                        var1.addSuppressed(var10);
+                    }
+                } else {
+                    conn.close();
+                }
+            }
+        }
+    } catch (Exception var13) {
+        var13.printStackTrace();
+    }
+}
+```
+
+#### 显式声明
+
+为了使程序更加健壮，在try-with-resouce中使用装饰器时，建议显式声明被装饰 / 包裹对象的引用。
+
+```java
+//在finally中仅调用了out.close()，在GZIPOutputStream.close内部，会关闭被包裹的FileOutputStream，但是这个关闭可能会失败
+public void gzipWrapper(File file) throws IOException {
+   try (GZIPOutputStream out = new GZIPOutputStream(new FileOutputStream(file))) {
+      ...
+  }
+}
+```
+
+```java
+//fout.close一定会被调用
+public void gzipWrapperRobust(File file) throws IOException {
+   try (FileOutputStream fout = new FileOutputStream(file); // 显式声明
+        GZIPOutputStream out = new GZIPOutputStream(fout)) {
+      ...
+  }
+}
+```
+
+
 
 ## 抽象类和接口
 

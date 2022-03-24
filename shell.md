@@ -1,4 +1,4 @@
-# shell
+# Shell
 
 自定义的脚本建议放到/usr/local/sbin/目录下
 
@@ -12,7 +12,8 @@ Shell脚本通常都是以.sh 为后缀名的
 #date "+%y/%m/%d %H:%M:%S"
 21/02/19 10:50:45
 
-【变量】
+## 变量
+
 --脚本
 #用反引号，将shell命令引起来，可以将命令的输出值赋给变量，$()也可以输出命令的结果值
 d=`date +%y/%m/%d %H:%M:%S`
@@ -59,7 +60,102 @@ sh -x test.sh 11 23
 + echo 34
 34
 
-【逻辑判断】
+### 变量$#,$@,$0,$1,$2,$?...
+
+- `$$`  Shell本身的PID（ProcessID）  
+- `$!`  Shell最后运行的后台Process的PID  
+- `$?`  最后运行的命令的结束代码（返回值）  
+- `$-`  使用Set命令设定的Flag一览  
+- `$*`  所有参数列表。如"$*"用「"」括起来的情况、以"$1 $2 … $n"的形式输出所有参数。 
+- `$@`  所有参数列表。如"$@"用「"」括起来的情况、以"$1" "$2" … "$n" 的形式输出所有参数。  
+- `$#`  添加到Shell的参数个数  
+- `$0`  Shell本身的文件名  
+- `$1～$n`  添加到Shell的各参数值。$1是第1参数、$2是第2参数…。  
+
+```sh
+1 #!/bin/bash
+2 #
+3 printf "The complete list is %s\n" "$$"
+4 printf "The complete list is %s\n" "$!"
+5 printf "The complete list is %s\n" "$?"
+6 printf "The complete list is %s\n" "$*"
+7 printf "The complete list is %s\n" "$@"
+8 printf "The complete list is %s\n" "$#"
+9 printf "The complete list is %s\n" "$0"
+10 printf "The complete list is %s\n" "$1"
+11 printf "The complete list is %s\n" "$2
+结果：
+$ bash params.sh 123456 QQ
+The complete list is 24249
+The complete list is
+The complete list is 0
+The complete list is 123456 QQ
+The complete list is 123456
+The complete list is QQ
+The complete list is 2
+The complete list is params.sh
+The complete list is 123456
+The complete list is QQ
+```
+
+#### $?
+
+程序执行正确或者执行结果为空，exit 0,$?为0
+程序执行错误或执行结果不为空，exit 1,$?为1
+
+```sh
+grep "/openportal" /etc/rc.d/rc.local > /dev/null
+if [ $? -eq 0 ]; then
+    echo "Found!Already add startup service，rc.local文件中存在/openportal"
+else
+    echo "Not Found!rc.local文件中不存在/openportal"
+    echo "source /etc/profile" >>/etc/rc.d/rc.local
+    echo "/usr/openportal/bin/startup.sh" >>/etc/rc.d/rc.local
+    echo '##############Add startup service is OK##############'
+fi
+```
+
+#### cd dirname $0
+
+返回这个脚本文件放置的目录，并可以根据这个目录来定位所要运行程序的相对位置（绝对位置除外） 
+
+> 脚本文件/test/build.sh
+
+```sh
+#!/bin/bash
+echo $0
+echo $(dirname $0)
+echo $(cd $(dirname $0) && pwd)
+```
+
+```sh
+$ sh build.sh
+build.sh
+.
+/test
+```
+
+## 
+
+## 逻辑判断
+
+
+
+### if
+
+- `if [ -n str1 ]`　　　　　　当串的长度大于0时为真(串非空)  
+- `if [ -z str1 ]`　　　　　　当串的长度为0时为真(空串)  
+
+```sh
+ARGS=$*
+if [ -n "$ARGS"  ]
+then
+	print "with argument"
+fi
+	print " without argument"
+```
+
+
 
 1)
 if 判断语句; then
@@ -166,8 +262,8 @@ case $n in
   ;;
 esac
 
+## 逻辑循环
 
-【逻辑循环】
 for 变量名 in 循环的条件； do
 command
 done
@@ -211,8 +307,7 @@ done
 2
 1
 
-
-【函数】
+## 函数
 
 --脚本
 function summer(){
@@ -233,23 +328,10 @@ sh test.sh 45 56
 linux 的基本操作（编写shell 脚本）
 https://www.cnblogs.com/zhang-jun-jie/p/9266858.html
 
-T:【$?】
-程序执行正确或者执行结果为空，exit 0,$?为0
-程序执行错误或执行结果不为空，exit 1,$?为1
-
-如：
-grep "/openportal" /etc/rc.d/rc.local > /dev/null
-if [ $? -eq 0 ]; then
-    echo "Found!Already add startup service，rc.local文件中存在/openportal"
-else
-    echo "Found!Already add startup service，rc.local文件中不存在/openportal"
-    echo "source /etc/profile" >>/etc/rc.d/rc.local
-    echo "/usr/openportal/bin/startup.sh" >>/etc/rc.d/rc.local
-    echo '##############Add startup service is OK##############'
-fi
 
 
-【定时脚本】
+## 定时脚本
+
 --定时服务
 linux、ubuntu一般默认安装了crontab，是开机自启动的。 cron服务会每分钟检查一次/etc/crontab、/etc/cron.d/、/var/spool/cron文件下的变更。如果发现变化，就会下载到存储器中。因此，即使crontab文件改变了，程序也不需要重新启动
 
@@ -331,3 +413,9 @@ https://blog.csdn.net/qq_39131177/article/details/79051711
 
 Linux安装配置mysql，并实现数据定时备份
 https://blog.csdn.net/ToYouMake/article/details/106411335
+
+## Other
+
+### command
+
+[shell之用command在终端判断是否存在这个命令](https://blog.csdn.net/u011068702/article/details/80787824)

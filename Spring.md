@@ -778,7 +778,9 @@ public class Zoo{
 - `@PostConstruct` //指定该方法在对象被创建后马上调用，相当于配置文件中的init-method属性
 - `@PreDestroy` //指定该方法在对象销毁之前调用，相当于配置文件中的destory-method属性
 
+**@PostConstruct和@PreDestory执行顺序**
 
+构造函数-->postConstruct-->init-->destory-->predestory-->卸载servlet
 
 ## AOP
 
