@@ -1434,6 +1434,62 @@ new Thread(new Runnable() {
 
 
 
+## 启动 jar 包
+
+使用命令启动 jar 包
+
+**使用 java -cp 命令指定类路径：**
+
+jvm搜索类，系统会先在当前包下找，然后会在 jre 中的 rt.jar 文件下找，最后会在 classpath 所指向的路径下找； -cp 即 -classpath，可以指定classpath；java -cp 和 -classpath 一样，是指定类运行所依赖其他类的路径，通常是类库，jar包之类，需要全路径到jar包 。
+
+```sh
+#windows
+#编译
+$ javac -cp 绝对路径1.jar;绝对路径2.jar java文件名.java
+
+#运行
+$ java -cp .;../lib/*;../common.jar;../list/*.jar;../conf packname.mainclassname(此类有main方法)
+```
+
+```sh
+#linux
+#编译
+$ javac -cp 绝对路径1.jar:绝对路径2.jar java文件名.java
+
+#运行
+$ java -cp .:../lib/*:../common.jar:../list/*.jar:../conf packname.mainclassname(此类有main方法)
+```
+
+**引用 jar 包中的 jar 包：**
+
+ [java命令执行jar包的方式](https://www.cnblogs.com/zpbolgs/p/7267384.html)
+
+**启动 jar 包方式：**
+
+jar 包内目录 META-INF 下的 MANIFEST.MF 文件可以指定入口的方法，
+
+```java
+//META-INF\MANIFEST.MF的内容：
+Manifest-Version: 1.0 
+Main-Class: test.core.Core 
+```
+
+```sh
+#pom中build指定mainClass && META-INF\MANIFEST.MF文件中增加了Main-Class: test.core.Core
+$ java -cp test-jar-with-dependencies.jar  test.core.Core  //执行成功
+$ java -jar test-jar-with-dependencies.jar  //执行成功
+```
+
+[启动jar包](https://www.cnblogs.com/klb561/p/10850803.html)
+
+
+
+
+
+
+
+
+
 ## 注解
 
 注解(Annotation)相当于一种标记，标记可以加在包、类，属性、方法，方法的参数以及局部变量上。

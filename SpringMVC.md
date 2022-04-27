@@ -401,6 +401,19 @@ public String test(@RequestBody String rebo){
 }
 ```
 
+##### Get请求和@RequestBody
+
+一般的情况下，GET请求是不可以用@RequestBody来接收参数的。Http请求包含请求头和请求体，如果发出的请求中请求体为空，那么无法使用@RequestBody注解来获取参数。
+
+那么在什么情况下可以配合使用呢？需要两个条件，一是请求方式为GET，二是请求参数写入请求体中。即接口需要被上层的服务调用而非页面直接访问。由于目前微服务的运用越来越多，所以一般像这样的情况在实际的开发中会变得常见。
+
+```sh
+# 可以使用curl命令测试
+$ curl -XGET -H "Content-Type:application/json" "http://host:port/requestmapping" -d '{"paramId":[1,2,3]}'
+```
+
+
+
 #### 自定义类型
 
 @ModelAttribute 将请求数据转换为对象
