@@ -123,6 +123,116 @@ for (float f = 0.1f; f != 10.0f; f += 0.1f) {
 10.100003
 ```
 
+## Decimal
+
+### BigDecimal
+
+#### 类型转换
+
+```java
+//字符串转换为BigDecimal
+BigDecimal a = new BigDecimal("5.33");
+//BigDecimal转换为String
+String str=a.toString();
+
+
+
+//double转换为BigDecimal
+Double b=1.23;
+
+BigDecimal c = BigDecimal.valueOf(b);
+System.out.println(c);	//1.23
+
+BigDecimal d= new BigDecimal(b);
+System.out.println(d);	//1.229999999999999982236431605997495353221893310546875
+
+//BigDecimal转换为double
+double e = c.doubleValue();
+```
+
+#### 四则运算
+
+```java
+BigDecimal num1 = new BigDecimal("100");  
+BigDecimal num2 = new BigDecimal("50");
+//加法
+BigDecimal result1 = num1.add(num2);        
+//减法 
+BigDecimal result2 = num1.subtract(num2);
+//乘法
+BigDecimal result3 = num1.multiply(num2);      
+//除法
+BigDecimal result4 = num1.divide(num2);
+```
+
+[BigDecimal-1](https://blog.csdn.net/u014369799/article/details/50995874)
+
+[BigDecimal-2](https://blog.csdn.net/BADAO_LIUMANG_QIZHI/article/details/84618023)
+
+
+
+
+### DecimalFormat
+
+```java
+System.out.println(0.0000000000000001);		//1.0E-16	
+System.out.println(11540*0.35);				//4038.9999999999995
+
+BigDecimal value = new BigDecimal("1.10");
+BigDecimal value1 = new BigDecimal("15687.12364");
+
+//0对整数不足补0
+//0对小数不足补0，多余切掉四舍五入
+DecimalFormat fnum = new DecimalFormat("000.000");
+System.out.println(fnum.format(value));				//001.100
+System.out.println(fnum.format(value1));			//15687.124
+
+//#对小数末尾去0，多余切掉四舍五入
+DecimalFormat fnum1 = new DecimalFormat("###.###");
+System.out.println(fnum1.format(value));			//1.1
+System.out.println(fnum1.format(value1));			//15687.124
+```
+
+[DecimalFormat 中0和#的作用](https://blog.csdn.net/u013394527/article/details/78722095)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ## 三大特性
