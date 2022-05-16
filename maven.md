@@ -652,6 +652,16 @@ mvn assembly:assembly -Dmaven.test.skip=true
 
 [idea执行maven命令的三种方式](https://www.cnblogs.com/aaabbbcccddd/p/15049355.html)
 
+## pom.xml
+
+### dependencyManagement
+
+- 在父 pom 中使用 dependencyManagement 只是声明依赖，并不实现引入，因此子项目需要显式的声明需要用的依赖。 
+
+- 没有写在 dependencyManagement 中的 dependencies ，不仅会引入到当前的 maven 项目，也会被子 maven 项目继承。 
+
+- 在子 pom 中使用 parent 继承父 pom ，子 pom 只需要写 groupId 和 artifactId 即可，会自动去父 pom 中查找继承 version 和 scope 等。 
+
 ## settings.xml
 
 - 用来设置maven参数的配置文件，settings.xml是maven的全局配置文件，而pom.xml文件是所在项目的局部配置。  

@@ -137,10 +137,10 @@ $ git branch --set-upstream-to=remote-branch local-branch	//关联本地分支�
 
    ```sh
    git init                           #初始化仓库
-   git add .						 #把所有文件和文件夹添加到；
-   git commit -m "first commit"       #把代码提交到本地仓库，并备注信息；
    git remote add origin 仓库地址      #设置远程仓库地址，创建远程主分支；
    git pull origin master 		       #把本地仓库的变化连接到远程仓库主分支
+   git add .						 #把所有文件和文件夹添加到；
+   git commit -m "first commit"       #把代码提交到本地仓库，并备注信息；
    git push -u origin master          #提交代码到远程仓库，master分支；
    ```
 
@@ -181,6 +181,134 @@ git push origin master				#提交到远程分支，远程仓库的文件或文�
 
 最后在 .gitignore 文件中添加忽略 .idea 文件夹，并提交到远程仓库，如果需要将 .idea 文件夹添加版本控制，只需要将 .gitignore 文件中的 .idea/ 删除即可
 
+
+
+### git-lfs(huawei)
+
+LFS（Large File Storage） 是大文件的存储方案，而非 BFS 二进制文件的存储方案
+
+如果这个二进制文件不是很大、也不会频繁更新及 Add，那么可以直接入 Git 仓库；如果这个二进制文件较大（如>50M），而且还会经常频繁更新及 Add，那么建议不要把该二进制文件直接入 Git 仓库，建议使用 Git-LFS 进行托管
+
+#### 安装
+
+##### 自动安装
+
+```sh
+#windows
+#开始菜单 -> 搜索 Git Bash -> 右键 管理员运行
+$ curl -k https://cmc-szver-artifactory.cmc.tools.huawei.com/artifactory/cmc-software-release/CodeHub/git-lfs/release.v2/git_lfs_autoinstall.sh -o git_lfs_autoinstall.sh &&
+sh git_lfs_autoinstall.sh
+
+#linux
+$ curl -k https://cmc-szver-artifactory.cmc.tools.huawei.com/artifactory/cmc-software-release/CodeHub/git-lfs/release.v2/git_lfs_autoinstall.sh -o git_lfs_autoinstall.sh &&
+sudo sh git_lfs_autoinstall.sh && (git lfs uninstall; git lfs install)
+```
+
+##### 手动安装
+
+1. 下载：选择适合平台的正确版本，解开压缩包。
+
+2. 对于 Linux 平台，执行 `install.sh` 将 `git-lfs` 自动复制到路径 `/usr/bin` 下。
+
+   如果之前手动将老版本的 `git-lfs` 使用`whereis git-lfs` ，查找git-lfs位置然后手工删除老版本的 `git-lfs`。
+
+3. 对于 Windows 平台，将 `git-lfs-windows-amd64.exe` 或者 `git-lfs-windows-386.exe` 复制到 `GIT安装目录\usr\bin\git-lfs.exe` (替换git默认安装的git-lfs.exe）。
+
+4. 安装完毕后，执行下面命令完成初始化：`$ git lfs install`
+
+   这个命令会自动修改用户主目录下的 `.gitconfig` 配置文件（即 `~/.gitconfig`），添加 Git-LFS 的过滤器启动（filter driver）配置。
+
+   查看 `~/.gitconfig` ，如果显示 lfs 过滤器的信息则表明正确初始化了 lfs：
+
+   ```
+   $ cat ~/.gitconfig
+   [filter "lfs"]
+       clean = git-lfs clean -- %f
+       smudge = git-lfs smudge -- %f
+       process = git-lfs filter-process
+       required = true
+   ```
+
+   至此就完成了 `git-lfs` 的安装和设置。
+
+#### 卸载
+
+```sh
+$ git lfs uninstall
+
+#找到git lfs二进制文件存放位置,删除git-lfs.exe二进制文件     
+$ where git-lfs
+```
+
+#### 使用
+
+```sh
+#使用命令，查看仓库中那些文件大于50M
+$ find ./ -path "./.git" -prune -o -type f -size +50M -print | cut -b 3-
+
+#指定大文件用LFS管理，如下：large_file.pdf为大文件的名称，文件名用track跟踪时需要用仓库的相对路径
+$ git lfs track large_file.pdf
+
+#文件托管后会生成.gitattributes隐藏文件，将这个隐藏文件和被追踪的文件 large_file.pdf 一并提交到仓库
+$ git add .gitattributes large_file.pdf 
+
+$ git commit -s -m "提交信息，自己填写" 
+
+$ git push
+```
+
+#### 检查
+
+##### 确认Git lfs版本是否正确
+
+```sh
+#需要确认已经安装了 Git 客户端，且需要 1.8.2 或更高版本的 Git 客户端版本
+$ git version
+
+#执行如下命令查看lfs安装的版本，下面括号里必须显示Huawei才表示安装正确
+$ git lfs version                                                               
+git-lfs/2.13.3.huawei.p1 (Huawei; windows amd64; go 1.16.6; git 207b2155)
+```
+
+##### 文件是否正确转换为Git-LFS 
+
+```sh
+#输出文件的 oid 信息
+$ git lfs ls-files -l
+ec19e2d68fb3a44242b99555479d9886876dc54d8e1950b7f3639a6545ed961d * foo.pdf
+
+#输出文件的Git-LFS链接文件的内容, Git-LFS链接文件包含 version, oid 和 size 三个信息
+$ git show HEAD:foo.pdf
+version https://git-lfs.github.com/spec/v1
+oid sha256:ec19e2d68fb3a44242b99555479d9886876dc54d8e1950b7f3639a6545ed961d
+size 3780462
+```
+
+[git-lfs](http://rnd-isourceb.huawei.com/iSource/git-lfs/overviews)
+
+#### 问题
+
+> push大文件报错 remote: GitLab: LFS objects are missing. Ensure LFS is properly set up or try a manual "git lfs push --all".   
+
+打开gitbash，执行如下命令后，再push 
+
+```sh
+$ git lfs push --all 仓库地址
+#或
+$ git lfs push --all origin master
+```
+
+
+
+> 提交大文件报错
+
+```sh
+$ git log	#查看commit提交记录
+$ git reset --mixed commit_id  #回退到提交之前
+```
+
+
+
 ## 常用git命令
 
 ### 新建代码库
@@ -219,39 +347,34 @@ $ git config [--global] user.email "[email address]"
 
 ### 增加/删除文件
 
-添加指定文件到暂存区
+```sh
+#添加文件夹及所有包含内容
+$ git add 文件夹/
 
+#添加当前目录下所有此文件类型的文件
+$ git add *.文件类型
+
+#添加指定文件到暂存区
 $ git add [file1] [file2] ...
 
-添加指定目录到暂存区，包括子目录
-
+#添加指定目录到暂存区，包括子目录
 $ git add [dir]
 
-添加当前目录的所有目录文件到暂存区
+#添加当前目录的所有目录文件到暂存区
+$ git add .
 
-**$ git add .**
-
-添加每个变化前，都会要求确认
-
-对于同一个文件的多处变化，可以实现分次提交
-
+#添加每个变化前，都会要求确认,对于同一个文件的多处变化，可以实现分次提交
 $ git add -p
 
-删除工作区文件，并且将这次删除放入暂存区
-
+#删除工作区文件，并且将这次删除放入暂存区
 $ git rm [file1] [file2] ...
 
-停止追踪指定文件，但该文件会保留在工作区
-
+#停止追踪指定文件，但该文件会保留在工作区
 $ git rm --cached [file]
 
-改名文件，并且将这个改名放入暂存区
-
+#改名文件，并且将这个改名放入暂存区
 $ git mv [file-original] [file-renamed]
-
-
-
-
+```
 
 ### 代码提交
 
@@ -434,7 +557,7 @@ $ git show [commit]:[filename]
 
 $ git reflog
 
-```java
+```sh
 $ git reflog
 版本号	  版本记录											
 43156bc (HEAD -> master) HEAD@{0}: commit: 注释
