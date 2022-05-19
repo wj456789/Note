@@ -307,6 +307,19 @@ $ git log	#查看commit提交记录
 $ git reset --mixed commit_id  #回退到提交之前
 ```
 
+### 大小写不敏感
+
+Windows 下 git 默认配置是对文件/文件夹名称的大小写不敏感
+
+```sh
+# 对文件的重命名，git 会将其识别为 Rename 的变更类型，然后正常提交推送就能同步到远程仓库
+$ git mv test.txt TEST.txt
+
+# 把文件夹命名成其他名称，然后再命名为大写
+$ git mv test-dir tmp
+$ git mv tmp TEST-DIR
+```
+
 
 
 ## 常用git命令
