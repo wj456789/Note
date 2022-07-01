@@ -89,7 +89,7 @@ site生命周期的目的是建立和发布项目站点，主要包含以下4个
 - maven只是定义了生命周期中的阶段，而没有定义每个阶段中具体的实现，这些实现是由插件的目标来完成的，生命周期中的每个阶段支持绑定多个插件的多个目标。 
 - maven中的插件就相当于一些工具，每个工具包含了多个功能，插件中的每个功能就叫做插件的目标（Plugin Goal）。
 - 插件：编译代码的工具，运行测试用例的工具，打包代码的工具，将代码上传到本地仓库的工具，将代码部署到远程仓库的工具等等，目标：编译代码的插件，可以编译源代码、也可以编译测试代码
-- 将插件目标和maven生命周期的阶段进行绑定，然后通过mvn 阶段的方式执行阶段的时候，会自动执行和这些阶段绑定的插件，插件也可以通过mvn命令的方式调用直接运行
+- 将**插件目标和maven生命周期的阶段进行绑定**，然后通过mvn 阶段的方式执行阶段的时候，会自动执行和这些阶段绑定的插件，插件也可以通过mvn命令的方式调用直接运行
 
 ```sh
 #列出插件所有目标
@@ -147,6 +147,7 @@ default生命周期中有23个阶段，我只列出有默认绑定的，其他�
     <artifactId>maven-compiler-plugin</artifactId>
     <version>3.6.0</version>
     <configuration>
+        <encoding>utf-8</encoding>
         <source>1.8</source>
         <target>1.8</target>
     </configuration>
@@ -156,7 +157,7 @@ default生命周期中有23个阶段，我只列出有默认绑定的，其他�
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
- </properties
+</properties>
 ```
 
 ### maven-jar-plugin
@@ -601,43 +602,93 @@ ENTRYPOINT ["java", "-jar", "${project.build.finalName}.jar"]
 
 
 
+### maven-war-plugin
+
+```xml
+<!-- 打包成war包 -->
+<plugin>
+    <groupId>org.apache.maven.plugins</groupId>
+    <artifactId>maven-war-plugin</artifactId>
+    <version>2.2</version>
+    <configuration>
+        <webResources>
+            <resource>
+                <directory>../data-assest-common/src/lib</directory>
+                <targetPath>WEB-INF/lib/</targetPath>
+                <includes>
+                    <include>**/*.jar</include>
+                </includes>
+            </resource>
+        </webResources>
+        <!--如果想在没有web.xml文件的情况下构建WAR，请设置为false。-->
+        <failOnMissingWebXml>false</failOnMissingWebXml>
+    </configuration>
+</plugin>
+```
+
+### spring-boot-maven-plugin
+
+```xml
+<!-- 
+	1.可以打成直接运行的Jar包
+	2.一般的maven项目的打包命令，不会把依赖的jar包也打包进去的，只是会放在jar包的同目录下，能够引用就可以了，但是spring-boot-maven-plugin插件，会将依赖的jar包全部打包进jar包内部。
+	3.可以指定默认执行类
+ -->
+<plugin>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-maven-plugin</artifactId>
+    <version>2.2.4.RELEASE</version>
+    <configuration>
+        <mainClass>com.huawei.DataAssetApplicationHttp</mainClass>
+        <!--<skip>true</skip>-->
+        <!--<includeSystemScope>true</includeSystemScope>-->
+        <!--<layout>ZIP</layout>-->
+        <!--<includes>
+            <include>
+                <groupId>nothing</groupId>
+                <artifactId>nothing</artifactId>
+            </include>
+        </includes>-->
+    </configuration>
+    <executions>
+        <execution>
+            <goals>
+                <goal>repackage</goal>
+            </goals>
+        </execution>
+    </executions>
+</plugin>
+```
+
+**repackage作用：**
+
+1、在原始 Maven 打包形成的 jar 包基础上，进行重新打包，新形成的 jar 包不但包含应用类文件和配置文件，而且还会包含应用所依赖的 jar 包以及 Springboot 启动相关类，以此来满足Springboot独立应用的特性；
+
+2、将原始 Maven 打包的 jar 重命名为 XXX.jar.original 作为原始文件；
 
 
+[spring-boot-maven-plugin打包war包](https://cloud.tencent.com/developer/article/1768906)
 
+### maven-surefire-plugin
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+```xml
+<!-- 设置打包的时候跳过测试用例,相当于 mvn package -Dmaven.test.skip=true -->
+<plugin>
+    <groupId>org.apache.maven.plugins</groupId>
+    <artifactId>maven-surefire-plugin</artifactId>
+    <configuration>
+        <skip>true</skip>
+    </configuration>
+</plugin>
+```
 
 
 
 
 
 参考：
+
+[maven-compiler-plugin](https://www.cnblogs.com/east7/p/13363069.html)
 
 [maven--插件篇（assembly插件）](https://www.cnblogs.com/sidesky/p/10651266.html)
 

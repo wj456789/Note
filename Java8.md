@@ -375,3 +375,30 @@ test.compute4(2, 3, (v1, v2) -> v1 + v2, v1 -> v1 * v1) //25
 
 
 
+## 日期
+
+```java
+// 获取当前时间并格式化
+String now  = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(LocalDateTime.now());
+
+// 获取 LocalDateTime 对象
+LocalDateTime.now()：获取系统当前时间。
+
+LocalDateTime.of(int year,int month,int dayOfMonth,int hour,int minute,int second) // 按指定日期和时间创建LocalDateTime对象。
+
+// LocalDateTime 对象方法
+getYear()：返回日期中的年份。
+
+getMonth()：返回日期中的月份。
+
+getDayOfMonth()：返回月份中的日。
+
+getHour()：返回小时。
+
+getMinute()：返回分钟。
+
+getSecond()：返回秒。
+```
+
+
+
