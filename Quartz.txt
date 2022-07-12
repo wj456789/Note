@@ -1,0 +1,64 @@
+springboot实现job注入
+public class MyJob implements Job {
+    @Autowired
+    private OrderService orderService;
+
+    @Override
+    public void execute(JobExecutionContext ctx) throws JobExecutionException {
+        ...
+}
+
+
+但是Job对象的实例化过程是在Quartz中进行的，OrderService是在Spring容器当中的，那么如何将他们关联到一起呢？
+
+在Spring与Quartz集成时，用到的是org.springframework.scheduling.quartz.SchedulerFactoryBean这个类，其中使用了AdaptableJobFactory类实现创建Job的逻辑，AdaptableJobFactory类中定义了createJobInstance方法创建了Job对象，所以我们要对这个方法进行重写将Job注入spring容器中：
+
+@Component
+public class MyJobFactory extends AdaptableJobFactory {
+    //AutowireCapableBeanFactory 可以将一个对象添加到SpringIOC容器中，并且完成该对象注入
+    @Autowired
+    private AutowireCapableBeanFactory capableBeanFactory;
+
+    protected Object createJobInstance(TriggerFiredBundle bundle) throws Exception {
+        //调用父类的方法
+        Object jobInstance = super.createJobInstance(bundle);
+        //将obj对象添加Spring IOC容器中，并完成注入
+        capableBeanFactory.autowireBean(jobInstance);
+        return jobInstance;
+    }
+}
+
+
+//将Scheduler也注入到spring容器中，并且在创建过程中绑定MyJobFactory 
+@Configuration
+public class ScheduleConfig {
+    @Autowired
+    private MyJobFactory myJobFactory;
+
+    public Properties quartzProperties(){
+        PropertiesFactoryBean propertiesFactoryBean = new PropertiesFactoryBean();
+        propertiesFactoryBean.setLocation(new ClassPathResource("quartz.properties"));
+        Properties properties=null;
+        try {
+            propertiesFactoryBean.afterPropertiesSet();
+            properties = propertiesFactoryBean.getObject();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return properties;
+    }
+
+    @Bean
+    public SchedulerFactoryBean schedulerFactoryBean(){
+        SchedulerFactoryBean schedulerFactoryBean = new SchedulerFactoryBean();
+        schedulerFactoryBean.setQuartzProperties(quartzProperties());
+        schedulerFactoryBean.setJobFactory(myJobFactory);
+        return schedulerFactoryBean;
+    }
+
+    @Bean
+    public Scheduler scheduler(){
+        return schedulerFactoryBean().getScheduler();
+    }
+
+}
