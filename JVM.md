@@ -2,6 +2,16 @@
 
 ## 内存结构
 
+Java会从系统内存（CPU Regisers、CPU Cache Memory、RAM Main Memory）中申请大块的堆内存、和栈区（虚拟机栈、本地方法栈、程序计数器），申请的这部分称为工作内存，是经过虚拟化了的，称为虚拟机内存。剩下的内存统一称为堆外内存。
+
+​      堆外内存又称本地内存，本地内存中有部分可以借助工具（JNI 或者 JNA）直接访问，这部分内存称为直接内存，本地内存中的还有一部分内存划给了元空间（方法区），但是这部分内存不受XX:MaxDirectMemorySize参数限制，不知道为什么说元空间使用的是直接内存。猜测这种说法是错误的，正确的说法可能是元空间使用的本地内存而非直接内存，本地内存不等于直接内存。直接内存和元空间（方法区）是并列关系，都是在本地内存中。不知道怎样去验证这种猜测的准确性。
+
+简单来说虚拟机内存分为堆内存和栈内存，堆外内存又称本地内存分为直接内存和元空间。
+
+引用：[JVM中的内存关系](https://www.wangt.cc//2022/01/jvm中的内存关系/)
+
+
+
 JVM按照其存储数据的内容将所需内存分配为堆区与非堆区两个部分：所谓堆区即为通过new的方式创建的对象(类实例)所占用的内存空间;非堆区即为代码、常量、外部访问(如文件访问流所占资源)等。然而虽然java的垃圾回收机制主要是对堆区的内存进行回收的。
 
 ![截图](img_JVM/%E6%88%AA%E5%9B%BE.png)
@@ -32,7 +42,7 @@ Heap Space堆区分为新生代和老年代，新生代分为Eden和Survivor区�
 
 非堆区包括永久代、栈内存等。
 
-**永久代(permanent generation区)**
+#### 永久代(permanent generation区)
 
 1. java7之前
 
@@ -48,31 +58,25 @@ Heap Space堆区分为新生代和老年代，新生代分为Eden和Survivor区�
 
 参考：[Metaspace 之一：Metaspace整体介绍（永久代被替换原因、元空间特点、元空间内存查看分析方法）](https://www.cnblogs.com/duanxz/p/3520829.html)
 
+#### 栈内存
 
-
-**类指针压缩空间（Compressed Class Pointer Space）**
-
-64位平台上默认打开。压缩指针，指的是在 64 位的机器上，使用 32 位的指针来访问数据（堆中的对象或 Metaspace 中的元数据）的一种方式。如果开启了指针压缩，则CompressedClassSpace分配在MaxMetaspaceSize里头，即MaxMetaspaceSize=Compressed Class Space Size + Metaspace area (excluding the Compressed Class Space) Size
-
-参考：[Java 内存分区之什么是 CCS区 Compressed Class Space 类压缩空间](https://www.pianshen.com/article/90131581146/)
-
-**GC**
-
-参考：[Java程序配置内存大小，gc参数配置-以tomcat为例](https://blog.csdn.net/loophome/article/details/87911711)
-
-#### 虚拟机栈(Stack)
+##### 虚拟机栈(Stack)
 
 - 虚拟机栈线程私有，每个线程都有自己独立的虚拟机栈，创建一个线程的同时会创建一个栈
 - 虚拟机栈是用于描述java方法执行的内存模型。 每个java方法在执行时，会创建一个“栈帧”。
 - 通常说的“栈内存”，确切的说，指的是虚拟机栈的栈帧中的局部变量表，因为这里存放了一个方法的所有局部变量。 
 
-##### 栈帧
+###### 栈帧
 
 栈帧的大小在程序代码编译时确定。
 
 栈帧(Stack Frame)是用于支持虚拟机进行方法调用和方法执行的数据结构。栈帧存储了方法的局部变量表、操作数栈、动态链接和方法返回地址等信息。每一个方法从调用至执行完成的过程，都对应着一个栈帧在虚拟机栈里从入栈到出栈的过程。
 
 一个线程中方法的调用链可能会很长，很多方法都同时处于执行状态。对于JVM执行引擎来说，在在活动线程中，只有位于JVM虚拟机栈栈顶的元素才是有效的，即称为当前栈帧，与这个栈帧相关连的方法称为当前方法，定义这个方法的类叫做当前类。
+
+##### 本地方法栈(Native Stack)
+
+本地方法栈的功能和特点类似于虚拟机栈，均具有线程隔离的特点以及都能抛出StackOverflowError和OutOfMemoryError异常。不同的是，本地方法栈服务的对象是JVM执行的native方法，而虚拟机栈服务的是JVM执行的java方法。 
 
 #### 直接内存
 
@@ -85,6 +89,20 @@ DirectBuffer类继承自ByteBuffer，但和普通的ByteBuffer不同，普通的
 比如 Java8 使用元空间：元空间主要存储加载的类信息，这些数据只会在程序启动时直接分配足够的直接内存，可以减少程序的启动时间，运行期一般不会频繁加载新的类，故运行期不需要频繁分配内存。堆内存主要存放的是运行时对象，需要频繁的创建与销毁。 
 
 直接内存可以使用 -XX:MaxDirectMemorySize 配置 
+
+
+
+**类指针压缩空间（Compressed Class Pointer Space）**
+
+64位平台上默认打开。压缩指针，指的是在 64 位的机器上，使用 32 位的指针来访问数据（堆中的对象或 Metaspace 中的元数据）的一种方式。如果开启了指针压缩，则CompressedClassSpace分配在MaxMetaspaceSize里头，即MaxMetaspaceSize=Compressed Class Space Size + Metaspace area (excluding the Compressed Class Space) Size
+
+参考：[Java 内存分区之什么是 CCS区 Compressed Class Space 类压缩空间](https://www.pianshen.com/article/90131581146/)
+
+**GC**
+
+参考：[Java程序配置内存大小，gc参数配置-以tomcat为例](https://blog.csdn.net/loophome/article/details/87911711)
+
+
 
 ## 内存分配
 
@@ -133,7 +151,7 @@ DirectBuffer类继承自ByteBuffer，但和普通的ByteBuffer不同，普通的
 
   它们默认都是开启的，可以手动关闭它们。 如果不允许类指针压缩，那么将没有 compressed class space 这个空间，并且-XX:CompressedClassSpaceSize 这个参数无效。 -XX:-UseCompressedClassPointers 需要搭配 -XX:+UseCompressedOops，但是反过来不是，也就是说我们可以只压缩对象指针，不压缩类指针。在对象指针压缩基础上进行类指针压缩。
 
-
+## 垃圾回收
 
 ## 垃圾回收算法
 
