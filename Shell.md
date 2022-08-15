@@ -3,64 +3,71 @@
 自定义的脚本建议放到/usr/local/sbin/目录下
 
 Shell脚本通常都是以.sh 为后缀名的
-第一行一定是 “#! /bin/bash” 它代表的意思是，该文件使用的是bash语法。#表示注释，Shell脚本的执行很简单，直接”sh filename “ 即可,sh -x filename加上-x选项可以查看整个执行过程
+第一行一定是 “#! /bin/bash” 它代表的意思是，该文件使用的是bash语法。#表示注释，Shell脚本的执行很简单，直接”sh filename “ 即可
 
-%Y表示年，%m表示月，%d表示日期，%H表示小时，%M表示分钟，%S表示秒，%w表示星期
-#date "+%Y/%m/%d %H:%M:%S %w"
+```sh
+# %Y表示年，%m表示月，%d表示日期，%H表示小时，%M表示分钟，%S表示秒，%w表示星期
+$ date "+%Y/%m/%d %H:%M:%S %w"
 2021/02/19 10:50:45 5
 
-#date "+%y/%m/%d %H:%M:%S"
+$ date "+%y/%m/%d %H:%M:%S"
 21/02/19 10:50:45
+```
+
+
 
 ## 变量
 
---脚本
-#用反引号，将shell命令引起来，可以将命令的输出值赋给变量，$()也可以输出命令的结果值
-d=`date +%y/%m/%d %H:%M:%S`
+### 变量操作
+
+```sh
+# 用反引号，将shell命令引起来，可以将命令的输出值赋给变量，$()也可以输出命令的结果值
+d = `date +%y/%m/%d %H:%M:%S`
 echo "date is $d"
 
+输出：
 date is 21/02/19 10:50:45
+```
 
-
-
---脚本
+```sh
+# 数学计算要用[ ]括起来并且外头要带一个$，也可以sum=$[a+b]
 a=1
 b=2
-#数学计算要用[ ]括起来并且外头要带一个$，也可以sum=$[a+b]
 sum=$[$a+$b]		
 echo "sum is $sum"
 
+输出：
 sum is 3
+```
 
---脚本
-#"read x"表示x变量的值需要用户通过键盘输入得到。
-
+```sh
+# read x表示x变量的值需要用户通过键盘输入得到。
 echo "please input a number"
 read x
-#read -p相当于echo+read
+
+# read -p相当于echo+read
 read -p "please input another number" y
 echo "number is $x and another is $y"
 
+输出：
 number is 7 and another is 56
+```
 
-
-
---脚本
+```sh
 echo "############## start test ##############"
 sum =$[$1+$2]
 echo $sum
 
-执行过程：
+# sh -x filename加上-x选项可以查看整个执行过程
+$ sh -x test.sh 11 23
+- echo '############## start test ##############'
+###### ######## start test
+- sum=34
+- echo 34
+  34
+```
 
-sh -x test.sh 11 23
-
-+ echo '############## start test ##############'
-############## start test ##############
-+ sum=34
-+ echo 34
-34
-
-### 变量$#,$@,$0,$1,$2,$?...
+### 特殊变量
 
 - `$$`  Shell本身的PID（ProcessID）  
 - `$!`  Shell最后运行的后台Process的PID  
@@ -139,12 +146,88 @@ build.sh
 
 ## 逻辑判断
 
-
-
 ### if
 
-- `if [ -n str1 ]`　　　　　　当串的长度大于0时为真(串非空)  
-- `if [ -z str1 ]`　　　　　　当串的长度为0时为真(空串)  
+#### 模板
+
+```sh
+1)
+if 判断语句; then
+	command
+fi
+
+2)
+if 判断语句 ; then
+	command
+else
+	command
+fi
+
+3)
+if 判断语句一 ; then
+	command
+elif 判断语句二; then
+	command
+else
+	command
+fi
+```
+
+#### 示例
+
+```sh
+!/bin/bash
+echo '############## start test ##############'
+read -p "please input a number:" n
+if((n<60));then
+    echo "$n<60"
+elif((n>=60))&&((n<100));then
+# 或 elif((n>=60&&n<100));then
+    echo "60=<$n<100"
+else 
+    echo "other"
+fi
+
+执行结果：
+$ sh test.sh
+###### ######## start test
+please input a number:78
+60=<78<100
+```
+
+判断数值大小除了可以用”(( ))”的形式外，还可以使用”[ ]”。但是使用[ ]必须使用 -lt （小于），-gt （大于），-le （小于等于），-ge （大于等于），-eq （等于），-ne （不等于）符号。
+
+```sh
+!/bin/bash
+echo '############## start test ##############'
+read -p "please input a number:" n
+if [ $n -lt 60 ];then
+    echo "$n<60"
+# 注意if后面空格，括号前后空格，$符号，不能写成这种 [ $n -ge 60 && $n -lt 100 ]
+elif [ $n -ge 60 ] && [ $n -lt 100 ];then
+    echo "60=<$n<100"
+else 
+    echo "other"
+fi
+```
+
+使用[ ]也可以使用如下符号进行判断。
+
+- `if [ -n str1 ]`	当串的长度大于0时为真(串非空)  
+- `if [ -z str1 ]`   当串的长度为0时为真(空串)  
+
+- -e ：判断文件或目录是否存在
+- -d ：判断是不是目录，并是否存在
+- -f ：判断是否是普通文件，并存在
+- -r ：判断文档是否有读权限
+- -w ：判断是否有写权限
+- -x ：判断是否可执行
+
+```sh
+if [ -d /home ];then
+    echo "ok"
+fi
+```
 
 ```sh
 ARGS=$*
@@ -155,99 +238,31 @@ fi
 	print " without argument"
 ```
 
+### case
 
+#### 模板
 
-1)
-if 判断语句; then
-command
-fi
-
-2)
-if 判断语句 ; then
-command
-else
-command
-fi
-
-3)
-if 判断语句一 ; then
-command
-elif 判断语句二; then
-command
-else
-command
-fi
-
---脚本
-#!/bin/bash
-echo '############## start test ##############'
-read -p "please input a number:" n
-if((n<60));then
-    echo "$n<60"
-#elif((n>=60))&&((n<100));then
-elif((n>=60&&n<100));then
-    echo "60=<$n<100"
-else 
-    echo "other"
-fi
-
-执行结果：
-
-sh test.sh
-
-############## start test ##############
-please input a number:78
-60=<78<100
-
-
-
-判断数值大小除了可以用”(( ))”的形式外，还可以使用”[ ]”。但是使用[ ]必须使用 -lt （小于），-gt （大于），-le （小于等于），-ge （大于等于），-eq （等于），-ne （不等于）符号。
-
---脚本
-#!/bin/bash
-echo '############## start test ##############'
-read -p "please input a number:" n
-if [ $n -lt 60 ];then
-    echo "$n<60"
-#注意if后面空格，括号前后空格，$符号，不能写成这种 [ $n -ge 60 && $n -lt 100 ]
-elif [ $n -ge 60 ] && [ $n -lt 100 ];then
-    echo "60=<$n<100"
-else 
-    echo "other"
-fi
-
-
-使用[ ]可以使用如下符号进行判断。
--e ：判断文件或目录是否存在
--d ：判断是不是目录，并是否存在
--f ：判断是否是普通文件，并存在
--r ：判断文档是否有读权限
--w ：判断是否有写权限
--x ：判断是否可执行
-
---脚本
-if [ -d /home ];then
-    echo "ok"
-fi
-
-
+```sh
 case 变量 in
 value1)
-command
-;;
+	command
+	;;
 value2)
-command
-;;
+	command
+	;;
 value3)
-command
-;;
+	command
+	;;
 *)
-command
-;;
+	command
+	;;
 esac
+```
 
---脚本
-#!/bin/bash
+#### 示例
+
+```sh
+!/bin/bash
 echo '############## start test ##############'
 read -p "input a number:" n
 case $n in
@@ -261,34 +276,45 @@ case $n in
   echo "other"
   ;;
 esac
+```
+
+
 
 ## 逻辑循环
 
+### for
+
+```sh
 for 变量名 in 循环的条件； do
-command
+	command
 done
+```
 
 --脚本
+
+```sh
 for i in `seq 1 5`;do
     echo "$i"
 done
 
 执行结果
-
-sh test.sh
-
+$ sh test.sh
 1
 2
 3
 4
 5
+```
 
+### while
 
+```sh
 while 条件; do
-command
+	command
 done
+```
 
---脚本
+```sh
 a=10
 while [ $a -ge 1 ];do
     echo "$a"
@@ -306,27 +332,30 @@ done
 3
 2
 1
+```
+
+
 
 ## 函数
 
 --脚本
+```sh
 function summer(){
-#$1 $2对应下方summer传入的值
+  # $1 $2对应下方summer传入的值
   sum=$[$1+$2]
   echo "$sum"
 }
-#$1 $2对应命令输入的值，函数调用要写在函数之后
+# $1 $2对应命令输入的值，函数调用要写在函数之后
 summer $1 $2
 
 执行：
-
-sh test.sh 45 56
-
+$ sh test.sh 45 56
 101
+```
 
 参考：
-linux 的基本操作（编写shell 脚本）
-https://www.cnblogs.com/zhang-jun-jie/p/9266858.html
+[linux 的基本操作（编写shell 脚本）](https://www.cnblogs.com/zhang-jun-jie/p/9266858.html)
+
 
 
 
@@ -344,7 +373,8 @@ systemctl status crond.service	//查看定时服务状态
 
 cat mysqlbk.sh
 
-#!/bin/bash
+```sh
+!/bin/bash
 number=7
 backup_dir=/usr/local/mysql/backup
 time=`date "+%Y-%m-%d %H:%M:%S"`
@@ -352,18 +382,23 @@ echo "#############################"
 echo "start mysql backup file in $time"
 touch $backup_dir/iot_zhdg$(date +%Y-%m-%d).sql
 mysqldump -uroot -pZhdgbiud@#2020 iot_zhdg >/usr/local/mysql/backup/iot_zhdg$(date +%Y-%m-%d).sql
-#sql文件计数
-count=`ls -l -crt $backup_dir/*.sql | awk '{print $9}' |wc -l`
+# sql文件计数
+count=ls -l -crt $backup_dir/*.sql | awk '{print $9}' |wc -l
 echo "count is $count"
 if test $count -gt $number
 then
   delcount=$[$count-$number]
-  #找出需要删除的文件
-  delfile=`ls -l -crt $backup_dir/*.sql |awk '{print $9}' |head -$delcount`
+  # 找出需要删除的文件
+  delfile=ls -l -crt $backup_dir/*.sql |awk '{print $9}' |head -$delcount
   rm -f $delfile
   echo "delete $delfile"
 fi
 echo 'mysql backup over'
+```
+
+
+
+
 
 --新增调度任务
 1)、在命令行输入: crontab -e 然后添加相应的任务，wq!存盘退出。 
@@ -396,9 +431,9 @@ month - 从1到12的整数 (或如Jan或Feb简写的月份)
 dayofweek - 从0到7的整数，0或7用来描述周日 (或用Sun或Mon简写来表示)
 
 *	表示所有可用的值。例如*在指代month时表示每月执行(需要符合其他限制条件)该命令。
--	表示整数列，例如1-4意思是整数1,2,3,4
-，	指定数值由逗号分开。如：3,4,6,8表示这四个指定整数。
-/	指定步进设置。“/<interger>”表示步进值。如0-59/2定义每两分钟执行一次；*/3用来定义每三个月份运行一次。
+		表示整数列，例如1-4意思是整数1,2,3,4
+		指定数值由逗号分开。如：3,4,6,8表示这四个指定整数。
+		指定步进设置。“/<interger>”表示步进值。如0-59/2定义每两分钟执行一次；*/3用来定义每三个月份运行一次。
 
 
 
@@ -408,11 +443,10 @@ root表示以root用户身份来运行。
 root后面可加run-parts表示后面跟着的是一个文件夹，要执行的是该文件夹下的所有脚本
 
 参考：
-linux定时执行shell脚本
-https://blog.csdn.net/qq_39131177/article/details/79051711
+[linux定时执行shell脚本](https://blog.csdn.net/qq_39131177/article/details/79051711)
 
-Linux安装配置mysql，并实现数据定时备份
-https://blog.csdn.net/ToYouMake/article/details/106411335
+[Linux安装配置mysql，并实现数据定时备份](https://blog.csdn.net/ToYouMake/article/details/106411335)
+
 
 ## Other
 
