@@ -581,6 +581,54 @@ public class SessionController {
 </html>
 ```
 
+### Spring使用Request
+
+```java
+HttpServletRequest request = Global.getHttpServletRequest();
+log.info(
+    "ServletPath={},ContextPath={},RequestURL={},RequestURI={}",
+    request.getServletPath(),
+    request.getContextPath(),
+    request.getRequestURL(),
+    request.getRequestURI());
+
+输出：
+ServletPath=/queryApiDataChangeOrders,
+ContextPath=/datacatalog,
+RequestURL=http://10.136.122.89:8760/datacatalog/queryApiDataChangeOrders,
+RequestURI=/datacatalog/queryApiDataChangeOrders
+```
+
+```java
+public class Global {
+    /**
+     * 获取当前请求request
+     *
+     * @return HttpServletRequest
+     */
+    public static HttpServletRequest getHttpServletRequest() {
+        HttpServletRequest request = null;
+        RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
+
+        if (requestAttributes == null) {
+            return request;
+        }
+        return ((ServletRequestAttributes) requestAttributes).getRequest();
+    }
+
+    /**
+     * 获取当前请求session
+     *
+     * @return HttpSession
+     */
+    public static HttpSession getHttpSession() {
+        return getHttpServletRequest().getSession();
+    }
+}
+```
+
+
+
 ## 服务端数据校验
 
 ### JSR303校验
