@@ -371,11 +371,9 @@ test.compute4(2, 3, (v1, v2) -> v1 + v2, v1 -> v1 * v1) //25
 
 
 
+## Other
 
-
-
-
-## 日期
+### 日期
 
 ```java
 // 获取当前时间并格式化
@@ -399,6 +397,71 @@ getMinute()：返回分钟。
 
 getSecond()：返回秒。
 ```
+
+### flatMap
+
+```java
+// 把几个小的list转换到一个大的list
+public class Test {
+    public static void main(String args[]) {
+        List<String> teamIndia = Arrays.asList("Virat", "Dhoni", "Jadeja");
+        List<String> teamAustralia = Arrays.asList("Warner", "Watson", "Smith");
+        List<String> teamEngland = Arrays.asList("Alex", "Bell", "Broad");
+        
+        List<List<String>> playersInWorldCup2016 = new ArrayList<>();
+        playersInWorldCup2016.add(teamIndia);
+        playersInWorldCup2016.add(teamAustralia);
+        playersInWorldCup2016.add(teamEngland);
+        
+        // before Java 8
+        List<String> listOfAllPlayers = new ArrayList<>();
+        for(List<String> team : playersInWorldCup2016){
+            for(String name : team){
+                listOfAllPlayers.add(name);
+            }
+        }
+        System.out.println("Players playing in world cup 2016");
+        System.out.println(listOfAllPlayers);
+        
+        
+        // in Java 8 using FlatMap
+        List<String> flatMapList = playersInWorldCup2016.stream()
+                                                        .flatMap(pList -> pList.stream())
+                                                        .collect(Collectors.toList());
+        System.out.println("List of all Players using Java 8");
+        System.out.println(flatMapList);
+    }
+
+}
+```
+
+[时间，字符串和Long时间戳互转](https://blog.csdn.net/u012843361/article/details/80496272)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
