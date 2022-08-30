@@ -23,13 +23,13 @@ SpringBoot是一个用来简化Spring应用的初始化创建和开发的框架
 
 ![1 (4)](img_SpringBoot/1%20(4).png)
 
-## SpringBoot应用
+## SpringBoot简单应用
 
 ### pom.xml解析
 
-```java
-/* 
-    父项目spring-boot-starter-parent.pom的父项目是spring-boot-dependencies.pom，用来管理SpringBoot应用中依赖的版本
+```xml
+<!-- 
+	父项目spring-boot-starter-parent.pom的父项目是spring-boot-dependencies.pom，用来管理SpringBoot应用中依赖的版本 
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-dependencies</artifactId>
@@ -48,7 +48,7 @@ SpringBoot是一个用来简化Spring应用的初始化创建和开发的框架
       <atomikos.version>4.0.6</atomikos.version>
       ...
     </properties>
-*/
+-->
 <parent>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
@@ -56,8 +56,7 @@ SpringBoot是一个用来简化Spring应用的初始化创建和开发的框架
 </parent>
 
 <dependencies>
-
-    /* 通过启动器starter添加依赖，这里是web应用场景下的依赖包*/
+    <!-- 通过启动器starter添加依赖，这里是web应用场景下的依赖包 -->
     <dependency>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-web</artifactId>
@@ -80,6 +79,8 @@ public class SpringbootDemoApplication {
     }
 }
 ```
+
+## 源码解析
 
 ### @SpringBootApplication源码
 
@@ -730,21 +731,6 @@ public class SpringConfig {
 </dependency>
 ```
 
-### SpringBoot启动初始化
-
-```java
-@Component
-@Order(1)//注解基于spring容器，数字越小优先级越高
-public class RunnerLoadOne implements CommandLineRunner {
-    @Override
-    public void run(String... args) throws Exception {
-        ClassDo classDo = SpringContextUtil.getBean(ClassDo.class);
-        classDo.setClassName("Java");
-        System.out.println("------------容器初始化bean之后,加载资源结束-----------");
-    }
-}
-```
-
 ### SpringBoot获取jar包所在目录路径
 
 ```java
@@ -796,6 +782,85 @@ public void test(@PathVariable String name, HttpServletResponse response) throws
 ```
 
 使用API进行重定向时，一般会在url之前加上：request.getContextPath()
+
+
+
+### 启动时实现自动执行代码
+
+#### java自身的启动时加载方式
+
+##### static代码块
+
+static静态代码块，在类加载的时候即自动执行。
+
+##### 构造方法
+
+在对象初始化时执行。执行顺序在static静态代码块之后。
+
+#### Spring启动时加载方式
+
+##### @PostConstruct注解
+
+PostConstruct注解使用在方法上，这个方法在对象依赖注入初始化之后执行。
+
+##### ApplicationRunner和CommandLineRunner
+
+SpringBoot提供了两个接口来实现Spring容器启动完成后执行的功能，两个接口分别为`CommandLineRunner`和`ApplicationRunner`。
+
+这两个接口需要实现一个run方法，将代码在run中实现即可。这两个接口功能基本一致，其区别在于run方法的入参。`ApplicationRunner`的run方法入参为`ApplicationArguments`，为`CommandLineRunner`的run方法入参为String数组。
+
+**Order注解**
+
+当有多个类实现了`CommandLineRunner`和`ApplicationRunner`接口时，可以通过在类上添加@Order注解来设定运行顺序。
+
+```java
+// TestPostConstruct
+@Component
+public class TestPostConstruct {
+    static {
+        System.out.println("static");
+    }
+    public TestPostConstruct() {
+        System.out.println("constructer");
+    }
+    @PostConstruct
+    public void init() {
+        System.out.println("PostConstruct");
+    }
+}
+
+// TestApplicationRunner
+@Component
+@Order(1)
+public class TestApplicationRunner implements ApplicationRunner{
+    @Override
+    public void run(ApplicationArguments applicationArguments) throws Exception {
+        System.out.println("order1:TestApplicationRunner");
+    }
+}
+
+// TestCommandLineRunner
+@Component
+@Order(2)//注解基于spring容器，数字越小优先级越高
+public class TestCommandLineRunner implements CommandLineRunner {
+    @Override
+    public void run(String... strings) throws Exception {
+        System.out.println("order2:TestCommandLineRunner");
+    }
+}
+```
+
+### 总结
+
+Spring应用启动过程中，肯定是要自动扫描有`@Component`注解的类，加载类并初始化对象进行自动注入。加载类时首先要执行static静态代码块中的代码，之后再初始化对象时会执行构造方法。
+
+在对象注入完成后，调用带有`@PostConstruct`注解的方法。当容器启动成功后，再根据@Order注解的顺序调用`CommandLineRunner`和`ApplicationRunner`接口类中的run方法。
+
+因此，加载顺序为`static`>`constructer`>`@PostConstruct`>`CommandLineRunner`和`ApplicationRunner`.
+
+
+
+
 
 
 ## SpringBoot Web
