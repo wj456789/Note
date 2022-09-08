@@ -1422,5 +1422,13 @@ $ mvn package –P !profileTest1
 
 [Maven简介（三）——profile介绍](https://www.iteye.com/blog/elim-1900568)
 
-## 
+## Other
+
+> 在使用maven命令的时候 添加忽略SSL证书校验。
+>
+> maven命令 -Dmaven.wagon.http.ssl.insecure=true -Dmaven.wagon.http.ssl.allowall=true -Dmaven.wagon.http.ssl.ignore.validity.dates=true
+
+```sh
+$ mvn help:system -Dmaven.wagon.http.ssl.insecure=true -Dmaven.wagon.http.ssl.allowall=true -Dmaven.wagon.http.ssl.ignore.valid
+```
 

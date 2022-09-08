@@ -2,20 +2,38 @@
 
 ## 配置
 
+- 自动删除无用的包引用			Editor -> General -> Auto Import -> 勾选Add unambiguous imports on the fly以及Optimize imports on the fly
+
+  - Add unambiguous imports on the fly：快速添加明确的导入。
+  - Optimize imports on the fly：快速优化导入，优化的意思即自动帮助删除无用的导入。
+
 - 短代码不设为一行		"code style"-->Java-->Code Generation-->Line comment at first column
+
 - 软换行			"General"-->Soft Wraps
+
 - 去掉never used提示		"inspections"-->"Unused declaration"
+
 - 去掉Could not autowired提示	"inspections"-->"Autowiring for Bean Class"-->Severity的级别从Error改成Warning
+
 - 打开多个文件显示在多行tab上	"Editor tabs"-->Show tabs in one row
+
 - 修改显示tabs数上限值	"Editor tabs"-->Tab Closing Policy
+
 - 自动生成serialVersionUID	"Inspections"-->"serialVersionUID"-->Serializable class without serialVersionUID
+
 - 调整Searcheverywhere对话框	Ctrl+Shift+A输入registry-->找到ide.suppress.double.click.handler打上勾-->设置快捷键
+
 - 复制一行向下		"Duplicate Line or Selection"
+
 - 删除一行			"DeleteLine"
+
 - 取消代码一行显示		"Code Folding"-->"One-line methods"
+
 - terminal设置shell		"terminal"-->"Application settings"-->"Shell path"-->"D:\Git\bin\bash.exe"
+
 - svn忽略文件		"File Types"-->在下方 Ignore files and folders 追加如下 表达式
   				`*.iml;*.idea;*.gitignore;*.sh;*.classpath;*.project;*.settings;target;`
+  
 - IDEA自动导包        Editor-->general-->auto import-->勾选add unambiguous ...和Optimize imports on ...
 
 - 创建代码模板         Editor->Live Templates
@@ -66,6 +84,8 @@
 - ctrl+alt+m 提取方法
 - ctrl+shift+alt+t 重构
 - shift+f6 整体修改参数名称
+- ctrl+alt+o 删除无用的包引用
+- F2/Shift+F2 快速定位错误和警告
 
 ## 文件
 
