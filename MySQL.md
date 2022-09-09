@@ -266,6 +266,73 @@ mysql> SELECT * FROM table LIMIT 95,-1; # 检索记录行 96-last.
 mysql> SELECT * FROM table LIMIT 5; #检索前 5 个记录行 
 ```
 
+#### case when then
+
+```sql
+--简单case函数
+case sex
+  when '1' then '男'
+  when '2' then '女’
+  else '其他' end
+  
+--case搜索函数
+case when sex = '1' then '男'
+     when sex = '2' then '女'
+     else '其他' end  
+```
+
+```sql
+> select u.id,u.name,u.sex,
+      (case u.sex
+        when 1 then '男'
+        when 2 then '女'
+        else '空的'
+        end
+       )性别
+    from users u;
+ 
+id name                        sex	 性别
+--------------------------------------------
+1 张一                            	空的
+2 张二                          1 	男
+3 张三                            	空的
+4 张四                            	空的
+5 张五                          2 	女
+6 张六                          1 	男
+7 张七                          2 	女
+8 张八                          1 	男
+
+8 rows selected
+```
+
+```sql
+> select
+      sum(case u.sex when 1 then 1 else 0 end)男性,
+      sum(case u.sex when 2 then 1 else 0 end)女性,
+      sum(case when u.sex <>1 and u.sex<>2 then 1 else 0 end)性别为空
+    from users u;
+ 
+男性         女性       性别为空
+---------- ---------- ----------
+ 3          2          0
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ### 数据控制语言DCL

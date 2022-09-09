@@ -123,6 +123,64 @@ for (float f = 0.1f; f != 10.0f; f += 0.1f) {
 10.100003
 ```
 
+##### 精度误差epslon
+
+Math.abs(x)<1e-6 其实相当于 x == 0
+
+1e-6 (也就是0.000001)叫做 epslon ，用来抵消浮点运算中因为误差造成的相等无法判断的情况。它通常是一个非常小的数字（具体多小要看你的运算误差），只要两数差值小于 epslon 可以视为相等
+
+```java
+//反例1
+float a = 1.0f - 0.9f;
+float b = 0.9f - 0.8f;
+System.out.println(a == b);
+//反例2
+Float x = Float.valueOf(a);
+Float y = Float.valueOf(b);
+System.out.println(x.equals(y));
+
+//正例
+//指定一个误差范围，两个浮点数的插值在此范围之内，则认为是相等的
+float diff = 1e-6f;
+System.out.println(Math.abs(a - b) < diff);
+
+//使用 Bigdecimal 来定义值，在进行浮点数运算操作
+BigDecimal b1 = new BigDecimal("1.0");
+BigDecimal b2 = new BigDecimal("0.9");
+BigDecimal b3 = new BigDecimal("0.8");
+BigDecimal s1 = b1.subtract(b2);
+BigDecimal s2 = b2.subtract(b3);
+System.out.println(s1.equals(s2));
+
+输出：
+false
+false
+true
+true
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ## Decimal
 
 ### BigDecimal

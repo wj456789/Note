@@ -245,6 +245,20 @@ $ docker container commit -a "zhonghao" -m "创建新镜像测试" 98da88460690 
 sha256:cd53befffef838231ed906fc0053a5c15dc97e2abece5fa926edb14d1255a0bf  #返回新创建的镜像的ID:
 ```
 
+##### docker build
+
+命令用于使用 Dockerfile 创建镜像。 
+
+```sh
+#使用当前目录的 Dockerfile 创建镜像，标签为 runoob/ubuntu:v1
+$ docker build -t runoob/ubuntu:v1 .
+
+#-f 指定 Dockerfile 文件的位置
+$ docker build -f /path/to/a/Dockerfile .
+```
+
+
+
 #### 导出载入
 
 ```sh
