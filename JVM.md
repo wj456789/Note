@@ -529,3 +529,42 @@ count2=0
 4. 按顺序执行 public static int count1; 没有赋值，所以count1依旧为1；
 5. 按顺序执行 public static int count2 = 0;所以count2变为0.
    
+
+
+
+## 内存异常
+
+### 常见内存异常
+
+- `java.lang.OutOfMemoryError: Java heap space`: 堆内存不足。可能为内存泄漏、堆配置过小或配置不合理。可通过-Xms, -Xmx配置。
+
+- `java.lang.OutOfMemoryError: PermGen`: JDK1.7以前，“space“: 永久代(方法区)空间不足。一般为加载类型过多(加载过多的class文件)引起。可通过-XX:PermSize和-XX:MaxPermSize配置，也可以查看是否使用 -noclassgc 参数，JDK1.8之后为 `java.lang.OutOfMemoryError: Metaspace` 。
+- `StackOverFlowError`: 栈空间不足。一般为递归调用引起。通过-Xss配置。
+- `java.lang.OutOfMemoryError`: 可能为直接内存溢出。一般为通过 NIO 或 JNI 不断分配内存导致。通过 -XX:MaxDirectMemorySize配置。
+
+### 虚拟机栈的内存异常
+
+- 虚拟机栈的StackOverflowError
+
+  若单个线程请求的栈深度大于虚拟机允许的深度，则会抛出StackOverflowError
+
+  JVM会为每个线程的虚拟机栈分配一定的内存大小（-Xss参数），因此虚拟机栈能够容纳的栈帧数量是有限的，若栈帧不断进栈而不出栈，最终会导致当前线程虚拟机栈的内存空间耗尽。比如一个无结束条件的递归函数调用。
+
+- 虚拟机栈的OutOfMemoryError
+
+  不同于StackOverflowError，OutOfMemoryError指的是当整个虚拟机栈内存耗尽，并且无法再申请到新的内存时抛出的异常。
+
+  JVM未提供设置整个虚拟机栈占用内存的配置参数。虚拟机栈的最大内存大致上等于“JVM进程能占用的最大内存”。当虚拟机栈能够使用最大内存被耗尽后，便会抛出OutOfMemoryError，可以通过不断开启新的线程来模拟这种异常。
+
+
+
+### 内存泄露和内存溢出
+
+- 内存泄漏（memory leak）：是指程序在申请内存后，**无法释放**已申请的内存空间，导致系统无法及时回收内存并且分配给其他进程使用。
+
+- 内存溢出 （out of memory）：指程序**申请内存**时，没有足够的内存供申请者使用，导致数据无法正常存储到内存中。
+
+关系：内存泄露最终会导致内存溢出，由于系统中的内存是有限的，如果过度占用资源而不及时释放，最后会导致内存不足，从而无法给所需要存储的数据提供足够的内存，从而导致内存溢出。导致内存溢出也可能是由于在给数据分配大小时没有根据实际要求分配，最后导致分配的内存无法满足数据的需求，从而导致内存溢出。比如给你个int类型的存储数据大小的空间，但是却存储一个long类型的数据，这样就会导致内存溢出。
+
+[如何打破双亲委派机制](https://blog.csdn.net/cy973071263/article/details/104129163)
+
