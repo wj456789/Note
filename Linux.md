@@ -348,7 +348,7 @@ $echo "/usr/local/bin/redis-server /etc/redis.conf" >>/etc/(rc.d/)rc.local	#添�
 
 
 
-## 版本信息
+## 系统信息
 
 ```sh
 # 系统版本
@@ -366,6 +366,38 @@ $ cat /etc/centos-release
 $ cat /etc/redhat-release
 $ cat /etc/*release
 CentOS Linux release 7.7.1908 (Core)
+```
+
+```sh
+$ cat /proc/cpuinfo| grep "cpu cores"
+cpu cores       : 4
+cpu cores       : 4
+cpu cores       : 4
+cpu cores       : 4
+cpu cores       : 4
+cpu cores       : 4
+cpu cores       : 4
+cpu cores       : 4
+
+# 查询CPU内核个数  
+$ cat /proc/cpuinfo| grep "cpu cores"| uniq
+cpu cores       : 4
+
+
+
+$ cat /proc/cpuinfo| grep "physical id"
+physical id     : 0
+physical id     : 0
+physical id     : 0
+physical id     : 0
+physical id     : 0
+physical id     : 0
+physical id     : 0
+physical id     : 0
+
+# 查询物理CPU个数  
+$ cat /proc/cpuinfo| grep "physical id"| sort| uniq| wc -l
+1
 ```
 
 

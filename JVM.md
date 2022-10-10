@@ -24,6 +24,8 @@ Max Memory = eden + survivor + old + String Constant Pool + Code cache + compres
 
 ### 堆区
 
+**堆内存**：Java 虚拟机具有一个堆，堆是运行时数据区域，所有类实例和数组的内存均从此处分配。堆是在 Java 虚拟机启动时创建的。对象的堆内存由称为垃圾回收器的自动内存管理系统回收。 
+
 Heap Space堆区分为新生代和老年代，新生代分为Eden和Survivor区。
 
 **eden（伊甸区）**
@@ -151,19 +153,6 @@ DirectBuffer类继承自ByteBuffer，但和普通的ByteBuffer不同，普通的
 
   它们默认都是开启的，可以手动关闭它们。 如果不允许类指针压缩，那么将没有 compressed class space 这个空间，并且-XX:CompressedClassSpaceSize 这个参数无效。 -XX:-UseCompressedClassPointers 需要搭配 -XX:+UseCompressedOops，但是反过来不是，也就是说我们可以只压缩对象指针，不压缩类指针。在对象指针压缩基础上进行类指针压缩。
 
-## 垃圾回收
-
-## 垃圾回收算法
-
-- 标记-清除算法：标记无用对象，然后进行清除回收。缺点：效率不高，无法清除垃圾碎片。
-- 复制算法：按照容量划分二个大小相等的内存区域，当一块用完的时候将活着的对象复制到另一块上，然后再把已使用的内存空间一次清理掉。缺点：内存使用率不高，只有原来的一半。
-- 标记-整理算法：标记无用对象，让所有存活的对象都向一端移动，然后直接清除掉端边界以外的内存。
-- 分代算法：根据对象存活周期的不同将内存划分为几块，一般是新生代和老年代，**新生代基本采用复制算法，老年代采用标记整理算法**。
-
-## 垃圾回收器
-
-垃圾收集算法是内存回收的方法论，那么垃圾收集器就是内存回收的具体实现。有7种作用于不同分代的收集器，其中用于回收新生代的收集器包括Serial、PraNew、Parallel Scavenge，回收老年代的收集器包括Serial Old、Parallel Old、CMS，还有用于回收整个Java堆的G1收集器。
-
 
 
 
@@ -187,7 +176,17 @@ jps：用来显示本地的java进程，以及进程号，进程启动的路径�
 观察运行中的JVM 物理内存的占用情况，包括Heap size , Perm size
 
 ```sh
-# jmap -heap 9033
+# 打印当前对象的个数和大小
+$ jmap -histo <java_pid>
+
+# 打印当前存活对象的个数和大小,此命令会触发一次full gc
+$ jmap -histo:live <java_pid>
+```
+
+
+
+```sh
+$ jmap -heap 9033
 Attaching to process ID 9033, please wait...
 Debugger attached successfully.
 Server compiler detected.
@@ -234,6 +233,12 @@ PS Old Generation
    55.599324187340095% used
 
 24752 interned Strings occupying 2413552 bytes.
+
+# 获取内存信息
+$ jmap -heap:format=b <java_pid>
+在启动时增加-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath="具体的路径"，当系统OutOfMemory之后，会将内存信息收集下来。
+
+$ jmap -dump:live,format=b,file=aaa <java_pid>
 ```
 
 #### jcmd
@@ -317,6 +322,25 @@ used
 表示当前使用的内存量(以字节为单位)
 ```
 
+#### jstat
+
+```sh
+# 查看gc情况
+$ jstat -gc <pid> 
+```
+
+```
+GC日志:
+-XX:PrintGCTimeStamps：打印 GC 时间
+-XX:PrintGCDetails ：打印 GC 日志；
+-Xloggc: path：保存GC 日志路径。
+jstat –gcutil: 显示垃圾收集信息
+```
+
+
+
+
+
 jhat 分析jmap等方法生成的dump堆文件，解析Java堆转储文件,并启动一个 web server，可以直接访问。
 
 jinfo 查看jvm系统参数，可以动态设置参数
@@ -341,12 +365,105 @@ Heap Jmeter工具
 
 [JConsole连接远程linux服务器配置](https://www.cnblogs.com/zluckiy/p/10309495.html)
 
-## 引用类型
+## 垃圾回收
+
+### 垃圾识别
+
+不会被访问到的对象是垃圾 
+
+#### GC root 可达性分析
+
+**GC root原理**：通过对枚举GC root对象做引用可达性分析，即从GC roots对象开始，向下搜索，形成的路径称之为引用链（从GC Roots开始遍历对象，没有被遍历到的对象为垃圾 ）。如果一个对象到GC roots对象没有任何引用，没有形成引用链，那么该对象等待GC回收。 
+
+**Java中可以作为GC Roots的对象**
+
+1、虚拟机栈（javaStack）中引用的对象，也就是方法栈使用到的参数、局部变量、临时变量等。
+
+2、方法区中的类静态属性引用的对象。
+
+3、方法区中常量引用的对象。
+
+4、本地方法栈中 JNI (Native方法)引用的对象。
+
+#### 引用计数法
+
+记录每个对象被引用的数量，当被引用的数量为0时，则标记为垃圾
+
+缺点：无法处理循环引用的问题
+
+
+
+### 垃圾回收算法
+
+- 标记-清除(sweep) 算法：将垃圾对象所占据的内存标记为空闲内存，然后存在一个空闲列表(free list)中。当需要创建对象时，从空闲列表中寻找空闲内存，分配给新创建的对象。缺点：效率不高，无法清除垃圾碎片。
+- 复制(copy)算法：将内存分为两个部分，并分别用 from 和 to 指针来维护。每次只在 from 指向的内存中分配内存，当发生垃圾回收时，将 from 指向区域中存活的对象复制到 to 指向的内存区域，然后将 from 指针和 to 指针互换位置。缺点：内存使用率不高，只有原来的一半。
+- 标记-整理算法：标记无用对象，让所有存活的对象都向一端移动，在连续的空间内顺序分配，然后直接清除掉端边界以外的内存。
+- 分代算法：根据对象存活周期的不同将内存划分为几块，一般是新生代和老年代，**新生代基本采用复制算法，老年代采用标记整理算法**。
+
+gc 主要的回收的内存区域有堆区和方法区
+
+### 垃圾回收器
+
+垃圾收集算法是内存回收的方法论，那么垃圾收集器就是内存回收的具体实现。有7种作用于不同分代的收集器，其中用于回收新生代的收集器包括Serial、PraNew、Parallel Scavenge，回收老年代的收集器包括Serial Old、Parallel Old、CMS，还有用于回收整个Java堆的G1收集器。
+
+#### Minor GC
+
+特点：发生次数多，采用时间短，回收掉大量对象
+
+收集器：serial, Parallel Scavenge, Parallel New.均采用复制算法. Serial是单线程,Parallel New可以看成Serial多线程版本. Parallel Scanvenge和Parallel New类似，但更注重吞吐率，且不能与CMS一起使用
+
+#### Full GC
+
+特点：发生次数少，耗时长
+
+收集器：Serial Old(整理), Parallel Old(整理), CMS(清除). Serial Old是单线程的，Parallel Old可以看成Serial Old的多线程版本.  CMS是并发收集器，除了初始标记和重新标记操作需要Stop the world，其它时间可以与应用程序一起并发执行
+
+
+
+**Full GC 触发条件**
+
+老年代空间不足；
+
+老年代被写满；
+
+通过minor GC进入老年代的平均大小大于老年代的可用内存；
+
+方法区(Metaspace)空间不足；
+
+
+
+### 引用类型
 
 - 强引用：发生 gc 的时候不会被回收。
 - 软引用：有用但不是必须的对象，在发生内存溢出之前会被回收。
 - 弱引用：有用但不是必须的对象，在下一次GC时会被回收。
 - 虚引用（幽灵引用/幻影引用）：无法通过虚引用获得对象，用 PhantomReference 实现虚引用，虚引用的用途是在 gc 时返回一个通知。
+
+#### 详解
+
+##### strong reference
+
+Object c = new Car(); //只要c还指向car object, car object就不会被回收，只要强引用还存在，垃圾收集器永远不会回收掉被引用的对象。
+
+##### soft reference 
+
+当系统内存不足时， soft reference指向的object才会被回收。
+
+有些还有用但并非必需的对象。在系统将要发生内存溢出异常之前，将会把这些对象列进回收范围进行二次回收，如果这次回收还没有足够的内存，才会抛出内存溢出异常。 
+
+##### weak reference
+
+描述非必需对象。被弱引用关联的对象只能生存到下一次垃圾回收之前，垃圾收集器工作之后，无论当前内存是否足够，都会回收掉只被弱引用关联的对象。 
+
+`WeakReference<Car> weakCar = new WeakReference<Car>(car);`
+
+当一个对象仅仅被 weak reference 指向, 而没有任何其他 strong reference 指向的时候, 如果GC运行, 那么这个对象就会被回收。当要获得 weak reference 引用的 object 时, 首先需要判断它是否已经被回收     :`if(weakCar.get()!=null)`。
+
+另外， java提供了一个ReferenceQueue来保存这些所指向的对象已经被回收的reference。
+
+##### PhantomReference
+
+无用对象，这个引用存在的唯一目的就是在这个对象被收集器回收时收到一个系统通知，被虚引用关联的对象，和其生存时间完全没关系。 
 
 ## springboot内存优化
 
