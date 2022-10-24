@@ -255,14 +255,14 @@ $ jmap -dump:live,format=b,file=aaa <java_pid>
 */
 -XX:NativeMemoryTracking=[off | summary | detail]
  
-//如果想JVM退出时打印退出时的内存使用情况，可以通过如下配置项:
+#如果想JVM退出时打印退出时的内存使用情况，可以通过如下配置项:
 -XX:+UnlockDiagnosticVMOptions -XX:+PrintNMTStatistics
  
-#java -Xmx8g -Xms8g - -XX:+UseG1GC -XX:NativeMemoryTracking=detail -jar /home/pgcp/pgcp-0.0.1-SNAPSHOT.jar
+$ java -Xmx8g -Xms8g - -XX:+UseG1GC -XX:NativeMemoryTracking=detail -jar /home/pgcp/pgcp-0.0.1-SNAPSHOT.jar
 ```
 
 ```sh
-# jcmd 9033  VM.native_memory
+$ jcmd 9033  VM.native_memory
 9033:
 
 Native Memory Tracking:
