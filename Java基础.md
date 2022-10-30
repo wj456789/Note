@@ -161,9 +161,17 @@ true
 
 
 
+### 取整运算
 
-
-
+```java
+向上取整：比自己大的最小整数。
+向下取整：比自己小的最大整数。
+向上取整用Math.ceil(double a) ----->ceil天花板
+向下取整用Math.floor(double a) ----->floor地板
+    
+System.out.println(Math.floor(2.5));    // 2.0
+System.out.println(Math.ceil(2.5));     // 3.0
+```
 
 
 
