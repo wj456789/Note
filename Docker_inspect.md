@@ -1,5 +1,44 @@
 # Docker_inspect
 
+```
+docker container inspect重点字段介绍
+State.OOMKilled：是否触发OOM(out of memory)
+LogPath: 日志路径
+RestartCount: 容器重启次数
+Mounts.Source： 容器内挂载目录对应的宿主机路径
+Mounts.Destination：容器内挂载路径
+Config.ExposedPosrts：暴露的端口
+Config.Env：容器内环境变量
+Config.Cmd：指定字符串或字符串数组的运行命令。
+Config.Entrypoint：entrypoint.sh脚本路径及参数
+NetworkSettings.Networks.IPAddress：容器ip
+NetworkSettings.Networks.Gateway：该网络的网关
+HostConfig.Binds：该容器的卷绑定列表
+HostConfig.NetworkMode：该容器的网络模型
+HostConfig.PortBindings：容器与主机的端口映射关系
+HostConfig.Privileged：特权模式
+HostConfig.Sysctls：给容器设置内核参数
+
+docker image inspect 字段说明
+Cmd：容器启动时执行的命令
+Config.ExposedPorts：镜像配置的暴露端口信息
+Config.Env：镜像配置的环境变量
+Architecture：镜像运行的CPU架构
+
+docker volume inspect 字段说明
+MountPoint：容器内挂载目录对应的宿主机路径
+UsageData：卷使用详情
+UsageData.Size：挂载卷已使用
+UsageData.RefCount：该卷关联的容器数
+
+docker network inspect 字段说明
+IPAM.Config.Subnet：子网网段
+IPAM.Config.Gateway：子网网关
+Containers：关联的容器信息
+```
+
+
+
 | container                           |                                                              |
 | ----------------------------------- | ------------------------------------------------------------ |
 | 字段名                              | 字段说明                                                     |

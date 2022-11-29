@@ -344,7 +344,7 @@ $ curl http://localhost:5000/v2/centos/tags/list
 
 ### 创建和运行
 
-#### 新建
+#### 新建和启动
 
 ```sh
 #新建的容器处于停止状态
@@ -353,9 +353,8 @@ $ docker [container] create centos:7
 
 ![img](img_Docker/clipboard-1640949933892.png)
 
-#### 启动
-
 ```sh
+# 启动
 $ docker start  48a330c79c20
 ```
 
@@ -363,16 +362,23 @@ $ docker start  48a330c79c20
 
 #### run命令
 
+可以在宿主机里，用一条命令实现：创建、启动容器并调用容器的命令，并且体现-it参数的交互模式启动容器的效果
+
 ```sh
-#可以在宿主机里，用一条命令实现：创建、启动容器并调用容器的命令，并且体现-it参数的交互模式启动容器的效果：
 $ docker run -it  centos:7  [/bin/bash]
 
 #其中，-t选项让Docker分配一个伪终端并绑定到容器的标准输入上, -i则让容器的标准输入保持打开。-it不可少，少了，容器就会走一个生命周期后终止。
-#我们说这样子创建的容器是交互式的，我们可以通过保持开启的容器的标准输入，从终端输入命令进去到容器里去，命令在容器里执行的结果，也可以通过伪终端，显示出来。
 
+#这样子创建的容器是交互式的，命令执行之后直接进入伪终端，可以通过保持开启的容器的标准输入，从终端输入命令进去到容器里去；命令在容器里执行的结果，也可以通过伪终端，显示出来。
 #终端既是访问入口，比如远程链接工具使用ssh访问linux服务器，使用的就是bash终端输入
+```
 
-#运行之后直接进入伪终端
+
+
+##### 运行流程和启动命令
+
+```sh
+$ docker run -it  centos:7  [/bin/bash]
 ```
 
 **运行流程：**
@@ -405,19 +411,12 @@ Hello world
 > 6. 执行用户指定的应用程序;
 > 7. 执行完毕后容器被自动终止。
 
+
+
 ```sh
 #tomcat容器启动默认运行命令为catalina.sh，centos容器启动命令为bin/bash
 $ docker run  tomcat:8 [catalina.sh]
 ```
-
-
-
-
-
-**退出伪终端**
-
-- exit：停止运行中的容器，再退出伪终端，实质上是退出/bin/bash这个终端进程
-- 快捷键：ctrl+p+q，不停止容器实例的运行，退出伪终端
 
 #### 守护态运行
 
@@ -430,18 +429,12 @@ ce554267d7a4c34eef c92c5517051dc37b918b588736d0823e4c846596b04d83
 #可以同时使用-dit容器以后台方式运行，不进入伪终端并且会以交互模式运行不会终止
 ```
 
-#### 查看容器输出 
-
-```sh
-#-t，-timestamps:显示时间戳信息;
-#-f, -follow: 持续保持输出;
-#-tail string:输出最近的若干日志;
-
-$ docker logs  容器id
-$ docker logs -t -f --tail 3  容器id	#显示历史记录尾部3行之后持续输出
-```
-
 ### 停止
+
+#### 退出伪终端
+
+- exit：停止运行中的容器，再退出伪终端，实质上是退出/bin/bash这个终端进程
+- 快捷键：ctrl+p+q，不停止容器实例的运行，退出伪终端
 
 #### 暂停
 
@@ -463,29 +456,9 @@ $ docker stop test
 $ docker kill test
 ```
 
-
-
 ```sh
 #重启
 $ docker restart test
-```
-
-### 进入
-
-```sh
-#当多个窗口同时attach到同一个容器的时候，所有窗口都会同步显示；当某个窗口因命令阻塞时，其他窗口也无法执行操作了。
-$ docker attach  243c32535da7
-root@243c32535da7:
-```
-
-```sh
-#进入到刚创建的容器中，并启动一个bash:
-$ docker exec -it  243c32535da7  /bin/bash
-root@243c32535da7:/#
-
-#-d, --detach: 在容器中后台执行命令;
-#-i : 打开标准输人接受用户输人命令，默认值为false
-#-t，--tty=true | false: 分配伪终端，默认值为false;
 ```
 
 ### 删除
@@ -508,11 +481,29 @@ $ docker kill $(docker ps -q)
 
 ![img](img_Docker/clipboard-1640951944150.png)
 
+### 进入
+
+```sh
+#当多个窗口同时attach到同一个容器的时候，所有窗口都会同步显示；当某个窗口因命令阻塞时，其他窗口也无法执行操作了。
+$ docker attach  243c32535da7
+root@243c32535da7:
+```
+
+```sh
+#进入到刚创建的容器中，并启动一个bash:
+$ docker exec -it  243c32535da7  /bin/bash
+root@243c32535da7:/#
+
+#-d, --detach: 在容器中后台执行命令;
+#-i : 打开标准输人接受用户输人命令，默认值为false
+#-t，--tty=true | false: 分配伪终端，默认值为false;
+```
+
 
 
 ### 导入导出
 
-#### 导出
+**导出**
 
 ```sh
 #导出一个已经创建的容器到一个文件，不管此时这个容器是否处于运行状态，通过-o选项来指定导出的tar文件名
@@ -529,7 +520,7 @@ $ docker export  -o test.tar  xxxxxx
 
 - docker export生成的容器快照文件将丟弃所有的历史记录和元数据信息(即仅保存容器当时的快照状态)，docker  commit生成的镜像存储文件将保存完整记录，体积更大。元数据信息即容器基于的镜像相关信息，如镜像相关标签和tag。
 
-#### 导入
+**导入**
 
 ```sh
 #将导出的test.tar 文件导人到本地镜像库中变成镜像
@@ -549,7 +540,20 @@ $ docker tag xxxxx   ctos:7
 
 
 
-### 查看容器
+### 查看
+
+#### 查看日志输出
+
+```sh
+#-t，-timestamps:显示时间戳信息;
+#-f, -follow: 持续保持输出;
+#-tail string:输出最近的若干日志;
+
+$ docker logs  容器id
+$ docker logs -t -f --tail 3  容器id	#显示历史记录尾部3行之后持续输出
+```
+
+#### 查看容器
 
 ```sh
 #查看当前运行的容器信息，-a查看所有容器信息
@@ -595,12 +599,26 @@ bc5c38e70b5f     heuristic_yalow     0.00%           404KiB / 7.777GiB   0.00%  
 #支持在容器和主机之间复制文件
 $ docker [container]  cp [OPTIONS] CONTAINER:SRC_PATH   DEST_ PATH
 
+$ docker cp a42d7bf373b9:/opt/redis/cipher /home/temp/
 #-a, -archive: 打包模式，复制文件会带有原始的uid/gid信息;
 #-L，-follow-link :跟随软连接。当原路径为软连接时，默认只复制链接信息，使用该选项会复制链接的目标内容。
 
 #在宿主机运行命令,将宿主机本地的路径data复制到test容器的/tmp路径下
 $ docker cp  data/  test:/tmp/
 ```
+
+```sh
+# 将主机/www/runoob目录拷贝到容器96f7f14e99ab的/www目录下。
+$ docker cp /www/runoob 96f7f14e99ab:/www/
+
+# 将主机/www/runoob目录拷贝到容器96f7f14e99ab中，目录重命名为www。
+$ docker cp /www/runoob 96f7f14e99ab:/www
+
+# 将容器96f7f14e99ab的/www目录拷贝到主机的/tmp目录中。
+$ docker cp  96f7f14e99ab:/www /tmp/
+```
+
+
 
 #### 查看变更
 
