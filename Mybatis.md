@@ -112,7 +112,7 @@ public static void main(String[] args) {
 </configuration>
 ```
 
-### 映射配置文件XxxMapper.xml
+### 映射配置文件xxxMapper.xml
 
 > 每一个mapper文件相当于原来的DAO实现类，每个实体类对应一个映射文件
 
@@ -494,6 +494,196 @@ public class Dept{
     private List<Emp> emps;
 }
 ```
+
+
+
+
+
+#### xml转义
+
+sql中有一些特殊的字符的话，在解析xml文件的时候会被转义，但我们不希望他被转义，所以我们要使用<![CDATA[ ]]> 
+
+<![CDATA[   ]]> 是XML语法。在CDATA内部的所有内容都会被解析器忽略。 
+
+如果文本包含了很多的"<"字符 <=和"&"字符，那么最好把他们都放到CDATA部件中。 
+
+#### 调用存储过程
+
+```xml
+<select id="synchronousDataQualityFromBdi" databaseId="gauss" resultType="String">
+    CALL p_synch_data_quality_d (#{statDate,mode=IN,jdbcType=VARCHAR})
+</select>
+```
+
+```sql
+/*sql中存储过程*/
+CREATE OR REPLACE PROCEDURE P_SYNCH_DATA_QUALITY_D (
+                             iv_stat_date in varchar2   --同步日期
+                             ) 
+as
+/** head
+  * @name                    p_synch_data_quality_d
+  * @caption                 将数据质量数据同步到资产可视通用数据质量
+  * @type                    iv_stat_date varchar2,format yyyymmdd
+  * @parameter               oi_result integer 0 成功
+  * @version                 2.0.0
+  * @author                  w00212040
+  * @create_date             2020-04-28
+  * @copyright               Huawei
+  * @modify1                 修改时请标注修改内容
+  */
+begin
+
+  --同步到t_dataquality_rule_details
+  delete from t_dataquality_rule_details a
+   where a.stat_date = to_number(iv_stat_date) and a.data_source_id='1';
+
+  insert into t_dataquality_rule_details
+              (stat_date,
+               ruleid,
+               rulecode,
+               rulename,
+               objecttype,
+               typeid,
+               objecttypestr,
+               createtime,
+               createtimeformat,
+               data_cycle,
+               data_source_id
+              )
+     select to_number(iv_stat_date) as stat_date,
+              a.rule_id,
+              a.rule_id as rule_code,
+              a.rule_name,
+              '' as objecttype,
+              case when a.type_description='唯一性' then 'Unique'
+                when a.type_description='准确性' then 'Accuracy'
+                when a.type_description='一致性' then 'Consistency'
+                when a.type_description='完整性' then 'Integrity'
+                when a.type_description='及时性' then 'Timeliness'
+                else 'Validity'
+              end typeid,
+              case
+                when a.column_name is not null then 'Field'
+                else 'Table'
+              end object_type_str,
+              to_char(SYSDATE,'yyyymmdd hh24:mi:ss') as createtime,
+              to_char(SYSDATE,'yyyymmdd hh24:mi:ss') as createtimeformat,
+              a.data_cycle,
+              '1' as data_source_id
+         from t_dq_rule_def a;
+  commit;
+
+end;/
+```
+
+
+
+#### 多数据库
+
+MyBatis 可以根据不同的数据库厂商执行不同的语句，这种多厂商的支持是基于映射语句中的 databaseId 属性。如果配置了 **databaseIdProvider**，MyBatis 会加载所有的不带 databaseId 或匹配当前数据库 databaseId 属性的所有语句；如果带或者不带的语句都有，则不带的会被忽略。新增，修改和删除都有这个属性。 
+
+```xml
+<select id="getAssetsSquareSource" resultMap="AssetsSquare" databaseId="gauss">
+        select NVL(COUNT(*),0) NUM
+        FROM LOGICAL_ENTITY_INFO LOGICAL
+        LEFT JOIN PHYSICAL_ENTITY_INFO PHYSICAL ON LOGICAL.LOGICALENTITY_ID = PHYSICAL.LOGICALENTITY_ID
+        LEFT JOIN DATA_ASSETS_INFO LOGICALASSETS ON LOGICAL.DATA_CODE = LOGICALASSETS.DATA_CODE
+        WHERE PHYSICAL.DATA_LEVEL = '1'
+        AND LOGICALASSETS.STATE = '2'
+        AND (LOGICALASSETS.ISPRIVATE = '0' OR LOGICALASSETS.DAMS_BEID =  #{damsBeId, jdbcType=VARCHAR})
+        GROUP BY LOGICALASSETS.DATA_TYPE
+</select>
+    
+    
+<select id="getAssetsSquareSource" resultMap="AssetsSquare" databaseId="mysql">
+        select IFNULL(COUNT(*),0) NUM
+        FROM LOGICAL_ENTITY_INFO LOGICAL
+        LEFT JOIN PHYSICAL_ENTITY_INFO PHYSICAL ON LOGICAL.LOGICALENTITY_ID = PHYSICAL.LOGICALENTITY_ID
+        LEFT JOIN DATA_ASSETS_INFO LOGICALASSETS ON LOGICAL.DATA_CODE = LOGICALASSETS.DATA_CODE
+        WHERE PHYSICAL.DATA_LEVEL = '1'
+        AND LOGICALASSETS.STATE = '2'
+        AND (LOGICALASSETS.ISPRIVATE = '0' OR LOGICALASSETS.DAMS_BEID =  #{damsBeId, jdbcType=VARCHAR})
+        GROUP BY LOGICALASSETS.DATA_TYPE
+</select>
+```
+
+```java
+// springboot中
+@Configuration
+public class DatabaseSwitchConfig {
+    /**
+     * 自动识别使用的数据库类型
+     * 在mapper.xml中databaseId的值就是跟这里对应，
+     * 如果没有databaseId选择则说明该sql适用所有数据库
+     *
+     * @return DatabaseIdProvider
+     */
+    @Bean
+    public DatabaseIdProvider getDatabaseIdProvider() {
+        Properties properties = new Properties();
+        properties.setProperty("Oracle", "oracle");
+        properties.setProperty("MySQL", "mysql");
+        properties.setProperty("DB2", "db2");
+        properties.setProperty("Derby", "derby");
+        properties.setProperty("H2", "h2");
+        properties.setProperty("HSQL", "hsql");
+        properties.setProperty("Informix", "informix");
+        properties.setProperty("MS-SQL", "ms-sql");
+        properties.setProperty("PostgreSQL", "postgresql");
+        properties.setProperty("Sybase", "sybase");
+        properties.setProperty("Hana", "hana");
+        properties.setProperty("Zenith", "gauss");
+        DatabaseIdProvider databaseIdProvider = new VendorDatabaseIdProvider();
+        databaseIdProvider.setProperties(properties);
+        return databaseIdProvider;
+    }
+}
+```
+
+[MyBatis之databaseIdProvider多数据库支持](https://blog.csdn.net/likewindy/article/details/51396576)
+
+
+
+
+
+#### 动态sql
+
+if 和 trim 标签
+
+[使用＜where＞标签替换where 1=1](https://blog.csdn.net/AttleeTao/article/details/114319763)
+
+where标签只会在它包含的标签中有返回值的情况下才插入 “WHERE” 子句。而且，若子句的开头为 “AND” 或 “OR”，where标签也会将它们去除。 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

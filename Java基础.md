@@ -20,52 +20,6 @@ Java的基本类型占用空间和系统位数无关，只和类型本身有关�
 - 允许自动类型转换的标准是表数范围小的类型赋值给表数范围大的类型
 - 强制类型转换可用于所有基础数值类型之间的转换，很多场合特指表数范围大的类型给表数范围小的类型赋值
 
-##### 类型强转
-
-```java
-Object obj;
-List<Integer> list = castList(obj,Integer.class);
-//list强转
-private static <T> List<T> castList(Object obj, Class<T> clazz) {
-    List<T> result = new ArrayList<T>();
-    if (obj instanceof List<?>) {
-        for (Object o : (List<?>) obj) {
-            result.add(clazz.cast(o));
-        }
-        return result;
-    }
-    return null;
-}
-```
-
-```java
-Object obj;
-Map<String,Object> map = castHashMap(obj,String.class,Object.class);
-
-/**
- * 防止出现强转警告
- *
- * @param obj 强转对象
- * @param clazz1 HashMap的key
- * @param clazz2 HashMap的value
- * @param <K> Key泛型
- * @param <V> Value泛型
- * @return 强转后对象
- */
-private <K, V> HashMap<K, V> castHashMap(Object obj, Class<K> clazz1, Class<V> clazz2) {
-    HashMap<K, V> result = new HashMap<K, V>();
-    if (obj instanceof HashMap<?, ?>) {
-        for (Object o : ((HashMap<?, ?>) obj).keySet()) {
-            result.put(clazz1.cast(o), clazz2.cast(((HashMap<?, ?>) obj).get(o)));
-        }
-        return result;
-    }
-    return null;
-}
-```
-
-
-
 #### 类型提升
 
 当一个算数表达式包含多个基本类型的值时，整个算术表达式的数据类型将发生自动提升
@@ -263,9 +217,25 @@ System.out.println(fnum1.format(value1));			//15687.124
 
 
 
+### 保留两位小数
 
-
-
+```java
+// double保留两位小数的四种方法，都是四舍五入
+public static void main(String[] args) {
+    // NumberFormat设置最大小数位数
+    NumberFormat numberFormat = NumberFormat.getInstance();
+    numberFormat.setMaximumFractionDigits(2);
+    System.out.println((Double.parseDouble(numberFormat.format(89.5998))));
+    // Sting自带的format方法
+    System.out.println((Double.parseDouble(String.format("%.2f",89.5656))));
+    // DecimalFormat
+    DecimalFormat decimalFormat = new DecimalFormat("#.00");
+    System.out.println(Double.parseDouble(decimalFormat.format(56.5656)));
+    // BigDecimal的setScale方法
+    BigDecimal bigDecimal = new BigDecimal(56.5656);
+    System.out.println(bigDecimal.setScale(2, BigDecimal.ROUND_HALF_UP).doubleValue());
+}
+```
 
 
 
@@ -1255,6 +1225,75 @@ Map 接口 键值对的集合 （双列集合）
 Vector与ArrayList一样，也是通过数组实现的，不同的是它支持线程的同步，并且当Vector或ArrayList中的元素超过它的初始大小时，Vector会将容量翻倍，ArrayList只增加50%的大小。
 
 参考：[java集合超详解](https://blog.csdn.net/feiyanaffection/article/details/81394745)
+
+
+
+### 集合泛型转换
+
+#### ObjTo<>
+
+```java
+Object obj;
+List<Integer> list = castList(obj,Integer.class);
+//list强转
+private static <T> List<T> castList(Object obj, Class<T> clazz) {
+    List<T> result = new ArrayList<T>();
+    if (obj instanceof List<?>) {
+        for (Object o : (List<?>) obj) {
+            result.add(clazz.cast(o));
+        }
+        return result;
+    }
+    return null;
+}
+```
+
+```java
+Object obj;
+Map<String,Object> map = castHashMap(obj,String.class,Object.class);
+
+/**
+ * 防止出现强转警告
+ *
+ * @param obj 强转对象
+ * @param clazz1 HashMap的key
+ * @param clazz2 HashMap的value
+ * @param <K> Key泛型
+ * @param <V> Value泛型
+ * @return 强转后对象
+ */
+private <K, V> HashMap<K, V> castHashMap(Object obj, Class<K> clazz1, Class<V> clazz2) {
+    HashMap<K, V> result = new HashMap<K, V>();
+    if (obj instanceof HashMap<?, ?>) {
+        for (Object o : ((HashMap<?, ?>) obj).keySet()) {
+            result.put(clazz1.cast(o), clazz2.cast(((HashMap<?, ?>) obj).get(o)));
+        }
+        return result;
+    }
+    return null;
+}
+```
+
+#### StrTo<>
+
+```java
+List<RedisInstancesInfo> resultList =
+                    JSONObject.parseObject(
+                            str, new TempTypeReference());
+private static class TempTypeReference extends TypeReference<List<RedisInstancesInfo>> {
+    public TempTypeReference() {}
+}
+
+
+Map<String, Object> stringObjectMap = 
+    JSONObject.parseObject(str, new TypeReference<Map<String, Object>>(){});
+
+
+Map<?,?> tempMap = JacksonConvertHelper.getJavaBeanByString(str, Map.class);
+Map<String, Object> envMap = castHashMap(tempMap, String.class, Object.class);
+```
+
+
 
 ### hash
 
