@@ -275,9 +275,12 @@ public static void main(String[] args) {
 
 ### 多态
 
-**当超类对象引用变量引用子类对象时，被引用对象的类型而不是引用变量的类型决定了调用谁的成员方法，但是这个被调用的方法必须是在超类中定义过的，也就是说被子类覆盖的方法，但是它仍然要根据继承链中方法调用的优先级来确认方法，该优先级为：**
+**重写参数有父子类**
 
-**this.show(O)、super.show(O)、this.show((super)O)、super.show((super)O)。**
+> 当超类对象引用变量引用子类对象时，被引用对象的类型而不是引用变量的类型决定了调用谁的成员方法，但是这个被调用的方法必须是在超类中定义过的，也就是说被子类覆盖的方法，但是它仍然要根据继承链中方法调用的优先级来确认方法，该优先级为：
+>
+> this.show(O)、super.show(O)、this.show((super)O)、super.show((super)O)。
+>
 
 ```java
 public class A {
