@@ -573,6 +573,167 @@ create table child(
 
 参考：[外键约束](https://www.cnblogs.com/cjaaron/p/9216839.html)
 
+## 表空间
+
+### 概念
+
+　　从 InnoDB存储引擎的逻辑存储结构看，所有数据都被逻辑地存放在一个空间中，称之为表空间( tablespace)。表空间又由段(segment)、区( extent)、页(page)组成，页在一些文档中有时也称为块( block) 。每个**表空间由一个或多个数据文件组成**，一个数据文件只能与一个表空间相联系。 
+
+数据表是逻辑上的概念，**表空间是物理层面的概念**，在innodb存储引擎中数据是按照表空间来组织存储的，表空间文件对应着磁盘上的物理文件。 
+
+#### 系统表空间
+
+**查看系统表空间参数：**
+
+```mysql
+mysql> show variables like '%inndb_data_file_path%';
+
+Variable_name			Value
+innodb_data_file_path	ibdata1:12M:autoextend
+```
+
+Value部分的的组成是：name:size:attributes
+
+默认情况下，MySQL会初始化一个大小为12MB，名为ibdata1文件，并且随着数据的增多，它会自动扩容。
+
+这个ibdata1文件是**系统表空间**，也是默认的表空间，也是默认的表空间物理文件，也是共享表空间。
+
+**配置系统表空间：**
+
+系统表空间的数量和大小可以通过启动参数：innodb_data_file_path
+
+```cnf
+# my.cnf
+[mysqld]
+innodb_data_file_path=/dir1/ibdata1:2000M;/dir2/ibdata2:2000M:autoextend
+```
+
+#### 独占表空间
+
+**启用独占表空间参数：**
+
+```sh
+让每一个数据库表都有一个单独的表空间文件的话，可以通过参数innodb_file_per_table设置。这个参数只有在MySQL5.6或者是更高的版本中才可以使用。
+
+配置文件：
+[mysqld]
+innodb_file_per_table=ON
+
+命令：
+mysql> SET GLOBAL innodb_file_per_table=ON; 
+```
+
+之后InnoDB存储引擎产生的表都会自己独立的表空间文件。
+
+独立的表空间文件命名规则：表名.ibd，独立表空间文件中仅存放该表对应数据、索引、insert buffer bitmap。
+
+其余的诸如：undo信息、insert buffer 索引页、double write buffer 等信息依然放在默认表空间，也就是共享表空间中。
+
+#### 临时表空间
+
+**查看临时表空间参数：**
+
+临时表空间用于存放用户创建的临时表和磁盘内部临时表。
+
+```mysql
+-- 参数innodb_temp_data_file_path定义了临时表空间的一些名称、大小、规格属性。
+mysql> show variables like '%innodb_temp_data_file_path%';
+Variable_name				Value
+innodb_temp_data_file_path	ibtmp1:12M:autoextend
+
+-- 查看临时表空间文件存放的目录
+mysql> show variables like '%innodb_data_home_dir%';
+Variable_name				Value
+innodb_data_home_dir		/home/mysql/mysql/var
+```
+
+#### 撤销表空间
+
+用来帮助回退未提交的事务数据
+
+### 表碎片清理和表空间收缩
+
+当你删除数据时，mysql并不会回收，被已删除数据的占据的存储空间，以及索引位。而是空在那里，而是等待新的数据来弥补这个空缺。
+
+```mysql
+-- 清理碎片后 tablename.ibd 文件磁盘空间减小,该方案基于独立表空间存储方式
+> OPTIMIZE TABLE [tablename],当然这种方式只适用于独立表空间
+
+清除碎片的优点:
+  　　降低访问表时的IO,提高mysql性能,释放表空间降低磁盘空间使用率。
+```
+
+```mysql
+-- 如：
+> OPTIMIZE TABLE ipvacloud.report_site_day;
+对myisam表有用  对innodb也有用，系统会自动把它转成 ALTER TABLE  report_site_day ENGINE = Innodb; 这是因为optimize table的本质，就是alter table，所以不管myisam引擎还是innodb引擎都可以使用OPTIMIZE TABLE回收表空间。
+```
+
+
+
+#### 存储模式
+
+**MySQL5.5默认是共享表空间 ，5.6中默认是独立表空间(表空间管理类型就这2种)** 
+
+独立表空间 就是采用和MyISAM 相同的方式, 每个表拥有一个独立的数据文件( .idb )
+
+1.每个表都有自已独立的表空间。
+2.每个表的数据和索引都会存在自已的表空间中。
+3.可以实现单表在不同的数据库中移动(将一个库的表移动到另一个库里,可以正常使用)。
+4.drop table自动回收表空间 ，删除大量数据后可以通过alter table XX engine = innodb;回收空间。
+
+**查看表空间文件：**
+
+```sh
+# oa是数据库名称
+$ ll /usr/local/mysql/data/oa
+......
+flowtemplate.ibd	# 以.ibd文件结尾的是表flowtemplate对应的独立表空间文件
+t3.frm			#以frm结尾的是该表的表结构定义文件
+......
+```
+
+**InnoDB引擎 frm ibd文件说明：**
+   1.frm ：描述表结构文件，字段长度等
+   2.ibd文件 
+         **a如果采用独立表存储模式(5.6)，data\a中还会产生report_site_day.ibd文件（存储数据信息和索引信息）**
+
+​         D:\java\mysql5.6\data\ipvacloudreport_site_day.frm 和
+
+​         D:\java\mysql5.6\data\ipvacloud\report_site_day.ibd
+
+​         **b如果采用共享存储模式(5.5)，数据信息和索引信息都存储在ibdata1中**
+​          (其D:\java\mysql5.6\data\目录下没有.ibd文件,只有frm文件)
+
+### 表空间操作
+
+#### 创建
+
+```mysql
+【语法】
+CREATE TABLESPACE 表空间名 DATAFILE '数据文件路径' SIZE 大小 [AUTOEXTEND ON] [NEXT 大小] [MAXSIZE 大小];
+
+【说明】[]里面内容可选项；数据文件路径中若包含目录需要先创建
+SIZE为初始表空间大小，单位为K或者M
+AUTOEXTEND ON 是否自动扩展
+NEXT为文件满了后扩展大小
+MAXSIZE为文件最大大小，值为数值或UNLIMITED（表示不限大小）
+```
+
+```mysql
+> create tablespace DAMSDB_DATA datafile '/opt/gdbservice/data/data/DAMSDB_DATA.dbf' size 1024M autoextend on next 1024M MAXSIZE 102400M;
+```
+
+
+
+[MySQL的表空间](https://www.cnblogs.com/better-farther-world2099/articles/14713523.html)
+
+[表空间使用方法 （Oracle）](https://blog.csdn.net/qq_41548307/article/details/84029864)
+
+
+
+
+
 ## 索引
 
 索引是一种特殊的文件(InnoDB数据表上的索引是表空间的一个组成部分)，它们包含着对数据表里所有记录的引用指针。更通俗的说，索引就相当于目录。为了方便查找书中的内容，通过对内容建立索引形成目录。索引是一个文件，它是要占据物理空间的。
@@ -1997,7 +2158,7 @@ partitions 5;
 
 Key分区类似于Hash分区，但这里的Hash Key是由MySQL系统产生的。
 
-```java
+```mysql
 create table user_key(
     id int not null auto_increment,
     name varchar(30) ,
@@ -2012,7 +2173,7 @@ partitions 5;
 
 ### 分区操作
 
-```java
+```mysql
 #新增分区
 alter table `user` add partition(partition p5 VALUES LESS THAN MAXVALUE);
 

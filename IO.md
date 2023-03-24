@@ -8,7 +8,7 @@
 
 DataInputStream 类，支持按照基本数据类型（int、boolean、long 等）来读取数据。
 
-
+### 装饰器模式应用
 
 ```java
 public class BufferedInputStream extends InputStream {
@@ -35,9 +35,29 @@ BufferedInputStream、DataInputStream继承自 FilterInputStream，BufferedInput
 
 
 
+### ByteArrayOutputStream
 
+字节数组输出流，低级流，避开了序列化和反序列化，不用跟硬盘交互，直接内存操作，节省了资源和缩短了响应时间，ByteArrayOutputStream 中的数据被写入一个 byte 数组。缓冲区会随着数据的不断写入而自动增长。
 
+```java
+ByteArrayOutputStream baos = new ByteArrayOutputStream();
+// 依次写入“A”、“B”、“C”三个字母。0x41对应A，0x42对应B，0x43对应C。
+baos.write(0x41);
+baos.write(0x42);
+baos.write(0x43);
 
+// 将ArrayLetters数组中从下标“3”开始的后5个字节写入到baos中。
+byte[] ArrayLetters;
+baos.write(ArrayLetters, 3, 5);
+
+// 转换成byte[]数组
+byte[] buf = baos.toByteArray();
+String str = new String(buf);
+
+// 将baos写入到另一个输出流中
+ByteArrayOutputStream baos2 = new ByteArrayOutputStream();
+baos.writeTo((OutputStream)baos2);
+```
 
 
 
