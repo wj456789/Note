@@ -547,7 +547,7 @@ age=18
 
 ## Bean作用域
 
-在IoC容器中bean默认是单例的，但是单例bean中的属性是线程不安全的，可以在bean标签中设置scope="prototype"属性指定作用域，配置为非单例的
+在IoC容器中bean默认是多线程单例模式，所以 controller 的请求线程不安全，单例bean中的属性是线程不安全的，可以在bean标签中设置scope="prototype"属性指定作用域，配置为非单例的
 
 scope作用域，取值：
 

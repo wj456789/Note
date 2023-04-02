@@ -1870,7 +1870,155 @@ public class ShiroConfig {
 
 4. `nohup java -jar xxx.jar &`命令后台启动。
 
+## SpringBoot+MessageSource
 
+#### 国际化MessageSource
+
+Spring中定义了一个MessageSource接口，以用于支持信息的国际化和包含参数的信息的替换。MessageSource接口的定义如下，对应的方法说明已经在方法上注释了。
+
+```java
+public interface MessageSource {
+
+    /**
+	 * 解析code对应的信息进行返回，如果对应的code不能被解析则返回默认信息defaultMessage。
+	 * @param 需要进行解析的code，对应资源文件中的一个属性名
+	 * @param 需要用来替换code对应的信息中包含参数的内容，如：{0},{1,date},{2,time}
+	 * @param defaultMessage 当对应code对应的信息不存在时需要返回的默认值
+	 * @param locale 对应的Locale
+	 * @return
+	 */
+    String getMessage(String code, Object[] args, String defaultMessage, Locale locale);
+
+    /**
+	 * 解析code对应的信息进行返回，如果对应的code不能被解析则抛出异常NoSuchMessageException
+	 * @param code 需要进行解析的code，对应资源文件中的一个属性名
+	 * @param args 需要用来替换code对应的信息中包含参数的内容，如：{0},{1,date},{2,time}
+	 * @param locale 对应的Locale
+	 * @return 
+	 * @throws NoSuchMessageException 如果对应的code不能被解析则抛出该异常
+	 */
+    String getMessage(String code, Object[] args, Locale locale) throws NoSuchMessageException;
+
+    /**
+	 * 通过传递的MessageSourceResolvable对应来解析对应的信息
+	 * @param resolvable 
+	 * @param locale 对应的Locale
+	 * @return 
+	 * @throws NoSuchMessageException 如不能解析则抛出该异常
+	 */
+    String getMessage(MessageSourceResolvable resolvable, Locale locale) throws NoSuchMessageException;
+
+}
+```
+
+#### springboot使用
+
+springboot默认支持国际化，需要在类路径下创建国际化配置文件，注意名称必须以messages开始。 比如在resoure下新建i18n目录，在此目录下新建message.properties，messages.properties （默认的语言配置文件，当找不到其他语言的配置的时候，使用该文件进行展示）。yml文件中指定了messageSource的basename为messages，即根资源文件应为类路径下的messages.properties，其它的都是需要带Locale后缀的，如中国大陆是messages_zh_CN.properties。 
+
+```yaml
+# application.yml
+spring:
+  messages:
+    basename: classpath:i18n/messages
+    encoding: UTF-8
+    cache-duration: 3600ms
+```
+
+```properties
+# messages.properties
+LineAgeShow_100007=传入参数为空
+LineAgeShow_100008=模型血缘关系异常
+LineAgeShow_100009=模型血缘关系id为空
+
+# messages_en_US.properties
+LineAgeShow_100007=The incoming parameter is empty
+LineAgeShow_100008=Model LineAge relationship exception 
+LineAgeShow_100009=Model lineAge id is empty
+
+# messages_zh_CN.properties
+LineAgeShow_100007=传入参数为空
+LineAgeShow_100008=模型血缘关系异常
+LineAgeShow_100009=模型血缘关系id为空
+```
+
+```java
+import org.springframework.context.MessageSource;
+/**
+ * 国际化语言获取工具类
+ *
+ */
+@Component
+public class LocaleMessageSourceUtil {
+    @Resource
+    private MessageSource messageSource;
+
+    private Boolean isEN(HttpServletRequest request) {
+        HttpSession session = request.getSession();
+        if (session != null) {
+            Object obj = session.getAttribute(AppConstant.LANGUAGESETTING);
+            if (obj instanceof String) {
+                String lang = NormalizerUtil.normalizeForString((String) obj);
+                return lang.toLowerCase(Locale.ENGLISH).contains("en");
+            }
+        }
+        return false;
+    }
+
+    public Boolean isEN() {
+        RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
+        if (requestAttributes != null) {
+            HttpServletRequest request = ((ServletRequestAttributes) requestAttributes).getRequest();
+            return isEN(request);
+        }
+        return false;
+    }
+
+    public String getMessage(String code, Locale locale) {
+        /**
+         * code：信息的键，properties中的key
+         * args：系统运行时参数，可为空
+         * defaultMessage：默认信息，可为空
+         * locale：区域信息，我们可以通过java.util.Locale类下面的静态常量找到对应的值。如：简体中文就是zh_CN；英文就是en_US，详见java.util.Locale中的常量值，Locale.US是en_US或Locale.SIMPLIFIED_CHINESE是zh_CN
+         */
+        return messageSource.getMessage(code, null, null, locale);
+    }
+
+    public String getMessage(String code, HttpServletRequest request) {
+        return messageSource.getMessage(code, null, null, Locale.SIMPLIFIED_CHINESE);
+    }
+
+    public String getMessage(String code) {
+        return messageSource.getMessage(code, null, Locale.SIMPLIFIED_CHINESE);
+    }
+}
+```
+
+```java
+@Autowired
+private LocaleMessageSourceUtil messageSourceUtil;
+
+messageSourceUtil.getMessage("LineAgeShow_100007", Global.getHttpServletRequest())
+```
+
+```java
+public class Global {
+    public static HttpServletRequest getHttpServletRequest() {
+        HttpServletRequest request = null;
+        RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
+
+        if (requestAttributes == null) {
+            return request;
+        }
+        return ((ServletRequestAttributes) requestAttributes).getRequest();
+    }
+
+    public static HttpSession getHttpSession() {
+        return getHttpServletRequest().getSession();
+    }
+}
+```
+
+[国际化MessageSource](https://elim168.github.io/spring/bean/21.%E5%9B%BD%E9%99%85%E5%8C%96MessageSource.html)
 
 
 ## 常见问题

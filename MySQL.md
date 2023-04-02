@@ -87,8 +87,48 @@ insert into score(name, course, grade) values('张三', '语文', 89);
 | 删除内容 | 表结构还在，删除表的全部或者一部分数据行 | 表结构还在，删除表中的所有数据 | 从数据库中删除表，所有的数据行，索引和权限也会被删除 |
 | 删除速度 | 删除速度慢，需要逐行删除                 | 删除速度快                     | 删除速度最快                                         |
 
-
 因此，在不再需要一张表的时候，用drop；在想删除部分数据行时候，用delete；在保留表而删除所有数据的时候用truncate。
+
+#### merge into
+
+```sql
+-- merge into 将源数据(来源于实际的表,视图,子查询)根据条件判断更新或插入到指定的表中(必须实际存在)
+-- 这个语法仅需要一次全表扫描就完成了全部工作，执行效率要高于insert＋update，尤其是在大数据量面前，效率越明显。
+
+-- 如果满足连接条件，则更新字段；如果连接条件不满足，则停止更新进行插入。
+MERGE INTO table_name 
+USING 数据来源表/视图/子查询结果集
+ON 连接条件
+WHEN MATCHED THEN 
+UPDATE ...
+WHEN NOT MATCHED THEN
+INSERT ...
+```
+
+[SQL语句merge into的用法](https://blog.csdn.net/peterwanghao/article/details/107559583)
+
+#### MINUS
+
+```sql
+-- MINUS 集合前减后
+select id,employee_name from employees 
+minus 
+select id,employee_name from dependents
+order by id;
+```
+
+#### 连接方法
+
+```sql
+-- 查询多个字段并链接在一起
+MySQL: CONCAT()
+Oracle: CONCAT(), ||
+SQL Server: +
+
+CONCAT(字串1, 字串2, 字串3, ...): 将字串1、字串2、字串3，等字串连在一起。请注意，Oracle的CONCAT()只允许两个参数；
+```
+
+
 
 ### 数据查询语言DQL
 
@@ -316,24 +356,6 @@ id name                        sex	 性别
 ---------- ---------- ----------
  3          2          0
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 ### 数据控制语言DCL
 
@@ -705,30 +727,11 @@ t3.frm			#以frm结尾的是该表的表结构定义文件
 ​         **b如果采用共享存储模式(5.5)，数据信息和索引信息都存储在ibdata1中**
 ​          (其D:\java\mysql5.6\data\目录下没有.ibd文件,只有frm文件)
 
-### 表空间操作
-
-#### 创建
-
-```mysql
-【语法】
-CREATE TABLESPACE 表空间名 DATAFILE '数据文件路径' SIZE 大小 [AUTOEXTEND ON] [NEXT 大小] [MAXSIZE 大小];
-
-【说明】[]里面内容可选项；数据文件路径中若包含目录需要先创建
-SIZE为初始表空间大小，单位为K或者M
-AUTOEXTEND ON 是否自动扩展
-NEXT为文件满了后扩展大小
-MAXSIZE为文件最大大小，值为数值或UNLIMITED（表示不限大小）
-```
-
-```mysql
-> create tablespace DAMSDB_DATA datafile '/opt/gdbservice/data/data/DAMSDB_DATA.dbf' size 1024M autoextend on next 1024M MAXSIZE 102400M;
-```
-
 
 
 [MySQL的表空间](https://www.cnblogs.com/better-farther-world2099/articles/14713523.html)
 
-[表空间使用方法 （Oracle）](https://blog.csdn.net/qq_41548307/article/details/84029864)
+
 
 
 
