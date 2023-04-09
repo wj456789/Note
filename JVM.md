@@ -522,61 +522,41 @@ eclipse.ini文件，参数中-vmargs的意思是设置JVM参数，如-vmargs -Xm
 
 ### 类加载过程
 
-**加载 --> 链接 --> 初始化**
+Java代码从编码完成到运行，包含两个步骤：
 
-**链接：验证 --> 准备 --> 解析**
+编译：把写好的java文件通过javac命令编译成字节码（.class文件）。
 
-#### 加载
+运行：把字节码文件交给JVM执行。
 
-由类加载器（ClassLoader）执行的。将字节码从不同数据源读到 jvm 中，数据源包括 zip 压缩包，网络，运行时计算生成，其他文件生成，数据库等。
+类加载的过程就是JVM把.class文件中类信息加载进内存，并解析生成class对象的过程。这个过程主要为3步：加载、链接、初始化，而链接可以分为3小步：验证、准备、解析，每个过程主要过程如下： 
 
-#### 链接
+![image-20230409101803359](img_JVM/image-20230409101803359.png)
 
-验证：验证字节码信息是否符合 jvm 规范；
+#### 流程详解
 
-准备：分配内存，并为静态变量赋初始值；
+**加载**
 
-解析：将常量池中的符号引用转换为直接引用。也可以在初始化之后再开始，来支持 java 的运行时绑定。
+由类加载器（ClassLoader）执行的。将class字节码文件从不同数据源通过不同类加载器载入 jvm内存 中，数据源包括 zip 压缩包，网络，运行时计算生成，其他文件生成，数据库等。
 
-#### 初始化
+**链接**
 
-执行静态初始化块 (static{}) 和类变量赋值，先初始化父类，后初始化子类；
+1. 验证：验证字节码信息是否符合 jvm 规范；验证包括对于**文件格式**的验证，比如常量中是否有不被支持的常量？文件中是否有不规范的或者附加的其他信息？对于**元数据的验证**，比如该类是否继承了被final修饰的类？类中的字段，方法是否与父类冲突？是否出现了不合理的重载；对于**字节码的验证**，保证程序语义的合理性，比如要保证类型转换的合理性。对于**符号引用的验证**，比如校验符号引用中通过全限定名是否能够找到对应的类？校验符号引用中的访问性（private，public等）是否可被当前类访问？
+2. 准备：为变量分配内存，并且赋予初值，初值不是代码中的初始化的值而是根据不同变量设置默认值，其中引用类型为null。
+3. 解析：将常量池中的符号引用转换为直接引用。也可以在初始化之后再开始，来支持 java 的运行时绑定。例如调用hello()方法，替换为方法的内存地址。
+
+**初始化**
+
+对static修饰的变量或语句进行初始化，先初始化父类，后初始化子类；
 
 不要在 static 块中抛出异常，否则会导致类初始化失败，抛 ExceptionInInitializerError 异常，进而导致其他异常。
 
-#### 懒加载
+#### other
 
-所有的类都是在对其第一次使用时，动态加载到 JVM 中的。当程序创建第一个对类的静态成员的引用时，就会加载这个类。使用 new 创建类对象的时候也会被当作对类的静态成员的引用。因此 java 程序在它开始运行之前并非被完全加载，其各个类都是在必需时才加载的。
+**懒加载**
 
-### classloader的层次结构
+所有的类都是在对其第一次使用时，动态加载到 JVM 中的。因此 java 程序在它开始运行之前并非被完全加载，其各个类都是在必需时才加载的。
 
-1. 启动类加载器 (BootstrapClassLoader)
-
-   查找 jre 核心库，加载路径下的 Class 文件
-
-2. 扩展类加载器 (ExtClassLoader)
-
-   查找 jre/lib/ext 扩展包
-
-3. 应用程序类加载器 (AppClassLoader)
-
-   查找环境变量 CLASSPATH 目录
-
-4. 自定义类加载器 (UserDefineClassLoader)
-
-   查找用户定义的目录
-
-
-
-双亲委派：先由父类加载器加载，加载不到后再由子类加载器加载；
-
-如果Class文件不在父类的加载路径中，则由子类加载，如果仍然找不到，抛ClassNotFound异常。
-
-先加载 JDK 中的类，再加载用户的类。
-
-### 类的初始化过程
-
-#### 初始化时机（类加载时机）
+**初始化时机（类加载时机）**
 
 - JVM 启动时，先初始化用户指定的主类
 - 初始化一个类的子类（会首先初始化子类的父类）
@@ -588,11 +568,108 @@ eclipse.ini文件，参数中-vmargs的意思是设置JVM参数，如-vmargs -Xm
 
 特点：JVM 会加锁来保证类初始化只进行一次，可以用来实现单例模式
 
-
-
 [静态方法什么时候执行](https://blog.csdn.net/weixin_39983051/article/details/111361114)
 
-### 对象初始化顺序
+### 类加载器
+
+#### 类加载器的隔离问题
+
+每个类装载器都有一个自己的命名空间用来保存已装载的类。当一个类装载器装载一个类时，它会通过保存在命名空间里的类全局限定名进行搜索来检测这个类是否已经被加载了。
+
+JVM 对类唯一的识别是 ClassLoader id + PackageName + ClassName，所以一个运行程序中是有可能存在两个包名和类名完全一致的类的。并且如果这两个类不是由一个 ClassLoader 加载，是无法将一个类的实例强转为另外一个类的，这就是 ClassLoader 隔离性。
+
+为了解决类加载器的隔离问题，JVM引入了双亲委派机制。
+
+#### classloader的层次结构
+
+![123](img_JVM/81efe5d156155dcf36d7535603eb2baf446594.jpg)
+
+- 启动类加载器 (BootstrapClassLoader)
+
+  查找 jre 核心库，加载jre/lib/rt.jar中的所有class
+
+- 扩展类加载器 (ExtClassLoader)
+
+  查找 jre/lib/ext 扩展包
+
+- 应用程序类加载器 (AppClassLoader)
+
+  查找环境变量 CLASSPATH 目录
+
+- 自定义类加载器 (UserDefineClassLoader)
+
+  查找用户定义的目录
+
+#### 双亲委派机制
+
+双亲委派机制的核心有两点：第一，自底向上检查类是否已加载；其二，自顶向下尝试加载类。 
+
+类加载器通常有四类：启动类加载器、拓展类加载器、应用程序类加载器和自定义类加载器。
+
+暂且不考虑自定义类加载器，JDK自带类加载器具体执行过程如下：
+
+第一：当AppClassLoader加载一个class时，会把类加载请求委派给父类加载器ExtClassLoader去完成；
+
+第二：当ExtClassLoader加载一个class时，会把类加载请求委派给BootStrapClassLoader去完成；
+
+第三：如果BootStrapClassLoader加载失败（例如在%JAVA_HOME%/jre/lib里未查找到该class），会使用ExtClassLoader来尝试加载；
+
+第四：如果ExtClassLoader也加载失败，则会使用AppClassLoader来加载，如果AppClassLoader也加载失败，则会报出异常ClassNotFoundException。
+
+#### ClassLoader的双亲委派实现
+
+ClassLoader通过loadClass()方法实现了双亲委托机制，用于类的动态加载。
+
+该方法的源码如下：
+
+```java
+protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
+    synchronized (getClassLoadingLock(name)) {
+        // First, check if the class has already been loaded
+        Class<?> c = findLoadedClass(name); //查询是否加载过
+        if (c == null) {
+            long t0 = System.nanoTime();
+            try {
+                if (parent != null) {
+                    c = parent.loadClass(name, false); //没有加载过而且有上级就委派给上级
+                } else {
+                    c = findBootstrapClassOrNull(name); //没有上级就交给顶级类加载器
+                }
+            } catch (ClassNotFoundException e) {
+                // ClassNotFoundException thrown if class not found
+                // from the non-null parent class loader
+            }
+
+            if (c == null) {
+                // If still not found, then invoke findClass in order
+                // to find the class.
+                long t1 = System.nanoTime();
+                c = findClass(name);
+
+                // this is the defining class loader; record the stats
+                sun.misc.PerfCounter.getParentDelegationTime().addTime(t1 - t0);
+                sun.misc.PerfCounter.getFindClassTime().addElapsedTimeFrom(t1);
+                sun.misc.PerfCounter.getFindClasses().increment();
+            }
+        }
+        if (resolve) {
+            resolveClass(c);
+        }
+        return c;
+    }
+}
+
+```
+
+双亲是层级关系的称呼方式，层级关系并不是继承的关系，而是组合，每个类加载器都有parent字段来定义上级。 loadClass方法本身是一个递归向上调用的过程，上述代码中从parent.loadClass的调用就可以看出。
+
+在执行其他操作之前，首先通过findLoadedClass方法从最底端的类加载器开始检查是否已经加载指定的类。如果已经加载，则根据resolve参数决定是否要执行连接过程，并返回Class对象。
+
+而Jar包冲突往往发生在这里，当第一个同名的类被加载之后，在这一步检查时就会直接返回，不会再加载真正需要的类。那么，程序用到该类时就会抛出找不到类，或找不到类方法的异常。
+
+#### 对象初始化顺序
+
+**基于代码层面的对象初始化顺序解释描述**
 
 普通类：（静态变量和静态代码块只和出现顺序有关，普通变量和普通代码块也之和出现顺序有关）
 
@@ -617,15 +694,6 @@ eclipse.ini文件，参数中-vmargs的意思是设置JVM参数，如-vmargs -Xm
 
 类初始化顺序：父类静态，子类静态，父类代码块、父类构造，子类代码块，子类构造。
 
-在 JVM 中表示两个 Class 对象是否为同一个类存在两个必要条件：
-
-- 类的完整类名必须一致
-- 加载这个类的ClassLoader（指ClassLoader实例对象）必须相同
-
-换句话说，在 JVM 中，即时这两个类对象（class对象）来源于同一个 Class 文件，被同一个虚拟机所加载，但只要加载他们的 ClassLoader 实例对象不同，那么这两个类对象也是不相等的。
-
-
-
 **题目**
 
 ![img](img_JVM/c92c151000d66d7e9e5657d4dc8d4222.png)
@@ -645,7 +713,486 @@ count2=0
 3. 先执行private static SingleTon singleTon = new SingleTon(); ，调用构造器后，count1，count2均为1；
 4. 按顺序执行 public static int count1; 没有赋值，所以count1依旧为1；
 5. 按顺序执行 public static int count2 = 0;所以count2变为0.
-   
+
+### Jar包的加载顺序
+
+在同一目录下的jar包，JVM是按照jar包的先后顺序进行加载，一旦一个全路径名相同的类被加载之后，后面再有相同的类便不会进行加载了。而Jar包被加载的顺序直接决定了类加载的顺序。
+
+决定Jar包加载顺序通常有以下因素：
+
+- 第一，Jar包所处的加载路径。也就是加载该Jar包的类加载器在JVM类加载器树结构中所处层级。上面讲到的四类类加载器加载的Jar包的路径是有不同的优先级的。
+- 第二，文件系统的文件加载顺序。因Tomcat、Resin等容器的ClassLoader获取加载路径下的文件列表时是不排序的，这就依赖于底层文件系统返回的顺序，当不同环境之间的文件系统不一致时，就会出现有的环境没问题，有的环境出现冲突。
+
+#### Tomcat启动时Jar包和类的加载顺序
+
+最后，梳理一下Tomcat启动时，对Jar包和类的加载顺序，其中包含上面提到的不同种类的类加载器默认加载的目录：
+
+- $java_home/lib 目录下的java核心api；
+- $java_home/lib/ext 目录下的java扩展jar包；
+- java -classpath/-Djava.class.path所指的目录下的类与jar包；
+- $CATALINA_HOME/common目录下按照文件夹的顺序从上往下依次加载；
+- $CATALINA_HOME/server目录下按照文件夹的顺序从上往下依次加载；
+- $CATALINA_BASE/shared目录下按照文件夹的顺序从上往下依次加载；
+- 项目路径/WEB-INF/classes下的class文件；
+- 项目路径/WEB-INF/lib下的jar文件；
+
+上述目录中，同一文件夹下的Jar包，按照顺序从上到下一次加载。如果一个class文件已经被加载到JVM中，后面相同的class文件就不会被加载了。
+
+#### Jar包冲突的通常表现
+
+Jar包冲突往往是很诡异的事情，也很难排查，但也会有一些共性的表现。
+
+- 抛出java.lang.ClassNotFoundException：典型异常，主要是依赖中没有该类。导致原因有两方面：第一，的确没有引入该类；第二，由于Jar包冲突，Maven仲裁机制选择了错误的版本，导致加载的Jar包中没有该类。
+- 抛出java.lang.NoSuchMethodError：找不到特定的方法。Jar包冲突，导致选择了错误的依赖版本，该依赖版本中的类对不存在该方法，或该方法已经被升级。
+- 抛出java.lang.NoClassDefFoundError，java.lang.LinkageError等，原因同上。
+- 没有异常但预期结果不同：加载了错误的版本，不同的版本底层实现不同，导致预期结果不一致。
+
+[Maven Jar包冲突？看看高手是怎么解决的](https://ost.51cto.com/posts/16325)
+
+### 自定义类加载器
+
+#### 如何解决Jar包冲突
+
+目前市面上主流解决动态加载Jar包冲突的方法.
+
+- 利用类似于OSGI这样的重框架来解决这类问题，但是这类框架太重太复杂，难以掌握，并且会加重项目的复杂度.
+- 利用蚂蚁金服公司开源贡献的SOFAArk,基于 Java 实现的轻量级类隔离容器.
+- 自定义类加载器来实现类隔离,例如Tomcat和Flink的实现,自定义类加载器并打破了双亲委派模型.因为Java虚拟机不仅要看类的全名是否相同，还要看加载此类的类加载器是否一样。只有两者都相同的情况，才认为两个类是相同的。所以会出现相同类名的实例共存的情况.便达到了类相互隔离的作用
+
+#### 动态加载Jar包流程
+
+1. 自定义类加载器.
+2. 将jar文件加载到内存中.
+3. 自定义ClassLoader将jar文件中的类加载到JVM.
+4. 通过反射获取到需要调用的类并进行实例化.
+5. 通过反射获取方法入参对象.
+6. 通过类的实例对象就可以调用这个Jar中的方法
+
+#### 解决问题的思路
+
+- 通过自定义类加载器加载依赖了不兼容的jar及其他依赖的jar，用不同的类加载器实例加载相关的类并创建对象.
+- 打破类加载器的双亲委派机制，单独创建出的类加载器要优先自己加载，加载不到则再委派给Parent类加载器进行加载.
+- 通过动态监听的方式监听Jar是否被替换从而达到热插拔的效果,这里不做实现,具体可参考Tomcat更新Jsp的方式,每当监听到Jsp文件被修改,便重新加载该Jsp文件.
+
+#### 实现案例一
+
+```java
+package cn.gq.jdsk;
+
+import java.io.*;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
+
+/**
+ * @author chiangtaol
+ * @date 2021-10-19
+ * @describe
+ */
+/**
+ * 提供Jar隔离的加载机制，会把传入的路径、及其子路径、以及路径中的jar文件加入到class path。
+ * 破坏双亲委派机制，改为逆向
+ * */
+public class JarLoader extends URLClassLoader {
+    private static ThreadLocal<URL[]> threadLocal = new ThreadLocal<>();
+    private URL[] allUrl;
+    public JarLoader(String[] paths) {
+        this(paths, JarLoader.class.getClassLoader());
+    }
+
+    public JarLoader(String[] paths, ClassLoader parent) {
+        super(getURLs(paths), parent);
+        //暂时先这样
+        allUrl = threadLocal.get();
+    }
+
+    private static URL[] getURLs(String[] paths) {
+        if (null == paths || 0 == paths.length) {
+            throw new RuntimeException("jar包路径不能为空.");
+        }
+
+        List<String> dirs = new ArrayList<String>();
+        for (String path : paths) {
+            dirs.add(path);
+            JarLoader.collectDirs(path, dirs);
+        }
+
+        List<URL> urls = new ArrayList<URL>();
+        for (String path : dirs) {
+            urls.addAll(doGetURLs(path));
+        }
+        URL[] urls1 = urls.toArray(new URL[0]);
+        threadLocal.set(urls1);
+        return urls1;
+    }
+
+    private static void collectDirs(String path, List<String> collector) {
+        if (null == path || "".equalsIgnoreCase(path)) {
+            return;
+        }
+
+        File current = new File(path);
+        if (!current.exists() || !current.isDirectory()) {
+            return;
+        }
+
+        for (File child : current.listFiles()) {
+            if (!child.isDirectory()) {
+                continue;
+            }
+
+            collector.add(child.getAbsolutePath());
+            collectDirs(child.getAbsolutePath(), collector);
+        }
+    }
+
+    private static List<URL> doGetURLs(final String path) {
+        if (null == path || "".equalsIgnoreCase(path)) {
+            throw new RuntimeException("jar包路径不能为空.");
+        }
+        File jarPath = new File(path);
+
+        if (!jarPath.exists() || !jarPath.isDirectory()) {
+            throw new RuntimeException("jar包路径必须存在且为目录.");
+        }
+
+        /* set filter */
+        FileFilter jarFilter = new FileFilter() {
+            @Override
+            public boolean accept(File pathname) {
+                return pathname.getName().endsWith(".jar");
+            }
+        };
+
+        /* iterate all jar */
+        File[] allJars = new File(path).listFiles(jarFilter);
+        List<URL> jarURLs = new ArrayList<URL>(allJars.length);
+
+        for (int i = 0; i < allJars.length; i++) {
+            try {
+                jarURLs.add(allJars[i].toURI().toURL());
+            } catch (Exception e) {
+                throw new RuntimeException("系统加载jar包出错", e);
+            }
+        }
+        return jarURLs;
+    }
+    //破坏双亲委派模型,采用逆向双亲委派
+    @Override
+    public Class<?> loadClass(String name) throws ClassNotFoundException {
+        if (allUrl != null) {
+            String classPath = name.replace(".", "/");
+            classPath = classPath.concat(".class");
+            for (URL url : allUrl) {
+                byte[] data = null;
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                InputStream is = null;
+                try {
+                    File file = new File(url.toURI());
+                    if (file != null && file.exists()) {
+                        JarFile jarFile = new JarFile(file);
+                        if (jarFile != null) {
+                            JarEntry jarEntry = jarFile.getJarEntry(classPath);
+                            if (jarEntry != null) {
+                                is = jarFile.getInputStream(jarEntry);
+                                int c = 0;
+                                while (-1 != (c = is.read())) {
+                                    baos.write(c);
+                                }
+                                data = baos.toByteArray();
+                                return this.defineClass(name, data, 0, data.length);
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                } finally {
+                    try {
+                        if (is != null) {
+                            is.close();
+                        }
+                        baos.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+        return super.loadClass(name);
+    }
+}
+```
+
+```java
+package cn.gq.jdsk;
+
+/**
+ * @author chiangtaol
+ * @date 2021-10-19
+ * @describe
+ */
+/**
+ *
+ * 为避免jar冲突，比如hbase可能有多个版本的读写依赖jar包
+ * 就需要脱离当前classLoader去加载这些jar包，执行完成后，又退回到原来classLoader上继续执行接下来的代码
+ */
+public final class ClassLoaderSwapper {
+    private ClassLoader storeClassLoader = null;
+
+    private ClassLoaderSwapper() {
+    }
+
+    public static ClassLoaderSwapper newCurrentThreadClassLoaderSwapper() {
+        return new ClassLoaderSwapper();
+    }
+
+    /**
+     * 保存当前classLoader，并将当前线程的classLoader设置为所给classLoader
+     *
+     * @param
+     * @return
+     */
+    public ClassLoader setCurrentThreadClassLoader(ClassLoader classLoader) {
+        this.storeClassLoader = Thread.currentThread().getContextClassLoader();
+        Thread.currentThread().setContextClassLoader(classLoader);
+        return this.storeClassLoader;
+    }
+
+    /**
+     * 将当前线程的类加载器设置为保存的类加载
+     * @return
+     */
+    public ClassLoader restoreCurrentThreadClassLoader() {
+        ClassLoader classLoader = Thread.currentThread()
+            .getContextClassLoader();
+        Thread.currentThread().setContextClassLoader(this.storeClassLoader);
+        return classLoader;
+    }
+}
+```
+
+```java
+@Test
+public void classloader() throws Exception{
+    String jar1 = "/Users/chiangtaol/Downloads/test/jd/jar1"; //自己定义的测试jar包，不同版本打印内容不同
+    String jar2 = "/Users/chiangtaol/Downloads/test/jd/jar2";
+
+    JarLoader jarLoader = new JarLoader(new String[]{jar1});
+    ClassLoaderSwapper classLoaderSwapper = ClassLoaderSwapper.newCurrentThreadClassLoaderSwapper();
+    classLoaderSwapper.setCurrentThreadClassLoader(jarLoader);
+    Class<?> aClass = Thread.currentThread().getContextClassLoader().loadClass("cn.tnt.bean.TestClass");
+    classLoaderSwapper.restoreCurrentThreadClassLoader();
+    Object o = aClass.newInstance();
+    Method isEmptyMethod = aClass.getDeclaredMethod("hello");
+    Object invoke = isEmptyMethod.invoke(o);
+    System.out.println(invoke);
+
+    JarLoader jarLoader2 = new JarLoader(new String[]{jar2});
+    ClassLoaderSwapper classLoaderSwapper2 = ClassLoaderSwapper.newCurrentThreadClassLoaderSwapper();
+    classLoaderSwapper2.setCurrentThreadClassLoader(jarLoader2);
+    Class<?> aClass2 = Thread.currentThread().getContextClassLoader().loadClass("cn.tnt.bean.TestClass");
+    classLoaderSwapper.restoreCurrentThreadClassLoader();
+    Object o2 = aClass2.newInstance();
+    Method isEmptyMethod2 = aClass2.getDeclaredMethod("hello");
+    Object invoke2 = isEmptyMethod2.invoke(o2);
+    System.out.println(invoke2);
+}
+```
+
+#### 实现案例二
+
+```java
+public class ChildFirstClassLoader extends URLClassLoader {
+
+    static {
+        ClassLoader.registerAsParallelCapable();
+    }
+
+    protected ChildFirstClassLoader(URL[] urls, ClassLoader parent) {
+        super(urls, parent);
+    }
+
+    /**
+     * 重写loadClass方法，部分类加载破坏双亲委派模型，（优先加载子类）。
+     *
+     * @param name
+     * @param resolve
+     * @return
+     * @throws ClassNotFoundException
+     */
+    @Override
+    protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
+        synchronized (getClassLoadingLock(name)) {
+            // First, check if the class has already been loaded
+            Class<?> c = findLoadedClass(name);
+
+            if (c != null) {
+                if (resolve) {
+                    resolveClass(c);
+                }
+                return c;
+            }
+            try {
+                c = findClass(name);
+                if (c != null) {
+                    System.out.println("loaded from child, name=" + name);
+                    if (resolve) {
+                        resolveClass(c);
+                    }
+                    return c;
+                }
+            } catch (ClassNotFoundException e) {
+                // Ignore
+            }
+
+
+            try {
+                if (getParent() != null) {
+                    c = super.loadClass(name, resolve);
+                    if (c != null) {
+                        System.out.println("loaded from parent, name=" + name);
+                        if (resolve) {
+                            resolveClass(c);
+                        }
+                        return c;
+                    }
+                }
+            } catch (ClassNotFoundException e) {
+                // Ignore
+            }
+            try {
+                c = findSystemClass(name);
+                if (c != null) {
+                    System.out.println("loaded from system, name=" + name);
+                    if (resolve) {
+                        resolveClass(c);
+                    }
+                    return c;
+                }
+            } catch (ClassNotFoundException e) {
+                // Ignore
+            }
+            throw new ClassNotFoundException(name);
+        }
+    }
+
+    @Override
+    public URL getResource(String name) {
+        // first, try and find it via the URLClassloader
+        URL urlClassLoaderResource = findResource(name);
+
+        if (urlClassLoaderResource != null) {
+            return urlClassLoaderResource;
+        }
+        // delegate to super
+        return super.getResource(name);
+    }
+
+    @Override
+    public Enumeration<URL> getResources(String name) throws IOException {
+        // first get resources from URLClassloader
+        Enumeration<URL> urlClassLoaderResources = findResources(name);
+
+        final List<URL> result = new ArrayList<>();
+
+        while (urlClassLoaderResources.hasMoreElements()) {
+            result.add(urlClassLoaderResources.nextElement());
+        }
+
+        // get parent urls
+        Enumeration<URL> parentResources = getParent().getResources(name);
+
+        while (parentResources.hasMoreElements()) {
+            result.add(parentResources.nextElement());
+        }
+
+        return new Enumeration<URL>() {
+            Iterator<URL> iter = result.iterator();
+
+            public boolean hasMoreElements() {
+                return iter.hasNext();
+            }
+
+            public URL nextElement() {
+                return iter.next();
+            }
+        };
+    }
+}
+```
+
+```java
+public class ClassContainer {
+
+    private ChildFirstClassLoader childFirstClassLoader;
+
+    public ClassContainer() {
+    }
+
+    public ClassContainer(ClassLoader classLoader, String jarPath) {
+        if (jarPath == null || jarPath.length() == 0) {
+            return;
+        }
+        final URL[] urls = new URL[1];
+        try {
+            urls[0] = new File(jarPath).toURI().toURL();
+            this.childFirstClassLoader = new ChildFirstClassLoader(urls, classLoader);
+
+        } catch (MalformedURLException e) {
+            throw new DelegateCreateException("can not create classloader delegate", e);
+        }
+    }
+
+    public Class<?> getClass(String name) throws ClassNotFoundException {
+        return childFirstClassLoader.loadClass(name);
+    }
+
+    public ClassLoader getClassLoader () {
+        return childFirstClassLoader;
+    }
+
+}
+```
+
+```java
+public class ThreadContextClassLoaderSwapper {
+
+    private static final ThreadLocal<ClassLoader> classLoader = new ThreadLocal<>();
+
+    // 替换线程上下文类加载器会指定的类加载器，并备份当前的线程上下文类加载器
+    public static void replace(ClassLoader newClassLoader) {
+        System.out.println("newClassLoader "+newClassLoader);
+        System.out.println("Thread.currentThread().getContextClassLoader() "+Thread.currentThread().getContextClassLoader());
+        classLoader.set(Thread.currentThread().getContextClassLoader());
+        Thread.currentThread().setContextClassLoader(newClassLoader);
+    }
+
+    // 还原线程上下文类加载器
+    public static void restore() {
+        if (classLoader.get() == null) {
+            return;
+        }
+        Thread.currentThread().setContextClassLoader(classLoader.get());
+        classLoader.set(null);
+    }
+}
+```
+
+```java
+private void childFirstClassLoader() throws ClassNotFoundException, IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException, InterruptedException {
+    ClassContainer container = new ClassContainer(getClass().getClassLoader(), "F:\\develop\\workspace\\1.0-SNAPSHOT-all.jar");
+    ThreadContextClassLoaderSwapper.replace(container.getClassLoader());
+    Object o = container.getClass("com.MyTest").newInstance();
+    Method method = o.getClass().getMethod("test");
+    Object invoke = method.invoke(o);
+    ThreadContextClassLoaderSwapper.restore();
+    System.out.println(invoke);
+}
+
+```
 
 
 
