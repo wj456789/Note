@@ -738,6 +738,25 @@ count2=0
 
 上述目录中，同一文件夹下的Jar包，按照顺序从上到下一次加载。如果一个class文件已经被加载到JVM中，后面相同的class文件就不会被加载了。
 
+##### Tomcat如何打破双亲委派机制
+
+![img](img_JVM/v2-371ed70e75e64b7d6fed16a05db59e4e_720w.webp)
+
+**如何打破双亲委派机制：**自定义ClassLoader，重写loadClass方法（只要不依次往上交给父加载器进行加载，就算是打破双亲委派机制）
+
+**打破双亲委派机制案例：Tomcat**
+
+- 为了Web应用程序类之间隔离，为每个应用程序创建WebAppClassLoader类加载器
+- 为了Web应用程序类之间共享，把ShareClassLoader作为WebAppClassLoader的父类加载器，如果WebAppClassLoader加载器找不到，则尝试用ShareClassLoader进行加载
+- 为了Tomcat本身与Web应用程序类隔离，用CatalinaClassLoader类加载器进行隔离，CatalinaClassLoader加载Tomcat本身的类
+- 为了Tomcat与Web应用程序类共享，用CommonClassLoader作为CatalinaClassLoader和ShareClassLoader的父类加载器
+- ShareClassLoader、CatalinaClassLoader、CommonClassLoader的目录可以在Tomcat的catalina.properties进行配置
+- 每个web应用程序都有自己专用的WebappClassLoader，优先加载/web-inf/lib下的jar中的class文件，webappClassLoader没有遵循类加载的双亲委派机制，但是使用webappClassLoader的load加载类会进行过滤，如果有些类被过滤掉还是通过双亲委派机制优先从父加载器中加载类。commonLoader、catalinaLoader、sharedLoader遵循双亲委派机制。
+
+**线程上下文加载器：**由于类加载的规则，很可能导致父加载器加载时依赖子加载器的类，导致无法加载成功（BootStrap+ClassLoader无法加载第三方库的类），所以存在「线程上下文加载器」来进行加载。该类加载器保存在线程私有数据里，只要是同一个线程，一旦设置了线程上下文加载器，在线程后续执行过程中就能把这个类加载器取出来用。
+
+[WebAppClassLoader类加载机制](https://blog.csdn.net/qq924862077/article/details/78417398)
+
 #### Jar包冲突的通常表现
 
 Jar包冲突往往是很诡异的事情，也很难排查，但也会有一些共性的表现。
