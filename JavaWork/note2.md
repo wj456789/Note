@@ -1,5 +1,303 @@
 # Note
 
+## SQL
+
+### 日期类型
+
+```sql
+-- 日期类型默认输出格式
+> SELECT sysdate, systimestamp [from dual];
+SYSTIMESTAMP			SYSDATE
+2023-05-09 20:18:12		2023-05-09 20:18:12
+
+-- 使用格式控制符将一个字符串转化为日期类型：
+> SELECT to_date('07-JAN-2018', 'DD-MON-YYYY') [FROM dual];
+TO_DATE('07-JAN-2018', 'DD-MON-YYYY')
+2018-01-07 00:00:00
+
+-- 通过格式控制符的描述，可以用to_char函数指定时期类型的输出格式
+> SELECT to_char(sysdate, 'MON-YY-DD') [FROM dual];
+TO_CHAR(SYSDATE, 'MON-YY-DD')
+MAY-23-09
+
+> SELECT to_char(sysdate, 'MON-YY-DD HH:MI:SS AM') [FROM dual];
+TO_CHAR(SYSDATE, 'MON-YY-DD HH:MI:SS AM')
+MAY-23-09 08:22:27 PM
+```
+
+Gauss100 目前支持的日期/时间类型包括DATE、带时区和不带时区的时间戳以及时间间隔。
+
+#### DATETIME/DATE
+
+**语法**：
+
+```
+DATETIME
+```
+
+**功能**：存储不带时区的日期类型的数据。
+
+保存年、月、日、时、分、秒。
+
+**取值范围**：公元0001年01月01日 00:00:00至公元9999年12月31日 23:59:59。
+
+**占用空间**：8字节。
+
+**对应关键字**：
+
+- DATE
+- DATETIME
+
+#### TIMESTAMP
+
+**语法**：
+
+```
+TIMESTAMP[(n)]
+```
+
+**功能**：存储不带时区的时间戳类型的数据。
+
+- 保存年、月、日、时、分、秒，微妙。
+- n取值范围[0,6]，表示秒后面的精度。TIMESTAMP[(n)]也可以不带参数，即写为TIMESTAMP，这时默认为6。
+
+**取值范围**：公元0001年01月01日 00:00:00.000000至公元9999年12月31日 23:59:59.999999。
+
+**占用空间**：8字节。
+
+**对应关键字**：TIMESTAMP
+
+#### TIMESTAMP(n) WITH TIME ZONE
+
+**语法**：
+
+```
+TIMESTAMP(n) WITH TIME ZONE
+```
+
+**功能**：存储带时区的时间戳类型的数据。
+
+- 保存年、月、日、时、分、秒，微妙。
+- n取值范围[0,6]，表示秒后面的精度。TIMESTAMP[(n)]也可以不带参数，即写为TIMESTAMP，这时默认为6。
+
+**取值范围**：公元0001年01月01日 00:00:00.000000至公元9999年12月31日 23:59:59.999999。
+
+**占用空间**：12字节。
+
+**对应关键字**：TIMESTAMP(n) WITH TIME ZONE
+
+#### TIMESTAMP(n) WITH LOCAL TIME ZONE
+
+**语法**：
+
+```
+TIMESTAMP(n) WITHLOCAL TIME ZONE
+```
+
+**功能**：带时区的时间戳类型的数据。不存储时区，存储时转换为数据库时区的TIMESTAMP，用户查看时转换为当前会话的时区的TIMESTAMP。
+
+**占用空间**：8字节。
+
+**对应关键字**：TIMESTAMP(n) WITHLOCAL TIME ZONE
+
+#### 日期类型的格式控制符
+
+| 符号                                                | 说明                                                         | 转换是否可逆 | 示例                                                         |
+| --------------------------------------------------- | ------------------------------------------------------------ | ------------ | ------------------------------------------------------------ |
+| " "(空格)、"-"(减号)、"\"、"/" 、":"、","、"."、";" | 分隔符                                                       | 是           | -                                                            |
+| "text"                                              | 文本类型                                                     | 是           | 文本类型，作为输出参数时，输出引号中包含的内容；作为输入参数时，跳过引号中的内容，忽略空格。`select to_char(sysdate, '"Hello world!"') from dual;` |
+| AM、PM                                              | 上午和下午指示符                                             | 否           | `select to_char(systimestamp, 'HH12:MI:SS AM') from dual;`   |
+| CC                                                  | 世纪                                                         | 否           | `select to_char(systimestamp, 'CC') from dual;`              |
+| DAY                                                 | 星期天全称                                                   | 否           | `select to_char(systimestamp, 'DAY') from dual;`             |
+| DY                                                  | 星期天简称                                                   | 否           | `select to_char(systimestamp, 'DY') from dual;`              |
+| DDD                                                 | 一年中的第几天                                               | 否           | `select to_char(to_date('2018-01-07', 'YYYY-MM-DD'), 'DDD') from dual;` |
+| DD                                                  | 当前月中的第几天                                             | 是           | `select to_char(to_date('2018-01-07', 'YYYY-MM-DD'), 'DD') from dual;` |
+| D                                                   | 当前周中的第几天                                             | 否           | `select to_char(to_date('2018-01-07', 'YYYY-MM-DD'), 'D') from dual;` |
+| FF3、FF6、FF（默认FF6）                             | 秒的小数部分                                                 | 是           | `select to_char(systimestamp, 'FF3') from dual;`             |
+| HH12、HH24 、HH（默认HH12）                         | 12小时制/24小时制                                            | 是           | `select to_char(systimestamp, 'HH,HH12,HH24') from dual;`    |
+| MI                                                  | 时间的分钟数(0 ~ 59)                                         | 是           | -                                                            |
+| MM                                                  | 日期的月份(1 ~ 12)                                           | 是           | -                                                            |
+| MONTH                                               | 日期中月份全称                                               | 是           | `select to_char(systimestamp, 'MONTH, MON') from dual;`      |
+| MON                                                 | 日期中月份简称                                               | 是           | -                                                            |
+| Q                                                   | 当前日期的季度(1 ~ 4)                                        | 否           | -                                                            |
+| SSSSS                                               | 一天中已经逝去的秒数(0 ~ 86400 - 1)                          | 否           | -                                                            |
+| SS                                                  | 时间中的秒数(0 ~ 59)                                         | 是           | -                                                            |
+| WW                                                  | 当前日期为该年份的week数，即当年的第几周，第一周从当年第一天计算起，每周7天 | 否           | -                                                            |
+| W                                                   | 当前日期为该月份的week数，即当月的第几周，第一周从当月第一天计算起，每周7天 | 否           | -                                                            |
+| YYYY                                                | 四位年份                                                     | 是           | -                                                            |
+| YYY                                                 | 三位年份，如2018年可以写作018                                | 否           | -                                                            |
+| YY                                                  | 两位年份，如2018年可以写作18                                 | 否           | -                                                            |
+| Y                                                   | 一位年份，如2018年可以写作8                                  | 否           | `select to_char(systimestamp, 'Y') from dual;`               |
+
+
+
+| 日期类型                       | 默认输出格式                     |
+| ------------------------------ | -------------------------------- |
+| DATETIME                       | YYYY-MM-DD HH24:MI:SS            |
+| TIMESTAMP                      | YYYY-MM-DD HH24:MI:SS.FF         |
+| TIMESTAMP WITH TIME ZONE       | YYYY-MM-DD HH24:MI:SS.FF TZH:TZM |
+| TIMESTAMP WITH LOCAL TIME ZONE | YYYY-MM-DD HH24:MI:SS.FF         |
+
+## 多线程
+
+获取线程安全的List我们可以通过Vector、Collections.synchronizedList()方法和CopyOnWriteArrayList三种方式
+
+- 读多写少的情况下，推荐使用CopyOnWriteArrayList方式
+- 读少写多的情况下，推荐使用Collections.synchronizedList()的方式
+
+[三种线程安全的List](https://blog.csdn.net/weixin_45668482/article/details/117396603)
+
+## 分区表
+
+把一张几千级的表TEST1改为分区表一般有以下几种方法：
+
+**方法一**   **利用原表重建分区表**
+
+根据原表TEST1表结构定义来新建分区表TEST1_TMP；
+
+把TEST1的数据insert进表TEST1_TMP； --也可以用**CTAS**的方法      
+
+rename表名，检查数据一致性。
+
+优点：简单
+
+缺点：考虑数据一致性，建议闲时 或 停机操作
+
+ 
+
+**方法二** **使用数据泵导出导入**
+
+根据原表TEST1表结构定义来新建分区表TEST1_TMP；
+
+expdp并行导出TEST1，impdp并行导入TEST1_TMP；
+
+rename表名，检查数据一致性。
+
+优点：简单；若表在上百G，效率也算蛮高
+
+缺点：考虑数据一致性，建议闲时 或 停机操作
+
+表越大，越建议用这种方式，停机做
+
+ 
+
+**方法三** **使用分区交换**
+
+优点：只是对数据字典中的分区和表定义进行修改，没有数据复制，效率最高
+
+缺点：全部表的数据都在一个分区内
+
+这个缺点太致命，所以效率最高的方法，反而不用
+
+```sql
+--1、创建一个测试表
+CREATE TABLE p1 AS SELECT t.OBJECT_NAME,t.CREATED FROM User_Objects t;
+CREATE INDEX idx_p1_created ON p1(created);
+--2、创建分区表，结构要与原表一致
+CREATE TABLE p2(object_name VARCHAR2(32),created DATE) PARTITION BY RANGE(created) 
+(
+       PARTITION p_202204 VALUES LESS THAN (DATE'2022-05-01'),
+       PARTITION p_202205 VALUES LESS THAN (DATE'2022-06-01')
+);
+--3、创建局部分区索引
+CREATE INDEX idx_p2_created ON p2(created) LOCAL;
+--4、交换分区与表
+ALTER TABLE p2 EXCHANGE PARTITION p_202204 WITH TABLE p1 INCLUDING INDEXES WITHOUT validation;
+--5、查看数据
+SELECT * FROM p1;
+SELECT * FROM p2 PARTITION (p_202204);
+--6、查看索引状态
+SELECT * FROM User_Indexes t WHERE t.table_name='P2';
+SELECT * FROM User_Ind_Partitions t WHERE t.index_name=UPPER('idx_p2_created');
+
+	总结：采用交换分区的办法，其原理仅仅是修改ORACLE系统中表定义的数据字典。不需要额外的表空间，速度非常快速，原表上的索引也不需要重建。当然，此种方法是将原表所有原来的数据放入了一个分区之中，新增数据才会进入新的分区。这样对于历史数据的查询使用不到分区排除带来的效率提高，有一定的局限性。
+```
+
+**方法四** **使用在线重定义**
+
+11g的在线重定义其实已经非常好用，也支持rows的方式来重定义，不必有主键。
+
+优点：可以在线做，不用担心数据一致性
+
+缺点：效率一般
+
+这个优点太突出，建议几十G内的表都可以选用这种方式做
+
+## Mysql
+
+```
+SHOW GLOBAL VARIABLES LIKE 'innodb_lock_wait_timeout';
+SET GLOBAL innodb_lock_wait_timeout=500;
+SHOW GLOBAL VARIABLES LIKE 'innodb_lock_wait_timeout';
+```
+
+
+
+## oracle
+
+```
+merge into 目标表 t
+using (源表) ti
+on (原表与目标表的关联条件) -- 一般用主键或者能确认唯一的组合条件
+when matched then
+update set t.xxxx = ti.xxx
+when not matched then
+insert
+(xxxx, xxx, xx, xxx, xxxxxxxx, xxx) -- 目标表字段
+values
+(ti.xxx, ....) -- 源表字段
+
+
+merge into会将源表的每一条记录和目标表按关联字段匹配，目标表被匹配到的记录会更新数据，匹配不到的记录话就会把源表这些数据插入目标表，匹配的前提是关联字段要是目标表与源表的主键或唯一匹配条件。
+
+
+直接根据 on的条件去匹配，在数据库层次就实现了 新增or更新操作。不需要将大量的数据查出来进行操作，同时也不会造成锁表问题，最终实现了500w数据3分钟同步完成（因为这张表上百个字段比较大）
+```
+
+
+
+## 分布式锁
+
+[分布式锁的实现方式](https://blog.csdn.net/fuzh19920202/article/details/127999788)
+
+[从spring管理的datasource中获取connection](https://blog.csdn.net/qq_18671415/article/details/119112362)
+
+## Java基础
+
+[Arrays.toList() 和Collections.singletonList()的区别](https://blog.csdn.net/wz1159/article/details/86704752?ydreferer=aHR0cHM6Ly93d3cuZ29vZ2xlLmNvbS5oay8%3D?ydreferer=aHR0cHM6Ly93d3cuZ29vZ2xlLmNvbS5oay8%3D)
+
+## Java Web
+
+在web.xml中定义 contextConfigLocation参数，spring会使用这个参数加载所有逗号分割的xml，如果没有这个参数，spring默认加载WEB-INF/applicationContext.xml文件。
+
+[spring如何使用多个xml配置文件 【转】](https://www.cnblogs.com/secret1998/archive/2010/05/24/1742555.html)
+
+实现Servlet的Filter接口 + web.xml配置过滤器
+
+实现Servlet的Filter接口 + @WebFilter注解 + 服务主类上增加@ServletComponentScan注解，basePackages需要包含过滤器类所在的包，过滤器的执行顺序按照过滤器的类名升序排序 
+
+实现Servlet的Filter接口 + @Configuration实现WebMvcConfigurerAdapter接口配置类，过滤器的执行顺序由setOrder的参数决定，值越小，优先级越高，如果两个过滤器的order值相同，则执行顺序按过滤器类名排序
+
+
+
+在Spring容器中，servlet过滤器的的创建早于spring bean的初始化，所以在过滤器中用@Autowired、@Inject等注解注入bean，以及用@Value注解注入环境参数，都只能取得null。我们必须手动在过滤器的init方法中进行bean的初始化：
+
+![img](note2.assets/59dc31552657a.jpg) 
+
+[@WebFilter两种使用方法和失效解决方案](https://blog.csdn.net/z69183787/article/details/127808802)
+
+[Java Web之过滤器Filter（@WebFilter）](https://blog.csdn.net/weixin_44989630/article/details/121357652)
+
+[Servlet3.0模块化支持](https://www.iteye.com/blog/elim-2017099)
+
+
+
+## IDEA
+
+**查看变量调用链**
+
+选中变量，右键选择 Analyze ->  Analyze Data Flow to Here/Analyze Data Flow from Here 
+
 ## Hbase
 
 ### cache 和 batch
@@ -228,6 +526,66 @@ IDEA 在 maven 项目打 war 包时将外部第三方引入的 jar 包
 </plugin>
 ```
 
+~~~xml
+maven-jar-plugin是Maven的一个插件，用于将项目打包成jar包。
+
+常用的配置选项及含义如下：
+
+- `<archive>`：指定打包时要包含的文件和目录。
+- `<manifest>`：指定manifest文件的信息。
+- `<excludes>`：指定不包含在打包文件中的文件和目录。
+- `<includes>`：指定需要包含在打包文件中的文件和目录。
+- `<classifier>`：为打包文件指定附加分类器。
+- `<finalName>`：指定打包文件的最终名称。
+
+其中，archive 元素指定了生成的 Jar 包需要包含哪些文件以及如何打包这些文件。它具体包含以下配置项：
+- manifest：用于指定 Manifest 文件(MANIFEST.MF)的位置和内容。
+- manifestEntries：用于指定 Manifest 文件中的条目。
+- addMavenDescriptor：是否将 Maven 项目描述文件 pom.xml 添加到生成的 Jar 包中。
+- index：是否创建一个包含索引信息的 JAR 文件。
+- compress：是否压缩生成的 Jar 包。
+- forced：是否强制覆盖已存在的 Jar 包。
+    
+举个例子：
+
+```xml
+<build>
+    <plugins>
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-jar-plugin</artifactId>
+            <version>3.0.2</version>
+            <configuration>
+                <archive> 
+                    <manifest>
+                        <addClasspath>true</addClasspath>
+                        <mainClass>com.example.MainClass</mainClass>
+                    </manifest>
+                    <manifestEntries>
+                        <Built-By>${user.name}</Built-By>
+                        <Build-Jdk>${java.version}</Build-Jdk>
+                    </manifestEntries>
+                </archive>
+                <excludes>
+                    <exclude>**/*.txt</exclude>
+                    <exclude>**/*.properties</exclude>
+                </excludes>
+                <includes>
+                    <include>**/*.java</include>
+                </includes>
+                <classifier>exec</classifier>
+                <finalName>my-app</finalName>
+            </configuration>
+        </plugin>
+    </plugins>
+</build>
+```
+
+在上述例子中，配置了打包的manifest信息，排除了txt和properties文件，添加了java文件，增加了分类器为exec，最终生成的文件名为my-app。
+~~~
+
+
+
 ## path
 
 ```java
@@ -262,6 +620,8 @@ public static List<String> getJarPathFile(String filePath) {
 ```
 
 ## Linux
+
+### sed
 
 ```
 s：替换，替换指定字符
@@ -343,13 +703,32 @@ cat example.txt | grep "strpattern" -C 10
 cat example.txt | grep "strpattern" -A 10
 ```
 
+### curl
 
+在使用curl命令发送HTTP请求时，可以使用 `-H` 参数来添加请求头。请求头的格式是`HeaderName:HeaderValue`，其中HeaderName表示请求头的名称，HeaderValue表示请求头的值。例如，要添加一个名为`Authorization`，值为`Bearer abcdefg`的请求头，可以这样使用curl命令：
+
+```
+curl -H "Authorization: Bearer abcdefg" https://example.com/api
+复制代码
+```
+
+其中`https://example.com/api`是要访问的API的URL。
+
+**如果要添加多个请求头，可以使用多个 `-H` 参数**，例如：
+
+```
+curl -H "Authorization: Bearer abcdefg" -H "Content-Type: application/json" https://example.com/api
+```
+
+这样会添加两个请求头，一个是`Authorization: Bearer abcdefg`，另一个是`Content-Type: application/json`。
+
+### vim
+
+:set fileencoding查看文件当前展示的编码格式 
 
 ## JVM
 
 ### 类加载
-
-
 
 [java同时引用不同版本同一个jar包](https://blog.csdn.net/white_grimreaper/article/details/120921270)
 
@@ -361,16 +740,130 @@ cat example.txt | grep "strpattern" -A 10
 
 [java的类加载器以及如何自定义类加载器](https://blog.csdn.net/blueheartstone/article/details/127784519)
 
+<https://cloud.tencent.com/developer/article/1832222>
+
+<https://cloud.tencent.com/developer/article/1915650>
+
+<https://www.zhihu.com/question/466696410>
+
+<https://cloud.tencent.com/developer/article/1890187>
+
+<https://juejin.cn/post/6865572557329072141>
 
 
 
 
-https://cloud.tencent.com/developer/article/1832222
 
-https://cloud.tencent.com/developer/article/1915650
 
-https://www.zhihu.com/question/466696410
 
-https://cloud.tencent.com/developer/article/1890187
 
-https://juejin.cn/post/6865572557329072141
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```
+出现上传到Hadoop HDFS文件乱码的问题，通常是因为编码格式不一致导致的。在Java上传Hadoop HDFS文件时，需要讲本地文件和HDFS文件都设置为相同的编码格式。常见的编码格式有UTF-8和GBK两种。下面给出一个示例代码，在上传文件时将编码格式设置为UTF-8。
+
+​```
+Configuration conf = new Configuration();
+conf.set("fs.defaultFS", "hdfs://localhost:9000");
+FileSystem fs = FileSystem.get(conf);
+InputStream in = new FileInputStream(new File("localFilePath"));
+OutputStream out = fs.create(new Path("hdfsFilePath"));
+IOUtils.copyBytes(in, out, 4096, true);
+​``` 
+
+如果上传的文件的编码格式为GBK，那么需要在代码中加上如下两行代码：
+
+​```
+conf.set("fs.defaultFS", "hdfs://localhost:9000");
+conf.set("dfs.client.use.datanode.hostname", "true");
+conf.set("fs.hdfs.impl", org.apache.hadoop.hdfs.DistributedFileSystem.class.getName());
+conf.set("fs.file.impl", org.apache.hadoop.fs.LocalFileSystem.class.getName());
+conf.set("hadoop.job.ugi", "hadoop");
+FileSystem fs = FileSystem.get(conf);
+FSDataOutputStream outputStream = fs.create(new Path("hdfsFilePath"));
+InputStreamReader isr = new InputStreamReader(new FileInputStream(new File("localFilePath")), "GBK");
+BufferedReader br = new BufferedReader(isr);
+String line = null;
+while ((line = br.readLine()) != null) {
+    outputStream.write(line.getBytes("GBK"));
+    outputStream.write("
+".getBytes());
+    outputStream.flush();
+}
+outputStream.close();
+​``` 
+
+在以上代码中，需要注意以下几点：
+
+1. 首先需要将文件的编码方式设置为GBK
+
+2. 需要在代码中设置hadoop.job.ugi参数，设置为hadoop，表示Hadoop用户。
+
+3. 将FileSystem设置为DistributedFileSystem的实现，添加如下代码：
+
+​```
+conf.set("fs.hdfs.impl", org.apache.hadoop.hdfs.DistributedFileSystem.class.getName());
+conf.set("fs.file.impl", org.apache.hadoop.fs.LocalFileSystem.class.getName());
+​``` 
+
+4. 如果是上传一个多行的文本文件，则需要对每一行的数据进行编码，并加上换行符。
+
+希望这些内容对你有所帮助。
+不再接收
+```
+
+```
+Hadoop HDFS使用两种编码格式：UTF-8和UTF-16。UTF-8是一种变长编码，用于表示Unicode字符集中的所有字符。而UTF-16是一种固定长度的编码格式，也用于表示Unicode字符集中的字符。
+
+在Hadoop HDFS中，文件名、目录名、路径、文件内容等都是以UTF-8编码格式存储的。另外，Hadoop HDFS在存储数据块时也使用UTF-8编码格式进行编码。但是，Hadoop HDFS在存储元数据时使用UTF-16编码格式进行编码，因为UTF-16编码格式在处理字符时更加高效。
+
+需要注意的是，Hadoop HDFS使用的UTF-8编码格式和普通的UTF-8编码格式并不完全一样。因为Hadoop HDFS需要处理大量文件名和路径信息，而这些信息通常包含大量的无效字符和控制字符，因此Hadoop HDFS进行了一些扩展和修改，以兼容各种不同的文件系统和操作系统。
+不再接收
+```
