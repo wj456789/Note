@@ -59,9 +59,20 @@
     | ---- | ------------------ | ------------- | --------------- |
     | date | date("yyyy/MM/dd") |               | 选中            |
 
-    
+- 修改IDE配置文件    Help -- Edit Custom VM Options
+- 监控IDEA进程占用CPU    Help -- Diagnostic Tools -- Activity Monitor
+- 插件启动时间分析器    Help -- Diagnostic Tools -- Analyze Plugin Startup Performance
 
 
+
+
+IntelliJ IDEA中可以在主菜单中选择Navigate | Call Hierarchy命令查看一个Java方法调用树 
+
+IntelliJ IDEA中可以在主菜单中选择Analyze | Data flow from/to Here两个命令查看表达式、变量和方法参数的传递关系树。 
+
+IntelliJ IDEA的"Find Usage"可以查看一个Java类、方法或变量的直接使用情况。 
+
+类关系图 在包或类上右键点击Diagram或者用快捷键Ctrl+Alt+U。
 
 
 

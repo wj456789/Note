@@ -534,9 +534,28 @@ public ResultView<LoginResp> login(@RequestParam String username.@RequestParam S
 
 **不加注解可以用简单类型或实体类接收键值对**，GET请求和POST请求都能用简单参数或实体类接收，因为这里可以将对象和属性值相互映射，使用实体类时前端传递的参数会和类中的属性名对应并且绑定，但是不能使用Map类型的对象；而且POST请求时，想要接收请求体中参数，Content-type只能为application/x-www-form-urlencoded。
 
+### 获取真实IP
 
+```java
+private String getRealIpAttr(HttpServletRequest request) {
+    String ip = request.getHeader("x-forwarded-for");
+    if (StringUtils.isNotBlank(ip) && ip.contains(",")) {
+        ip = ip.split(",")[0];
+    }
+    if (ip == null || ip.length() == 0 || "unknown".equalsIgnoreCase(ip)) {
+        ip = request.getHeader("Proxy-Client-IP");
+    }
+    if (ip == null || ip.length() == 0 || "unknown".equalsIgnoreCase(ip)) {
+        ip = request.getHeader("WL-Proxy-Client-IP");
+    }
+    if (ip == null || ip.length() == 0 || "unknown".equalsIgnoreCase(ip)) {
+        ip = request.getRemoteAddr();
+    }
+    return ip.equals("0:0:0:0:0:0:0:1") ? "127.0.0.1" : ip;
+}
+```
 
-
+[httpServletRequest获取客户端真实ip](https://blog.csdn.net/u014410695/article/details/50162315)
 
 
 

@@ -202,6 +202,40 @@ default生命周期中有23个阶段，我只列出有默认绑定的，其他�
 
 > 用于把多个jar包，打成1个jar包 一般Java项目都会依赖其他第三方jar包，最终打包时，希望把其他jar包包含在一个jar包里。 
 
+```xml
+<build>
+    <plugins>
+        <!-- Maven Shade Plugin -->
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-shade-plugin</artifactId>
+            <version>3.2.0</version>
+            <configuration>
+                <createDependencyReducedPom>true</createDependencyReducedPom>
+            </configuration>
+            <executions>
+                <execution>
+                    <phase>package</phase>
+                    <goals>
+                        <goal>shade</goal>
+                    </goals>
+                    <configuration>
+                        <transformers>
+                            <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                <!-- 主类的全限定名 -->
+                                <mainClass>com.healchow.consumer.Main</mainClass>
+                            </transformer>
+                        </transformers>
+                    </configuration>
+                </execution>
+            </executions>
+        </plugin>
+    </plugins>
+</build>
+```
+
+
+
 ### maven-assembly-plugin
 
 要使用maven-assembly-plugin，需要指定至少一个要使用的assembly descriptor 文件(assembly.xml)。
@@ -217,23 +251,56 @@ default生命周期中有23个阶段，我只列出有默认绑定的，其他�
 
 如：使用 descriptorRefs来引用(官方提供的定制化打包方式)【不建议使用】 
 
-##### 在pom中引入插件
+##### 在pom中引入插件(打入所有依赖jar包 )
 
 ```xml
-<!-- pom引入 -->
-<plugin>  
-    <artifactId>maven-assembly-plugin</artifactId>  
-    <configuration>  
-        <descriptorRefs>  
-            <descriptorRef>jar-with-dependencies</descriptorRef>  
-        </descriptorRefs>  
-    </configuration>  
-</plugin>
+<!-- 项目依赖的所有jar包都打到同一个jar中 -->
+<build>
+    <plugins>
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-assembly-plugin</artifactId>
+            <version>2.4.1</version>
+            
+            <configuration>
+                <descriptorRefs>
+                    <descriptorRef>jar-with-dependencies</descriptorRef>
+                </descriptorRefs>
+                <archive>
+                    <manifest>
+                        <mainClass>com.healchow.consumer.Main</mainClass>
+                    </manifest>
+                </archive>
+                <appendAssemblyId>false</appendAssemblyId>   <!-- 执行成功后会在target文件夹下多出一个以-jar-with-dependencies结尾的JAR包. 这个JAR包就包含了项目所依赖的所有JAR的CLASS，生成的jar包去除jar-with-dependencies后缀 -->
+            </configuration>
+            
+            <executions>
+                <!-- 配置执行器 -->
+                <execution>
+                    <id>make-assembly</id>
+                    <!-- 绑定到package命令的生命周期上，指定在 package 阶段(运行mvn package)，会执行 maven-assembly-plugin:single -->
+                    <phase>package</phase>
+                    <goals>
+                        <!-- 只运行一次 -->
+                        <goal>single</goal>
+                    </goals>
+                </execution>
+            </executions>
+        </plugin>
+     </plugins>
+ </build>
+ 
 ```
+
+PS：如果不希望依赖的JAR包变成CLASS的话,可以修改ASSEMBLY插件.
+
+1. 找到assembly在本地的地址,一般是c:/users/${your_login_name}/.m2/\org\apache\maven\plugins\maven-assembly-plugin\2.4
+2. 用WINZIP或解压工具打开此目录下的maven-assembly-plugin-2.4.jar, 找到assemblies\jar-with-dependencies.xml
+3. 把里面的UNPACK改成FALSE即可
 
 ##### 默认assembly配置文件
 
-> 上述直接配置jar-with-dependencies打包方式。不需要引入额外文件。实际上，上述4中预定义的assembly descriptor有对应的xml。要查看它们的详细定义，可以到maven-assembly-plugin.jar里去看，例如对应 bin 的assembly descriptor 原始文件如下：
+> 上述直接配置jar-with-dependencies打包方式。不需要引入额外文件。实际上，上述4种预定义的assembly descriptor有对应的xml。要查看它们的详细定义，可以到maven-assembly-plugin.jar里去看，例如对应 bin 的assembly descriptor 原始文件如下：
 
 ```xml
 <assembly xmlns="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.0"
@@ -406,6 +473,61 @@ default生命周期中有23个阶段，我只列出有默认绑定的，其他�
       </dependencySet>
   </dependencySets>
   ```
+
+
+
+### maven-dependency-plugin
+
+```xml
+<!-- 指定在package阶段(运行mvn package)，会执行maven-dependency-plugin:copy-dependencies,拷贝依赖包到指定目录,将jar包和lib文件夹放同一个目录，jar包就可以使用lib下的依赖包 -->
+<build>
+    <plugins>
+        
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-jar-plugin</artifactId>
+            <version>2.4</version>
+            <configuration>
+                <archive>
+                    <manifest>
+                        <addClasspath>true</addClasspath>
+                        <classpathPrefix>lib/</classpathPrefix>
+                        <!-- 主方法所在类名 -->
+                        <mainClass>com.example.controller.IndexController</mainClass>
+                    </manifest>
+                </archive>
+            </configuration>
+        </plugin>
+        
+        
+        <!-- 将依赖包放到lib文件夹中 -->
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-dependency-plugin</artifactId>
+            <executions>
+                <execution>
+                    <id>copy</id>
+                    <phase>package</phase>
+                    <goals>
+                        <goal>copy-dependencies</goal>
+                    </goals>
+                    <configuration>
+                        <outputDirectory>
+                            ${project.build.directory}/lib
+                        </outputDirectory>
+                    </configuration>
+                </execution>
+            </executions>
+        </plugin>
+        
+        
+    </plugins>
+</build>
+```
+
+
+
+
 
 ### docker-maven-plugin
 
@@ -1422,7 +1544,7 @@ $ mvn package –P !profileTest1
 
 [Maven简介（三）——profile介绍](https://www.iteye.com/blog/elim-1900568)
 
-## Other
+## 常用Maven命令
 
 > 在使用maven命令的时候 添加忽略SSL证书校验。
 >
@@ -1430,5 +1552,27 @@ $ mvn package –P !profileTest1
 
 ```sh
 $ mvn help:system -Dmaven.wagon.http.ssl.insecure=true -Dmaven.wagon.http.ssl.allowall=true -Dmaven.wagon.http.ssl.ignore.valid
+```
+
+
+
+```sh
+mvn -T 1C -Dmaven.test.skip=true clean package
+# -T 1C 指定多线程编译，表示每个CPU核心跑一个工程；
+# -Dmaven.test.skip=true 不编译测试用例，也不执行测试用例;
+```
+
+```sh
+# 多module项目升级版本号，统一修改pom的版本号，及子模块依赖的版本号，用的是versions-maven-plugin
+mvn versions:set -DnewVersion=xxx
+mvn versions:commit
+
+# 回退
+mvn versions:revert
+```
+
+```sh
+# maven 下载 工程依赖的所有jar包到本地
+$ mvn dependency:copy-dependencies
 ```
 

@@ -1125,34 +1125,12 @@ maven聚合
 dependency和plugin标签都有相应的dependencyManagement和pluginManagement，plugins 和 pluginManagement的区别，和我们前面研究过的dependencies 和 dependencyManagement的区别是非常类似的。plugins 下的 plugin 是真实使用的，而 pluginManagement 下的 plugins下的 plugin 则仅仅是一种声明，子项目中可以对 pluginManagement下的 plugin 进行信息的选择、继承、覆盖等。
 
 
----
 
 
-捕获组:本质上是用小括号给正则表达式分组，从左到右计算开括号给分组编号，然后使用find循环查找，使用group获取查找出来的分组
 
-捕获组是把正则表达式中多个字符当一个单独单元进行处理的方法，它通过对括号内的字符分组来创建。
-捕获组是通过从左至右计算其开括号来编号。例如，在表达式((A)(B(C)))，有四个这样的组：((A)(B(C)))、(A)、(B(C))、(C)。
 
-Matcher类的groupCount 方法返回一个 int 值，表示matcher对象当前有多个捕获组。
-group(0)）是一个特殊的组，代表整个表达式。该组不包括在 groupCount 的返回值中。
 
-public static void main(String[] args) {
-	Pattern pat = Pattern.compile("(\\D*)(\\d+)(.*)");
-	Matcher matcher = pat.matcher("This order was placed for QT3000! OK?");
-	while (matcher.find()) {
-	//group配合find使用，输出匹配到的字符串
-		System.out.println(matcher.group(0));
-		System.out.println(matcher.group(1));
-		System.out.println(matcher.group(2));
-		System.out.println(matcher.group(3));
-	}
-}
 
-输出
-Found value: This order was placed for QT3000! OK?
-Found value: This order was placed for QT
-Found value: 3000
-Found value: ! OK?
 
 
 ---

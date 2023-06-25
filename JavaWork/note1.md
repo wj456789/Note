@@ -57,14 +57,6 @@ Normalizer.normalize(str,Normalizer.Form.NFKC);
 
 
 
-
-## 正则表达式
-
-```java
-System.out.println("as/asdas/as".replaceAll("(?<=/).*?(?=/)","*"));		// as/*/as
-System.out.println("as/asdas/as".replaceAll("(?=/).*?(?<=/)","*"));		// as*asdas*as
-```
-
 ## Java8
 
 ```
@@ -657,31 +649,6 @@ $scope.clickByCondition = function($Model,type,content){
 
 
 
-## http
-
-```java
-private String getRealIpAttr(HttpServletRequest request) {
-    String ip = request.getHeader("x-forwarded-for");
-    if (StringUtils.isNotBlank(ip) && ip.contains(",")) {
-        ip = ip.split(",")[0];
-    }
-    if (ip == null || ip.length() == 0 || "unknown".equalsIgnoreCase(ip)) {
-        ip = request.getHeader("Proxy-Client-IP");
-    }
-    if (ip == null || ip.length() == 0 || "unknown".equalsIgnoreCase(ip)) {
-        ip = request.getHeader("WL-Proxy-Client-IP");
-    }
-    if (ip == null || ip.length() == 0 || "unknown".equalsIgnoreCase(ip)) {
-        ip = request.getRemoteAddr();
-    }
-    return ip.equals("0:0:0:0:0:0:0:1") ? "127.0.0.1" : ip;
-}
-```
-
-[httpServletRequest获取客户端真实ip](https://blog.csdn.net/u014410695/article/details/50162315)
-
-
-
 ## Gauss
 
 ### gaussDB
@@ -841,100 +808,6 @@ SID          SERIAL#      CLIENT_IP
 # 删除用户
 SQL> DROP USER IF EXISTS BILLDB CASCADE;
 Succeed.
-```
-
-
-
-## Maven
-
-[Maven把项目依赖的所有jar包都打到同一个jar中](https://blog.51cto.com/u_12796481/2796873) 
-
-[maven打jar包并引入依赖包(使用assembly和dependency插件)](https://blog.csdn.net/Luck_ZZ/article/details/108648753)
-
-[maven中把依赖的JAR包一起打包](https://blog.csdn.net/xiaokanfuchen86/article/details/113919498)
-
-```sh
-mvn -T 1C -Dmaven.test.skip=true clean package
-# -T 1C 指定多线程编译，表示每个CPU核心跑一个工程；
-# -Dmaven.test.skip=true 不编译测试用例，也不执行测试用例;
-```
-
-```sh
-# 多module项目升级版本号，统一修改pom的版本号，及子模块依赖的版本号，用的是versions-maven-plugin
-mvn versions:set -DnewVersion=xxx
-mvn versions:commit
-
-# 回退
-mvn versions:revert
-```
-
-```sh
-# maven 下载 工程依赖的所有jar包到本地
-$ mvn dependency:copy-dependencies
-```
-
-
-
-## IDEA
-
-修改IDE配置文件
-
-Help -- Edit Custom VM Options
-
-监控IDEA进程占用CPU
-
-Help -- Diagnostic Tools -- Activity Monitor
-
-插件启动时间分析器 
-
-Help -- Diagnostic Tools -- Analyze Plugin Startup Performance
-
-
-
-
-
-[java 将下划线方式命名的字符串转换为驼峰式](https://blog.csdn.net/qq_34626094/article/details/122578870)
-
-[java将驼峰式命名的字符串转换为下划线大写方式](https://blog.csdn.net/sdgames/article/details/106471352)
-
- 
-
-IntelliJ IDEA中可以在主菜单中选择Navigate | Call Hierarchy命令查看一个Java方法调用树 
-
-IntelliJ IDEA中可以在主菜单中选择Analyze | Data flow from/to Here两个命令查看表达式、变量和方法参数的传递关系树。 
-
-IntelliJ IDEA的"Find Usage"可以查看一个Java类、方法或变量的直接使用情况。 
-
-类关系图 在包或类上右键点击Diagram或者用快捷键Ctrl+Alt+U。
-
-
-
-## Gson
-
-使用Gson解析json成对象时默认的是将json里对应字段的值解析到java对象里对应字段的属性里面。 可以使用@SerializedName注解来将对象里的属性跟json里字段对应值匹配起来。 
-
-```java
-json数据如下：
-{
-    "id":"1"
-    "n":"kyoya"
-    "p":"123456"
-    "s":"0"
-}
-
-public class User{
-    private String id;
- 
-    @SerializedName("n")
-    private String userName;
- 
-    @SerializedName("p")
-    private String password;
- 
-    @SerializedName("s")
-    private String sex;
-}
-// 使用Gson解析json字符串或使用Gson生成json字符串都可以相互匹配
 ```
 
 
