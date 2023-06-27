@@ -786,6 +786,46 @@ public static void main(String[] args) throws IOException, KeeperException, Inte
 
 
 
+## 笔记
+
+### 数据存储
+
+ZooKeeper 的数据模型看作是存储在内存中的数据库，而这个数据库不但存储数据的节点信息，还存储每个数据节点的 ACL 权限信息以及 stat 状态信息等，一个 DataTree 类定义了 ZooKeeper 内存数据的逻辑结构。
+
+事务日志和数据快照一样，都存储在本地磁盘上；事务日志数据主要用于记录本地事务性会话操作，用于 ZooKeeper 集群服务器之间的数据同步，数据同步信息就是 Leader 服务器的事务日志。事务快照则是将内存数据持久化到本地磁盘，是每间隔一段时间才把内存数据存储到本地磁盘。
+
+
+
+### Watch机制
+
+Watcher：监控事件，Watcher 将作为整个 ZooKeeper 会话期间的上下文 ，一直被保存在客户端，向 ZooKeeper 服务器注册 Watcher，在不同的情况下添加 Watch 事件。
+
+客户端在不同会话状态下，相应的在服务器节点所能支持的事件类型不同。Watch 事件的触发机制取决于会话的连接状态和客户端注册事件的类型。
+
+Watch 具有一次性，所以当我们获得服务器通知后要再次添加 Watch 事件。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
