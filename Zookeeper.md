@@ -251,24 +251,30 @@ numChildren = 1
 
 
 
-## ACL 权限控制机制
+## ACL 权限控制
 
 ACL全称为Access Control List 即访问控制列表，用于控制资源的访问权限。zookeeper利用ACL策略控制节点的访问权限，如节点数据读写、节点创建、节点删除、读取子节点列表、设置节点权限等。
 
 在Zookeeper中，znode的ACL是没有继承关系的，每个znode的权限都是独立控制的，只有客户端满足znode设置的权限要求时，才能完成相应的操作。
 
-Zookeeper的ACL，分为三个维度：scheme、id、permission，通常表示为：`scheme:id:permission`，schema代表授权策略，id代表用户，permission代表权限。
+Zookeeper的ACL，分为三个维度：scheme、id、permission，通常表示为：`scheme:id:permission`，schema代表授权策略，id代表授权对象，permission代表权限。
 
 ### scheme
 
 scheme对应于采用哪种方案来进行权限管理，zookeeper的scheme的分类如下：
 
 - **world**: 它下面只有一个id, 叫anyone, `world:anyone`代表任何人，zookeeper中对所有人有权限的结点就是属于`world:anyone`的
+
 - **digest**:是最常用的权限控制模式，也更符合我们对权限控制的认识，其类似于`username:password`形式的权限标识进行权限配置。它对应的id为`username:BASE64(SHA1(password))`，即对密码先做SHA1加密然后再进行BASE64摘要。
+
 - **ip**: 它对应的id为客户机的IP地址，设置的时候可以设置一个ip段，比如`ip:192.168.1.0/16`, 表示匹配前16个bit的IP段，也可以设置为某一个具体的ip
+
 - **auth**: 它不需要id, 只要是通过authentication的user都有权限（zookeeper支持通过kerberos来进行authencation, 也支持`username/password`形式的authentication)
-- **super**: 在这种scheme情况下，对应的id拥有超级权限，可以做任何事情(cdrwa)
+
+- **super**: 在这种scheme情况下，对应的id拥有超级权限，可以做任何事情(cdrwa)，具有 Super 权限的客户端可以对 ZooKeeper 上的任意数据节点进行任意操作。
   其实这几种scheme中最常用的也就是world，digest和ip，其他的都很少使用，了解一下就行了。
+  
+  [zookeeper配置super超级用户](https://blog.csdn.net/succing/article/details/121793494) 
 
 ### id
 
@@ -387,6 +393,68 @@ Authentication is not valid : /ipTest
 参考：
 
 [zookeeper的ACL权限控制机制介绍](https://blog.csdn.net/u012988901/article/details/83388419)
+
+### 权限扩展
+
+提供权限扩展机制来让用户实现自己的权限控制方式，机制的定义是Pluggable ZooKeeper Authenication，意思是可插拔的授权机制。
+
+要想实现自定义的权限控制机制，最核心的一点是实现 ZooKeeper 提供的权限控制器接口 AuthenticationProvider，将自定义的权限控制注册到 ZooKeeper 服务器中，而注册的方式通常有两种。
+
+- 第一种是通过设置系统属性来注册自定义的权限控制器：
+
+  ```
+  -Dzookeeper.authProvider.x=CustomAuthenticationProvider
+  ```
+
+- 另一种是在配置文件zoo.cfg中进行配置：
+
+  ```
+  authProvider.x=CustomAuthenticationProvider
+  ```
+
+**实现原理**
+
+首先是封装该请求的类型，之后将权限信息封装到 request 中并发送给服务端。而服务器的实现比较复杂，首先分析请求类型是否是权限相关操作，之后根据不同的权限模式（scheme）调用不同的实现类验证权限最后存储权限信息。
+
+在授权接口中，值得注意的是会话的授权信息存储在 ZooKeeper 服务端的内存中，如果客户端会话关闭，授权信息会被删除。
+
+下次连接服务器后，需要重新调用授权接口进行授权
+
+
+
+## 序列化方式
+
+ZooKeeper 一直采用 Jute 作为序列化解决方案，但是性能不好，主要是新老版本的兼容等问题。
+
+**如何 使用 Jute 实现序列化**
+
+如果我们要想将某个定义的类进行序列化，首先需要该类实现 Record 接口的 serilize 和 deserialize 方法，这两个方法分别是序列化和反序列化方法。
+
+```java
+class test_jute implements Record{
+    private long ids；
+    private String name;
+    ...
+        
+    // 在序列化方法 serialize 中，我们要实现的逻辑是，首先通过字符类型参数 tag 传递标记序列化标识符，之后使用 writeLong 和 writeString 等方法分别将对象属性字段进行序列化。
+    public void serialize(OutpurArchive a_,String tag){
+        a_.startRecord(this.tag);
+        a_.writeLong(ids,"ids");
+        a_.writeString(type,"name");
+        a_.endRecord(this,tag);
+    }
+    public void deserialize(INputArchive a_,String tag){
+        a_.startRecord(tag);
+        ids = a_.readLong("ids");
+        name = a_.readString("name");
+        a_.endRecord(tag);
+    }
+}
+```
+
+序列化和反序列化的实现逻辑编码方式相对固定，首先通过 startRecord 开启一段序列化操作，之后通过 writeLong、writeString 或 readLong、 readString 等方法执行序列化或反序列化。
+
+本例中只是实现了长整型和字符型的序列化和反序列化操作，除此之外 ZooKeeper 中的 Jute 框架还支持整数类型（Int）、布尔类型（Bool）、双精度类型（Double）以及 Byte/Buffer 类型。
 
 
 
