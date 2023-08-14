@@ -80,8 +80,6 @@ Kafka是一个分布式的发布/订阅消息系统，主要用于处理活跃�
 
 - Coordinator：协调者，为 Consumer Group 服务，负责为 Group 执行 Rebalance 以及提供位移管理和组成员管理等。
 
-  
-
 - Zookeeper：协调kafka的正常运行，Kafka将元数据信息保存在Zookeeper中，但发送给Topic本身的消息数据并不存储在ZK中，而在存储在磁盘文件中
 
 
@@ -114,6 +112,119 @@ Consumer Group 如何确定为它服务的 Coordinator 在哪台 Broker 上呢�
 有了分区号，我们只需要找出 __consumer_offsets 主题分区12的 Leader 副本在哪个 Broker上 就可以了，这个 Broker ，就是我们要找的 Coordinator。
 
 反过来说，一个消费者组内所有消费者的位移数据都保存到 __consumer_offsets 主题的一个分区中，可以通过这个分区的领导者副本确认 Coordinator 所在的 Broker 。
+
+
+
+### 位移扩展
+
+- 消费者位移：Consumer Offset，消费者消费进度，每个消费者都有自己的消费者位移。
+
+- 重平衡：Rebalance，消费者组内某个消费者实例挂掉后，其他消费者实例自动重新分配订阅主题分区的过程，Rebalance 是 Kafka 消费者端实现高可用的重要手段。
+
+- AR（Assigned Replicas）：分区中的所有副本统称为AR。
+
+  所有消息会先发送到 leader 副本，然后 follower 副本才能从 leader 中拉取消息进行同步。但是在同步期间，follower 对于 leader 而言会有一定程度的滞后，这个时候 follower 和 leader 并非完全同步状态
+
+- OSR（Out Sync Replicas）：follower 副本与 leader 副本没有完全同步或滞后的副本集合
+
+- ISR（In Sync Replicas）：AR 中的一个子集，ISR 中的副本都是与 leader 保持完全同步的副本，如果某个在 ISR 中的 follower 副本落后于 leader 副本太多，则会被从 ISR 中移除，否则如果完全同步，会从 OSR 中移至 ISR 集合。
+
+  在默认情况下，当leader副本发生故障时，只有在ISR集合中的follower副本才有资格被选举为新leader，而OSR中的副本没有机会（可以通过`unclean.leader.election.enable`进行配置）
+
+- HW（High Watermark）：高水位，它标识了一个特定的消息偏移量（offset），消费者只能拉取到这个水位 offset 之前的消息
+
+  下图表示一个日志文件，这个日志文件中只有9条消息，第一条消息的offset（LogStartOffset）为0，最有一条消息的offset为8，offset为9的消息使用虚线表示的，代表下一条待写入的消息。
+
+  日志文件的 HW 为6，表示消费者只能拉取offset在 0 到 5 之间的消息，offset为6的消息对消费者而言是不可见的。
+
+  <img src="img_Kafka/weixin-kafkahxzszj-f27928a8-9a91-4e39-a68d-c74d8a3291f1.jpg" alt="img" style="zoom: 80%;" />
+
+- LEO（Log End Offset）：标识当前日志文件中下一条待写入的消息的offset
+
+  上图中offset为9的位置即为当前日志文件的 LEO，LEO 的大小相当于当前日志分区中最后一条消息的offset值加1
+
+  分区 ISR 集合中的每个副本都会维护自身的 LEO ，而 ISR 集合中最小的 LEO 即为分区的 HW，对消费者而言只能消费 HW 之前的消息
+
+同步副本最小的 LEO 即为高水位
+
+## 生产者分区
+
+### 分区
+
+Kafka的消息组织方式实际上是三级结构：主题 - 分区 - 消息。
+
+不同的分区能够被放置到不同节点的机器上，而数据的读写操作也都是针对分区这个粒度而进行的，这样每个节点的机器都能独立地执行各自分区的读写请求处理，并且，我们还可以通过添加新的节点机器来增加整体系统的吞吐量。其实分区的作用就是提供负载均衡的能力，或者说对数据进行分区的主要原因，就是为了实现系统的高伸缩性（Scalability）。
+
+### 分区策略
+
+**分区策略是决定生产者将消息发送到哪个分区的算法。**
+
+Kafka为我们提供了默认的分区策略，同时它也支持你自定义分区策略。
+
+#### 自定义分区策略
+
+编写一个具体的类实现`org.apache.kafka.clients.producer.Partitioner`接口。
+
+这个接口定义了两个方法：partition()和close()，通常只需要实现最重要的partition方法。
+
+```java
+int partition(String topic, Object key, byte[] keyBytes, Object value, byte[] valueBytes, Cluster cluster);
+```
+
+topic、key、keyBytes、value和valueBytes都属于消息数据，cluster则是集群信息（比如当前Kafka集群共有多少主题、多少Broker等）。利用这些信息对消息进行分区，计算出它要被发送到哪个分区中。
+
+还需要显式地配置生产者端的参数 partitioner.class 为你自己实现类的Full Qualified Name，那么生产者程序就会按照你的代码逻辑对消息进行分区。
+
+#### 轮询策略
+
+也称Round-robin策略，即顺序分配。轮询策略是Kafka Java生产者API默认提供的分区策略。
+
+比如一个主题下有3个分区，那么第一条消息被发送到分区0，第二条被发送到分区1，第三条被发送到分区2，以此类推。当生产第4条消息时又会重新开始，即将其分配到分区0
+
+**「轮询策略有非常优秀的负载均衡表现，它总是能保证消息最大限度地被平均分配到所有分区上，故默认情况下它是最合理的分区策略，也是我们最常用的分区策略之一。」**
+
+#### 随机策略
+
+也称Randomness策略。所谓随机就是我们随意地将消息放置到任意一个分区上。
+
+```java
+// 实现随机策略的partition方法，先计算出该主题总的分区数，然后随机地返回一个小于它的正整数。
+List partitions = cluster.partitionsForTopic(topic);
+return ThreadLocalRandom.current().nextInt(partitions.size());
+```
+
+#### 按消息键保序策略
+
+Kafka为每条消息定义消息键，简称为Key，它可以是一个有着明确业务含义的字符串，比如客户代码、部门编号或是业务ID等；也可以用来表征消息元数据。
+
+一旦消息被定义了Key，那么你就可以保证同一个Key的所有消息都进入到相同的分区里面，由于每个分区下的消息处理都是有顺序的，故这个策略被称为按消息键保序策略
+
+```java
+List partitions = cluster.partitionsForTopic(topic);
+return Math.abs(key.hashCode()) % partitions.size();
+```
+
+前面提到的Kafka默认分区策略实际上同时实现了两种策略：如果指定了Key，那么默认实现按消息键保序策略；如果没有指定Key，则使用轮询策略。
+
+#### 其他分区策略
+
+其实还有一种比较常见的，即所谓的基于地理位置的分区策略。
+
+当然这种策略一般只针对那些大规模的Kafka集群，特别是跨城市、跨国家甚至是跨大洲的集群。
+
+```java
+// 根据 Broker 所在的 IP 地址实现定制化的分区策略，我们可以从所有分区中找出那些 Leader 副本在南方的所有分区，然后随机挑选一个进行消息发送
+List partitions = cluster.partitionsForTopic(topic);
+return partitions.stream().filter(p -> isSouth(p.leader().host())).map(PartitionInfo::partition).findAny().get();
+```
+
+
+
+
+
+
+
+
 
 ## 安装
 
