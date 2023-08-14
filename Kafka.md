@@ -1,6 +1,6 @@
 # Kafka
 
-**Kafka是一个分布式的消息系统，消息队列MQ，保存消息的队列，是消息在传输过程中的容器。点对点、发布/订阅**
+**Kafka是一个分布式的消息系统，消息队列MQ，保存消息的队列，是消息在传输过程中的容器。提供统一的、高吞吐量、低延迟的平台来处理实时数据流。**
 
 ## 消息系统
 
@@ -42,32 +42,78 @@ Kafka是一个分布式的发布/订阅消息系统，主要用于处理活跃�
 
 - 高吞吐量
   可以满足每秒百万级别消息的生产和消费。
-
 - 持久性
   有一套完善的消息存储机制，确保数据的高效安全的持久化。
-
 - 分布式
   基于分布式的扩展和容错机制；
   Kafka的数据会复制到多台服务器上，当某一台发生故障失效时，生产者和消费者转而使用其它的机器。
 
-### 架构
+### 初识
 
 ![image-20210921081911706](img_Kafka/image-20210921081911706.png)
 
-### 组成
 
-- Broker：kafka集群中包含多个kafka服务节点，每一个kafka服务节点就称为一个broker
 
-- Topic：主题，用来存储不同类别的消息（Kafka消息数据是存储在硬盘上的）
+- Broker：kafka集群中包含多个kafka服务节点，每一个kafka服务节点就称为一个broker，Broker 负责接收和处理客户端发送过来的请求，以及对消息进行持久化，虽然多个 Broker 进程能够运行在同一台机器上，但更常见的做法是将 不同的 Broker 分散运行在不同的机器上。
 
-- Partition：分区，每个Topic包含一个或多个Partition，在创建Topic时指定包含的Partition数量（目的是为了进行分布式存储）
+- Topic：主题，发布订阅的对象，可以为每 个业务、每个应用甚至是每类数据都创建专属的主题
 
-- Replication：副本，每个分区可以有多个副本，分布在不同的Broker上，会选出一个副本作为Leader，所有的读写请求都会通过Leader完成，Follower只负责备份数据，所有Follower会自动的从Leader中复制数据，当Leader宕机后， 会从Follower中选出一个新的Leader继续提供服务，实现故障自动转移
+- Partition：分区，每个主题 Topic 划分成多个分区 Partition，每个分区是一组有序的消息日志，生产者生产的每条消息只会被发送到主题的一个分区中，生产者向分区写入消息，每条消息在分区中的位置信息叫位移
+
+- Replication：副本，每个分区可以有多个副本，分布在不同的Broker上；定义了两类副本：领导者副本和追随者副本，每个分区只能有 1 个领 导者副本和 N-1 个追随者副本；
+
+  会选出一个副本作为Leader，Leader对外提供服务，与客户端程序进行交互，所有的读写请求都会通过Leader完成；所有Follower只负责备份数据，不能与外界进行交互，Follower会自动的从Leader中复制数据，当Leader宕机后， 会从Follower中选出一个新的Leader继续提供服务，实现故障自动转移
+
 - Message：消息，是通信的基本单位，每个消息都属于一个Partition
-- Producer：消息的生产者，向Kafka的一个topic发布消息
-- Consumer：消息的消费者，订阅topic并读取其发布的消息
+
+- Producer：消息的生产者，向主题发布消息的客户端应用程序，生产者程序通常持续不断地向一个或多个主题发送消息
+
+- Consumer：消息的消费者，订阅主题消息的客户端应用程序，消费者也能够同时订阅多个主题的消息。
+
 - Consumer Group：每个Consumer属于一个特定的Consumer Group，多个Consumer可以属于同一个Consumer Group中
+
+  多个消费者实例共同组成一个组来消费一组主题，主题中的每个分区都只会被组内的一个消费者实例消费，组内其他消费者实例不能消费该分区，同时实现了传统消息引擎系统的两大模型：
+  - 如果所有实例都属于同一个 `Group`， 那么它实现的就是消息队列模型；
+  - 如果所有实例分别属于不 同的 `Group`，那么它实现的就是发布/订阅模型
+
+  一个主题可以配置几个分区，生产者发送的消息分发到不同的分区中，消费者接收数据的时候是按照消费者组来接收的，Kafka确保每个分区的消息只能被同一个消费者组中的一个消费者消费，如果想要重复消费，那么需要其他的消费者组来消费，同时一个消费者可以消费多个分区。
+
+- Coordinator：协调者，为 Consumer Group 服务，负责为 Group 执行 Rebalance 以及提供位移管理和组成员管理等。
+
+  
+
 - Zookeeper：协调kafka的正常运行，Kafka将元数据信息保存在Zookeeper中，但发送给Topic本身的消息数据并不存储在ZK中，而在存储在磁盘文件中
+
+
+
+### 扩展
+
+### Coordinator
+
+所有Broker在启动时，都会创建和开启相应的Coordinator组件，**所有Broker都有各自的Coordinator组件**
+
+Consumer 端应用程序在提交位移时，其实是向 Coordinator 所在的 Broker 提交位移，同样地，当 Consumer 应用启动时，也是向 Coordinator 所在的 Broker 发送各种请求，然后由 Coordinator 负责执行消费者组的注册、成员管理记录等元数据管理操作。
+
+Consumer Group 如何确定为它服务的 Coordinator 在哪台 Broker 上呢？
+
+通过Kafka内部主题 __consumer_offsets 。
+
+目前，Kafka 为某个 Consumer Group 确定 Coordinator 所在的 Broker 的算法有2个步骤。
+
+- 第1步：确定由 __consumer_offsets 主题的哪个分区来保存该 Group 内实例的位移数据：`partitionId=Math.abs(groupId.hashCode() % offsetsTopicPartitionCount)`。
+- 第2步：找出该分区 Leader 副本所在的 Broker ，该 Broker 即为对应的 Coordinator 。
+
+首先，Kafka会计算该Group的 group.id 参数的哈希值。
+
+比如你有个Group的 group.id 设置成了 test-group ，那么它的 hashCode 值就应该是627841412。
+
+其次，Kafka会计算 __consumer_offsets 的分区数，通常是50个分区，之后将刚才那个哈希值对分区数进行取模加求绝对值计算，即`abs(627841412 % 50) = 12`。
+
+此时，我们就知道了 __consumer_offsets 主题的分区12负责保存这个 Group 的数据。
+
+有了分区号，我们只需要找出 __consumer_offsets 主题分区12的 Leader 副本在哪个 Broker上 就可以了，这个 Broker ，就是我们要找的 Coordinator。
+
+反过来说，一个消费者组内所有消费者的位移数据都保存到 __consumer_offsets 主题的一个分区中，可以通过这个分区的领导者副本确认 Coordinator 所在的 Broker 。
 
 ## 安装
 
@@ -386,7 +432,17 @@ SpringBoot提供了一个名为 spring­kafka 的starter，用于在Spring项目
 
 
 
+## 临时笔记
 
+实时数据流
+
+分区是消息日志
+
+每条消息在分区中的位置信息叫位移
+
+多个消费者实例可以属于同一个 `Group`，也可以属于不 同的 `Group`，主题中的每个分区都只会被group内的一个消费者实例消费
+
+消费者Group确定Coordinator所在的Broker：groupId哈希确认主题的哪个分区来保存该Group数据，找出该分区Leader副本所在的Broker
 
 
 
