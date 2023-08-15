@@ -58,7 +58,7 @@ Kafka是一个分布式的发布/订阅消息系统，主要用于处理活跃�
 
 - Topic：主题，发布订阅的对象，可以为每 个业务、每个应用甚至是每类数据都创建专属的主题
 
-- Partition：分区，每个主题 Topic 划分成多个分区 Partition，每个分区是一组有序的消息日志，生产者生产的每条消息只会被发送到主题的一个分区中，生产者向分区写入消息，每条消息在分区中的位置信息叫位移
+- Partition：分区，每个主题 Topic 划分成多个分区 Partition，每个分区是一组有序的消息日志，生产者生产的每条消息只会被发送到主题的一个分区中，生产者向分区写入消息，**每条消息在分区中的位置信息叫位移**
 
 - Replication：副本，每个分区可以有多个副本，分布在不同的Broker上；定义了两类副本：领导者副本和追随者副本，每个分区只能有 1 个领 导者副本和 N-1 个追随者副本；
 
@@ -70,13 +70,7 @@ Kafka是一个分布式的发布/订阅消息系统，主要用于处理活跃�
 
 - Consumer：消息的消费者，订阅主题消息的客户端应用程序，消费者也能够同时订阅多个主题的消息。
 
-- Consumer Group：每个Consumer属于一个特定的Consumer Group，多个Consumer可以属于同一个Consumer Group中
-
-  多个消费者实例共同组成一个组来消费一组主题，主题中的每个分区都只会被组内的一个消费者实例消费，组内其他消费者实例不能消费该分区，同时实现了传统消息引擎系统的两大模型：
-  - 如果所有实例都属于同一个 `Group`， 那么它实现的就是消息队列模型；
-  - 如果所有实例分别属于不 同的 `Group`，那么它实现的就是发布/订阅模型
-
-  一个主题可以配置几个分区，生产者发送的消息分发到不同的分区中，消费者接收数据的时候是按照消费者组来接收的，Kafka确保每个分区的消息只能被同一个消费者组中的一个消费者消费，如果想要重复消费，那么需要其他的消费者组来消费，同时一个消费者可以消费多个分区。
+- Consumer Group：多个消费者实例共同组成一个组，组内的所有消费者协调在一起来消费订阅主题的所有分区。
 
 - Coordinator：协调者，为 Consumer Group 服务，负责为 Group 执行 Rebalance 以及提供位移管理和组成员管理等。
 
@@ -86,7 +80,7 @@ Kafka是一个分布式的发布/订阅消息系统，主要用于处理活跃�
 
 ### 扩展
 
-### Coordinator
+#### Coordinator
 
 所有Broker在启动时，都会创建和开启相应的Coordinator组件，**所有Broker都有各自的Coordinator组件**
 
@@ -113,9 +107,7 @@ Consumer Group 如何确定为它服务的 Coordinator 在哪台 Broker 上呢�
 
 反过来说，一个消费者组内所有消费者的位移数据都保存到 __consumer_offsets 主题的一个分区中，可以通过这个分区的领导者副本确认 Coordinator 所在的 Broker 。
 
-
-
-### 位移扩展
+#### 位移
 
 - 消费者位移：Consumer Offset，消费者消费进度，每个消费者都有自己的消费者位移。
 
@@ -147,9 +139,9 @@ Consumer Group 如何确定为它服务的 Coordinator 在哪台 Broker 上呢�
 
 同步副本最小的 LEO 即为高水位
 
-## 生产者分区
+## 生产者
 
-### 分区
+### 生产者分区
 
 Kafka的消息组织方式实际上是三级结构：主题 - 分区 - 消息。
 
@@ -217,6 +209,143 @@ return Math.abs(key.hashCode()) % partitions.size();
 List partitions = cluster.partitionsForTopic(topic);
 return partitions.stream().filter(p -> isSouth(p.leader().host())).map(PartitionInfo::partition).findAny().get();
 ```
+
+### 压缩算法
+
+#### 消息
+
+Kafka的消息层次都分为两层：消息集合以及消息。Kafka通常不会直接操作具体的一条条消息，它总是在消息集合这个层面上进行写入操作。
+
+一个消息集合中包含若干条日志项，而日志项才是真正封装消息的地方。Kafka底层的消息日志由一系列消息集合日志项组成。
+
+#### V2版本
+
+目前Kafka共有两大类消息格式，社区分别称之为V1版本和V2版本。V2版本是Kafka 0.11.0.0中正式引入的。V2版本主要是针对V1版本的一些弊端做了修正，比如：
+
+- 把消息的公共部分抽取出来放到外层**消息集合**里面，这样就不用每条消息都保存这些信息了。
+
+  原来在V1版本中，每条消息都需要执行CRC校验，但有些情况下消息的CRC值是会发生变化的。比如在Broker端可能会对消息时间戳字段进行更新，那么重新计算之后的CRC值也会相应更新；再比如Broker端在执行消息格式转换时（主要是为了兼容老版本客户端程序），也会带来CRC值的变化。鉴于这些情况，再对每条消息都执行CRC校验就有点没必要了，不仅浪费空间还耽误CPU时间，因此在V2版本中，消息的CRC校验工作就被移到了消息集合这一层。
+
+- 保存压缩消息的方法
+
+  V1版本中保存压缩消息的方法是把多条消息进行压缩然后保存到外层消息的消息体字段中；而V2版本的做法是对整个消息集合进行压缩，显然后者应该比前者有更好的压缩效果。
+
+#### 压缩
+
+在Kafka中，压缩可能发生在两个地方：生产者端和Broker端。
+
+**何时启用压缩是比较合适的时机呢？**启用压缩的一个条件就是Producer程序运行机器上的CPU资源要很充足。除了CPU资源充足这一条件，如果你的环境中带宽资源有限，那么建议你开启压缩。
+
+##### 生产者端
+
+```java
+// 如何构建一个开启GZIP的Producer对象
+Properties props = new Properties(); 
+props.put("bootstrap.servers", "localhost:9092"); 
+props.put("acks", "all"); 
+props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer"); props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer"); // 开启GZIP压缩 
+props.put("compression.type", "gzip"); 
+Producer producer = new KafkaProducer<>(props);
+// props.put(“compression.type”, “gzip”) 表明该Producer的压缩算法使用的是GZIP。生产者程序中配置compression.type参数即表示启用指定类型的压缩算法。
+```
+
+这样Producer启动后生产的每个消息集合都是经GZIP压缩过的，故而能很好地节省网络传输带宽以及Kafka Broker端的磁盘占用。
+
+##### Broker端
+
+有两种例外情况就可能让Broker重新压缩消息：
+
+- 情况一：Broker端指定了和Producer端不同的压缩算法。
+
+  一旦你在Broker端设置了不同的`compression.type`值，就一定要小心了，因为可能会发生预料之外的压缩/解压缩操作，通常表现为Broker端CPU使用率飙升。
+
+- 情况二：Broker端发生了消息格式转换。
+
+  所谓的消息格式转换主要是为了兼容老版本的消费者程序。
+
+  在一个生产环境中，Kafka集群中同时保存多种版本的消息格式非常常见。为了兼容老版本的格式，Broker端会对新版本消息执行向老版本格式的转换。这个过程中会涉及消息的解压缩和重新压缩。一般情况下这种消息格式转换对性能是有很大影响的，除了这里的压缩之外，它还让Kafka丧失了Zero Copy特性。
+
+#### 解压缩
+
+解压缩发生在消费者程序中，也就是说Producer发送压缩消息到Broker后，Broker照单全收并原样保存起来。当Consumer程序请求这部分消息时，Broker依然原样发送出去，当消息到达Consumer端后，由Consumer自行解压缩还原成之前的消息。
+
+**基本过程：Producer端压缩、Broker端保持、Consumer端解压缩。**
+
+注意：除了在Consumer端解压缩，Broker端也会进行解压缩。每个压缩过的消息集合在Broker端写入时都要发生解压缩操作，目的就是为了对消息执行各种验证。我们必须承认这种解压缩对Broker端性能是有一定影响的，特别是对CPU的使用率而言。
+
+#### 压缩算法
+
+对于Kafka而言，在吞吐量方面：LZ4 > Snappy > zstd和GZIP；而在压缩比方面，zstd > LZ4 > GZIP > Snappy。
+
+具体到物理资源，使用Snappy算法占用的网络带宽最多，zstd最少；
+
+在CPU使用率方面，各个算法表现得差不多，只是在压缩时Snappy算法使用的CPU较多一些，而在解压缩时GZIP算法则可能使用更多的CPU。
+
+## 消费者组
+
+### 概念
+
+- 消费者组内有多个消费者或消费者实例，它们共享一个公共的ID，这个ID被称为Group ID。组内的所有消费者协调在一起来消费订阅主题的所有分区。
+
+- 主题中的每个分区只能由同一个消费者组内的一个Consumer实例来消费，组内其他消费者实例不能消费该分区
+
+  一个主题可以配置几个分区，生产者发送的消息分发到不同的分区中，消费者接收数据的时候是按照消费者组来接收的，Kafka确保每个分区的消息只能被同一个消费者组中的一个消费者消费，如果想要重复消费，那么需要其他的消费者组来消费，同时一个消费者可以消费多个分区。
+
+- Kafka使用Consumer Group机制，同时实现了传统消息引擎系统的两大模型：
+  - 如果所有实例都属于同一个Group，那么它实现的就是消息队列模型；
+  - 如果所有实例分别属于不同的Group，那么它实现的就是发布/订阅模型。
+
+**Consumer Group是Kafka提供的可扩展且具有容错性的消费者机制**。
+
+### 特性
+
+- Consumer Group下可以有一个或多个Consumer实例，这里的实例可以是一个单独的进程，也可以是同一进程下的线程。
+- Group ID是一个字符串，在一个Kafka集群中，它标识唯一的一个Consumer Group。
+- Consumer Group下所有实例订阅的主题的单个分区，只能分配给组内的某个Consumer实例消费，这个分区当然也可以被其他的Group消费。
+
+当Consumer Group订阅了多个主题后，组内的每个实例不要求一定要订阅主题的所有分区，它只会消费部分分区中的消息。
+
+Consumer Group之间彼此独立，互不影响，它们能够订阅相同的一组主题而互不干涉。
+
+### 消费者实例
+
+#### 实例个数
+
+一个Group下该有多少个Consumer实例呢？
+
+**理想情况下，Consumer实例的数量应该等于该Group订阅主题的分区总数。**
+
+假设一个Consumer Group订阅了3个主题，分别是A、B、C，它们的分区数依次是1、2、3，那么通常情况下，为该Group设置6个Consumer实例是比较理想的情形，因为它能最大限度地实现高伸缩性。
+
+#### 位移管理
+
+**位移Offset**
+
+老版本的Consumer Group把位移保存在ZooKeeper中。Apache ZooKeeper是一个分布式的协调服务框架，Kafka重度依赖它实现各种各样的协调管理。将位移保存在ZooKeeper外部系统的做法，最显而易见的好处就是减少了Kafka Broker端的状态保存开销。不过，慢慢地发现了一个问题，即ZooKeeper这类元框架其实并不适合进行频繁的写更新，而Consumer Group的位移更新却是一个非常频繁的操作。这种大吞吐量的写操作会极大地拖慢ZooKeeper集群的性能。
+
+于是，在新版本的Consumer Group中，Kafka社区重新设计了Consumer Group的位移管理方式，采用了将位移保存在Kafka内部主题的方法。这个内部主题就是 __consumer_offsets 。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
