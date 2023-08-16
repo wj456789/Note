@@ -325,35 +325,157 @@ Consumer Group之间彼此独立，互不影响，它们能够订阅相同的一
 
 于是，在新版本的Consumer Group中，Kafka社区重新设计了Consumer Group的位移管理方式，采用了将位移保存在Kafka内部主题的方法。这个内部主题就是 __consumer_offsets 。
 
+### 消费者策略
+
+#### Round
+
+默认，也叫轮循，说的是对于同一组消费者来说，使用轮训分配的方式，决定消费者消费的分区
+
+<img src="img_Kafka/weixin-kafkahxzszj-1262b5a7-198e-47b7-ad81-a4f84e755901.jpg" alt="img" style="zoom: 50%;" />
+
+#### Range
+
+决定消费方式是以分区总数除以消费者总数来决定，一般如果不能整除，往往是从头开始将剩余的分区分配开
+
+<img src="img_Kafka/weixin-kafkahxzszj-d6a295aa-85f7-439e-9984-e081f3d95238.jpg" alt="img" style="zoom: 50%;" />
 
 
 
+#### Sticky
 
+前面两个当同组内有新的消费者加入或者旧的消费者退出的时候，会从新开始决定消费者消费方式
 
+Sticky，在同组中有新的新的消费者加入或者旧的消费者退出时，不会直接开始新的Range分配，而是保留现有消费者原来的消费策略，将退出的消费者所消费的分区平均分配给现有消费者，新增消费者同理，同其他现存消费者的消费策略中分离
 
+### 位移提交
 
+假设一个分区中有10条消息，位移分别是0到9。某个Consumer应用已消费了5条消息，这就说明该Consumer消费了位移为0到4的5条消息，此时Consumer的位移是5，指向了下一条消息的位移。
 
+因为Consumer能够同时消费多个分区的数据，所以位移的提交实际上是在分区粒度上进行的，即**Consumer需要为分配给它的每个分区提交各自的位移数据**。
 
+**位移提交分为自动提交和手动提交；从Consumer端的角度来说，位移提交分为同步提交和异步提交**。
 
+#### 自动提交
 
+Consumer端参数`enable.auto.commit`，设置为 true 可以开启自动提交位移，默认值 true，即 Java Consumer 默认就是自动提交位移的。
 
+如果启用了自动提交，Consumer 端参数：`auto.commit.interval.ms`，它的默认值是5秒，表明 Kafka 每5秒会为你自动提交一次位移。
 
+```java
+Properties props = new Properties();
+props.put("bootstrap.servers", "localhost:9092");
+props.put("group.id", "test");
+props.put("enable.auto.commit", "true");
+props.put("auto.commit.interval.ms", "2000");
+props.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+props.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+KafkaConsumer consumer = new KafkaConsumer<>(props);
+consumer.subscribe(Arrays.asList("foo", "bar"));
+while (true) {
+    ConsumerRecords records = consumer.poll(100);
+    for (ConsumerRecord record : records)
+        System.out.printf("offset = %d, key = %s, value = %s%n", record.offset(), record.key(), record.value());
+}
+```
 
+自动提交 Kafka 会保证在开始调用 poll 方法时，提交上次 poll 返回的所有消息。从顺序上来说，poll 方法的逻辑是先提交上一批消息的位移，再处理下一批消息，因此它能保证不出现消费丢失的情况。
 
+但自动提交位移的一个问题在于，**「它可能会出现重复消费」**。
 
+#### 手动提交
 
+开启手动提交位移的方法就是设置`enable.auto.commit为false`。还需要调用相应的API手动提交位移。
 
+**同步操作**
 
+**KafkaConsumer#commitSync()**
 
+该方法会提交`KafkaConsumer#poll()`返回的最新位移。该方法会一直等待，直到位移被成功提交才会返回，如果提交过程中出现异常，该方法会将异常信息抛出。调用commitSync()时，Consumer程序会处于阻塞状态，直到远端的Broker返回提交结果，这个状态才会结束。
 
+```java
+while (true) {
+    ConsumerRecords records = consumer.poll(Duration.ofSeconds(1));
+    process(records); // 处理消息
+    try {
+        consumer.commitSync();
+    } catch (CommitFailedException e) {
+        handle(e); // 处理提交失败异常
+    }
+}
+```
 
+**异步操作**
 
+**KafkaConsumer#commitAsync()**。
 
+调用commitAsync()之后，它会立即返回，不会阻塞，Kafka还提供了回调函数（callback），供你实现提交之后的逻辑，比如记录日志或处理异常等。
 
+```java
+while (true) {
+    ConsumerRecords records = consumer.poll(Duration.ofSeconds(1));
+    process(records); // 处理消息
+    consumer.commitAsync((offsets, exception) -> {
+        if (exception != null)
+            handle(exception);
+    });
+}
+```
 
+commitAsync的问题在于，出现问题时它不会自动重试。
 
+**组合使用**
 
+显然，如果是手动提交，我们需要将commitSync和commitAsync组合使用才能到达最理想的效果，原因有两个：
 
+1. 我们可以利用commitSync的自动重试来规避那些瞬时错误，比如网络的瞬时抖动，Broker端GC等，因为这些问题都是短暂的，自动重试通常都会成功。
+2. 我们不希望程序总处于阻塞状态，影响TPS。
+
+```java
+// 将两个API方法结合使用进行手动提交
+try {
+    while(true) {
+        ConsumerRecords records = consumer.poll(Duration.ofSeconds(1));
+        process(records); // 处理消息
+        commitAysnc(); // 使用异步提交规避阻塞
+    }
+} catch(Exception e) {
+    handle(e); // 处理异常
+} finally {
+    try {
+        consumer.commitSync(); // 最后一次提交使用同步阻塞式提交
+    } finally {
+        consumer.close();
+    }
+}
+```
+
+#### 阶段提交
+
+这样一个场景：你的poll方法返回的不是500条消息，而是5000条。那么，你肯定不想把这5000条消息都处理完之后再提交位移，因为一旦中间出现差错，之前处理的全部都要重来一遍。比如前面这个5000条消息的例子，你可能希望**每处理完100条消息就提交一次位移**，这样能够避免大批量的消息重新消费。
+
+Kafka Consumer API为手动提交提供了这样的方法：commitSync(Map)和commitAsync(Map)。它们的参数是一个Map对象，键就是TopicPartition，即消费的分区，而值是一个OffsetAndMetadata对象，保存的主要是位移数据。
+
+```java
+// 以commitAsync为例，commitSync的调用方法和它是一样的
+private Map offsets = new HashMap<>();
+int count = 0;
+……
+while (true) {
+    ConsumerRecords records = consumer.poll(Duration.ofSeconds(1));
+    for (ConsumerRecord record: records) {
+        process(record);  // 处理消息
+        offsets.put(new TopicPartition(record.topic(), record.partition()), new OffsetAndMetadata(record.offset() + 1));
+        if(count % 100 == 0) {
+            consumer.commitAsync(offsets, null); // 回调处理逻辑是null
+        }
+        count++;
+	}
+}
+```
+
+先创建一个Map对象，用于保存Consumer消费处理过程中要提交的分区位移，之后开始逐条处理消息，并构造要提交的位移值。最后是做位移的提交。设置了一个计数器，每累计100条消息就统一提交一次位移。
+
+与调用无参的commitAsync不同，这里调用了带Map对象参数的commitAsync进行细粒度的位移提交。这样，这段代码就能够实现每处理100条消息就提交一次位移，不用再受poll方法返回的消息总数的限制了。
 
 ## 安装
 
