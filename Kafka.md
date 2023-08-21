@@ -95,15 +95,12 @@ Consumer Group 如何确定为它服务的 Coordinator 在哪台 Broker 上呢�
 - 第1步：确定由 __consumer_offsets 主题的哪个分区来保存该 Group 内实例的位移数据：`partitionId=Math.abs(groupId.hashCode() % offsetsTopicPartitionCount)`。
 - 第2步：找出该分区 Leader 副本所在的 Broker ，该 Broker 即为对应的 Coordinator 。
 
-首先，Kafka会计算该Group的 group.id 参数的哈希值。
-
-比如你有个Group的 group.id 设置成了 test-group ，那么它的 hashCode 值就应该是627841412。
-
-其次，Kafka会计算 __consumer_offsets 的分区数，通常是50个分区，之后将刚才那个哈希值对分区数进行取模加求绝对值计算，即`abs(627841412 % 50) = 12`。
-
-此时，我们就知道了 __consumer_offsets 主题的分区12负责保存这个 Group 的数据。
-
-有了分区号，我们只需要找出 __consumer_offsets 主题分区12的 Leader 副本在哪个 Broker上 就可以了，这个 Broker ，就是我们要找的 Coordinator。
+> 首先，Kafka会计算该Group的 group.id 参数的哈希值。比如你有个Group的 group.id 设置成了 test-group ，那么它的 hashCode 值就应该是627841412。
+>
+> 其次，Kafka会计算 `__consumer_offsets` 的分区数，通常是50个分区，之后将刚才那个哈希值对分区数进行取模加求绝对值计算，即`abs(627841412 % 50) = 12`。此时，我们就知道了 `__consumer_offsets` 主题的分区12负责保存这个 Group 的数据。
+>
+> 有了分区号，我们只需要找出 __consumer_offsets 主题分区12的 Leader 副本在哪个 Broker上 就可以了，这个 Broker ，就是我们要找的 Coordinator。
+>
 
 反过来说，一个消费者组内所有消费者的位移数据都保存到 __consumer_offsets 主题的一个分区中，可以通过这个分区的领导者副本确认 Coordinator 所在的 Broker 。
 
@@ -309,15 +306,13 @@ Consumer Group之间彼此独立，互不影响，它们能够订阅相同的一
 
 ### 消费者实例
 
-#### 实例个数
+**实例个数**
 
 一个Group下该有多少个Consumer实例呢？
 
 **理想情况下，Consumer实例的数量应该等于该Group订阅主题的分区总数。**
 
 假设一个Consumer Group订阅了3个主题，分别是A、B、C，它们的分区数依次是1、2、3，那么通常情况下，为该Group设置6个Consumer实例是比较理想的情形，因为它能最大限度地实现高伸缩性。
-
-#### 位移管理
 
 **位移Offset**
 
@@ -327,13 +322,13 @@ Consumer Group之间彼此独立，互不影响，它们能够订阅相同的一
 
 ### 消费者策略
 
-#### Round
+**Round**
 
 默认，也叫轮循，说的是对于同一组消费者来说，使用轮训分配的方式，决定消费者消费的分区
 
 <img src="img_Kafka/weixin-kafkahxzszj-1262b5a7-198e-47b7-ad81-a4f84e755901.jpg" alt="img" style="zoom: 50%;" />
 
-#### Range
+**Range**
 
 决定消费方式是以分区总数除以消费者总数来决定，一般如果不能整除，往往是从头开始将剩余的分区分配开
 
@@ -341,11 +336,103 @@ Consumer Group之间彼此独立，互不影响，它们能够订阅相同的一
 
 
 
-#### Sticky
+**Sticky**
 
 前面两个当同组内有新的消费者加入或者旧的消费者退出的时候，会从新开始决定消费者消费方式
 
 Sticky，在同组中有新的新的消费者加入或者旧的消费者退出时，不会直接开始新的Range分配，而是保留现有消费者原来的消费策略，将退出的消费者所消费的分区平均分配给现有消费者，新增消费者同理，同其他现存消费者的消费策略中分离
+
+### 重平衡
+
+**（重平衡）Rebalance本质上是一种协议，规定了一个Consumer Group下的所有Consumer如何来分配订阅Topic的每个分区**。
+
+比如某个Group下有20个Consumer实例，它订阅了一个具有100个分区的Topic。正常情况下，Kafka平均会为每个Consumer分配5个分区。这个分配的过程就叫Rebalance。
+
+**Rebalance的触发条件**
+
+- 组成员数发生变更。比如有新的 Consumer 实例加入组或者离开组，或是有 Consumer 实例崩溃被踢出组。
+- 订阅主题数发生变更。Consumer Group 可以使用正则表达式的方式订阅主题，比如`consumer.subscribe(Pattern.compile(“t.*c”))`就表明该 Group 订阅所有以字母 t 开头、字母 c 结尾的主题，在 Consumer Group 的运行过程中，你新创建了一个满足这样条件的主题，那么该 Group 就会发生 Rebalance。
+- 订阅主题的分区数发生变更。Kafka 当前只能允许增加主题的分区数，当分区数增加时，就会触发订阅该主题的所有 Group 开启 Rebalance。
+
+Rebalance 发生时，Group 下所有的 Consumer 实例都会协调在一起共同参与。
+
+**分配策略**
+
+当前Kafka默认提供了3种分配策略，保证提供最公平的分配策略，即每个Consumer实例都能够得到较为平均的分区数。
+
+比如一个Group内有10个Consumer实例，要消费100个分区，理想的分配策略自然是每个实例平均得到10个分区。这就叫**公平的分配策略**。
+
+举个简单的例子来说明一下Consumer Group发生Rebalance的过程。假设目前某个Consumer Group下有两个Consumer，比如A和B，当第三个成员C加入时，Kafka会触发Rebalance，并根据默认的分配策略重新为A、B和C分配分区，Rebalance之后的分配依然是公平的，即每个Consumer实例都获得了2个分区的消费权。
+
+在Rebalance过程中，所有Consumer实例都会停止消费，等待Rebalance完成，这是Rebalance为人诟病的一个方面。
+
+目前Rebalance的设计是所有Consumer实例共同参与，全部重新分配所有分区。
+
+**Coordinator会在什么情况下认为某个Consumer实例已挂从而要退组呢？**
+
+当 Consumer Group 完成 Rebalance 之后，每个 Consumer 实例都会定期地向 Coordinator 发送**心跳请求**，表明它还存活着。如果某个 Consumer 实例不能及时地发送这些心跳请求，Coordinator 就会认为该 Consumer 已经死了，从而将其从 Group 中移除，然后开启新一轮 Rebalance。
+
+- Consumer 端有个参数，`session.timeout.ms`。该参数的默认值是10秒，即如果 Coordinator 在10秒之内没有收到 Group 下某 Consumer 实例的心跳，它就会认为这个 Consumer 实例已经挂了。
+
+- Consumer 还提供了控制发送心跳请求频率的参数，就是`heartbeat.interval.ms`。这个值设置得越小，Consumer 实例发送心跳请求的频率就越高。频繁地发送心跳请求会额外消耗带宽资源，但好处是能够更加快速地知晓当前是否开启 Rebalance，因为，目前 Coordinator 通知各个 Consumer 实例开启Rebalance 的方法，就是将`REBALANCE_NEEDED`标志封装进心跳请求的响应体中。
+
+- 除了以上两个参数，Consumer 端还有一个参数，用于控制 Consumer 实际消费能力对 Rebalance 的影响，即`max.poll.interval.ms`参数。它限定了 Consumer 端应用程序两次调用 poll 方法的最大时间间隔。它的默认值是5分钟，表示你的 Consumer 程序如果在5分钟之内无法消费完 poll 方法返回的消息，那么 Consumer 会主动发起离开组的请求，Coordinator 也会开启新一轮 Rebalance。
+
+**可避免Rebalance的配置**
+
+- 第一类Rebalance是因为未能及时发送心跳，导致 Consumer 被踢出 Group 而引发的，因此可以设置 session.timeout.ms 和 heartbeat.interval.ms 的值。
+  - 设置`session.timeout.ms` = 6s。
+  - 设置`heartbeat.interval.ms` = 2s。
+
+  要保证Consumer实例在被判定为dead之前，能够发送至少3轮的心跳请求，即`session.timeout.ms >= 3 * heartbeat.interval.ms`。
+
+  将`session.timeout.ms`设置成6s主要是为了让Coordinator能够更快地定位已经挂掉的Consumer。
+
+- 第二类Rebalance是Consumer消费时间过长导致的
+
+  你要为你的业务处理逻辑留下充足的时间，这样Consumer就不会因为处理这些消息的时间太长而引发Rebalance了。
+
+### ConsumerOffsets
+
+`__consumer_offsets`的主要作用是**保存Kafka消费者的位移信息**。Kafka 将 Consumer 的位移数据作为一条条普通的 Kafka 消息，提交到`__consumer_offsets`中。它要求这个提交过程不仅要实现高持久性，还要支持高频的写操作。`__consumer_offsets`主题是**普通的Kafka主题**。它的消息格式是Kafka自己定义的，用户不能修改，也就是说你不能随意地向这个主题写消息，因为一旦你写入的消息不满足Kafka规定的格式，那么Kafka内部无法成功解析，就会造成Broker的崩溃。
+
+**消息类型**
+
+`__consumer_offsets`有3种消息格式：
+
+- 用于保存 Consumer Group 信息的消息。
+- 用于删除 Group 过期位移甚至是删除 Group 的消息。
+- 保存了位移值。
+
+第2种格式它有个专属的名字：tombstone 消息，即墓碑消息，也称 delete mark，它的主要特点是它的消息体是 null，即空消息体。
+
+一旦某个 Consumer Group 下的所有 Consumer 实例都停止了，而且它们的位移数据都已被删除时，Kafka 会向`__consumer_offsets`主题的对应分区写入tombstone 消息，表明要彻底删除这个 Group 的信息。
+
+**提交位移**
+
+当 Kafka 集群中的**第一个 Consumer 程序启动时，Kafka 会自动创建位移主题**。默认该主题的分区数是50，副本数是3。
+
+目前 Kafka Consumer 提交位移的方式有两种：自动提交位移和手动提交位移，详情见下个目录。
+
+如果你选择的是自动提交位移，那么就可能存在一个问题：只要 Consumer 一直启动着，它就会无限期地向位移主题写入消息。假设Consumer当前消费到了某个主题的最新一条消息，位移是100，之后该主题没有任何新消息产生，故Consumer无消息可消费了，所以位移永远保持在100。由于是自动提交位移，位移主题中会不停地写入位移=100的消息。显然Kafka只需要保留这类消息中的最新一条就可以了，之前的消息都是可以删除的。
+
+这就要求Kafka必须要有针对位移主题消息特点的消息删除策略，否则这种消息会越来越多，最终撑爆整个磁盘。
+
+**Compact策略**
+
+Kafka使用 Compact 策略来删除`__consumer_offsets`主题中的过期消息，避免该主题无限期膨胀。Compact的过程就是扫描日志的所有消息，剔除那些过期的消息，然后把剩下的消息整理在一起。
+
+比如对于同一个Key的两条消息M1和M2，如果M1的发送时间早于M2，那么M1就是过期消息。
+
+Compact过程如下图，图中位移为0、2和3的消息的Key都是K1，Compact之后，分区只需要保存位移为3的消息，因为它是最新发送的。
+
+![img](img_Kafka/weixin-kafkahxzszj-14efc721-5848-4931-80f3-b8a52c9a7816.jpg)
+
+
+
+**Kafka提供了专门的后台线程定期地巡检待Compact的主题，看看是否存在满足条件的可删除数据**。
+
+这个后台线程叫Log Cleaner。很多实际生产环境中都出现过位移主题无限膨胀占用过多磁盘空间的问题，如果你的环境中也有这个问题，建议你去检查一下Log Cleaner线程的状态，通常都是这个线程挂掉了导致的。
 
 ### 位移提交
 
@@ -476,6 +563,8 @@ while (true) {
 先创建一个Map对象，用于保存Consumer消费处理过程中要提交的分区位移，之后开始逐条处理消息，并构造要提交的位移值。最后是做位移的提交。设置了一个计数器，每累计100条消息就统一提交一次位移。
 
 与调用无参的commitAsync不同，这里调用了带Map对象参数的commitAsync进行细粒度的位移提交。这样，这段代码就能够实现每处理100条消息就提交一次位移，不用再受poll方法返回的消息总数的限制了。
+
+
 
 ## 安装
 
