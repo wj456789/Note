@@ -47,9 +47,9 @@ Remote：远程仓库
 
 7. 配置一下用户名和邮箱(`git config --global`表示本机器上所有的Git仓库都会使用这个配置)       
 
-   ```java
-   $git config –global user.name "wj456789"
-   $git config –global user.email "1256116295@qq.com"	
+   ```sh
+   $ git config –global user.name "wj456789"
+   $ git config –global user.email "1256116295@qq.com"	
    ```
 
 
@@ -409,20 +409,17 @@ $ git clone [url]
 
 ### 配置
 
-显示当前的Git配置
-
+```sh
+# 显示当前的Git配置
 $ git config --list
 
-编辑Git配置文件
-
+# 编辑Git配置文件
 $ git config -e [--global]
 
-设置提交代码时的用户信息
-
+# 设置提交代码时的用户信息
 $ git config [--global] user.name "[name]"
 $ git config [--global] user.email "[email address]"
-
-
+```
 
 
 
@@ -493,65 +490,45 @@ $ git commit --amend [file1] [file2] ...
 
 ### 远程同步
 
-修改远程仓库地址
+```sh
+# 修改远程仓库地址
+$ git remote set-url origin <remote-url>
 
-`git remote set-url origin <remote-url>`
+# 仓库路径查询查询
+$ git remote -v
 
-仓库路径查询查询
+# 增加一个新的远程仓库，并命名为origin 
+$ git remote add origin <你的项目地址> #注:项目地址形式为:https://gitee.com/xxx/xxx.git或者 git@gitee.com:xxx/xxx.git
 
-`git remote -v`
+# 删除指定的远程仓库
+$ git remote rm origin
 
-增加一个新的远程仓库，并命名为origin 
-
-`git remote add origin <你的项目地址>` //注:项目地址形式为:`https://gitee.com/xxx/xxx.git`或者 `git@gitee.com:xxx/xxx.git`
-
-删除指定的远程仓库
-
-`git remote rm origin`
-
-
-
-
-
-下载远程仓库的所有变动
-
+# 下载远程仓库的所有变动
 $ git fetch [remote]
 
-显示某个远程仓库的信息
-
+# 显示某个远程仓库的信息
 $ git remote show [remote]
 
-取回远程仓库的变化，并与本地分支合并
+# 取回远程仓库的变化，并与本地分支合并
+$ git pull [remote] [local-branch]
 
-**$ git pull [remote] [local-branch]**
+# 上传本地指定分支到远程仓库
+$ git push [remote] [local-branch]
 
-上传本地指定分支到远程仓库
-
-**$ git push [remote] [local-branch]**
-
-如果当前分支与多个分支存在追踪关系，`-u`指定[remote] [local-branch]为默认分支，后面就可以不加任何参数使用`git push`
-
-**$ git push -u [remote] [local-branch]**
-
+# 如果当前分支与多个分支存在追踪关系，-u 指定[remote] [local-branch]为默认分支，后面就可以不加任何参数使用 git push
+$ git push -u [remote] [local-branch]
 如：
-
-```java
 $ git push -u origin master
-```
 
-
-
-强行推送当前分支到远程仓库，即使有冲突
-
+# 强行推送当前分支到远程仓库，即使有冲突
 $ git push [remote] --force
 
-推送所有分支到远程仓库
-
+# 推送所有分支到远程仓库
 $ git push [remote] --all
 
-将本地分支推送到远程分支上，若无远程分支则自动创建
-
+# 将本地分支推送到远程分支上，若无远程分支则自动创建
 $ git push origin 远程分支名:远程分支名
+```
 
 
 
@@ -727,76 +704,56 @@ $ git branch -u/--set-upstream-to origin/serverfix
 
 [Git 分支 - 远程分支](https://git-scm.com/book/zh/v2/Git-%E5%88%86%E6%94%AF-%E8%BF%9C%E7%A8%8B%E5%88%86%E6%94%AF)
 
+```sh
+# 列出所有本地分支，当前分支前面会添加一个星号
+$ git branch
 
+# 列出所有远程分支
+$ git branch -r
 
-列出所有本地分支，当前分支前面会添加一个星号
-
-**$ git branch**
-
-列出所有远程分支
-
-**$ git branch -r**
-
-列出所有本地分支和远程分支
-
+# 列出所有本地分支和远程分支
 $ git branch -a
 
-新建一个分支，但依然停留在当前分支
+# 新建一个分支，但依然停留在当前分支
+$ git branch [branch-name]
 
-**$ git branch [branch-name]**
+# 新建一个分支，并切换到该分支
+$ git checkout -b [branch]
 
-新建一个分支，并切换到该分支
+# 将远程git仓库里的指定分支拉取到本地，同时在本地新建了一个分支，并和指定的远程分支关联了起来。
+$ git checkout -b 本地分支名 origin/远程分支名
 
-**$ git checkout -b [branch]**
-
-将远程git仓库里的指定分支拉取到本地，同时在本地新建了一个分支，并和指定的远程分支关联了起来。
-
-**$ git checkout -b 本地分支名 origin/远程分支名**
-
-新建一个分支，指向指定commit
-
+# 新建一个分支，指向指定commit
 $ git branch [branch] [commit]
 
-新建一个分支，与指定的远程分支建立追踪关系
-
+# 新建一个分支，与指定的远程分支建立追踪关系
 $ git branch --track [branch] [remote-branch]
 
-切换到指定分支，并更新工作区
+# 切换到指定分支，并更新工作区
+$ git checkout [branch-name]
 
-**$ git checkout [branch-name]**
-
-切换到上一个分支
-
+# 切换到上一个分支
 $ git checkout -
 
-建立追踪关系，在现有分支与指定的远程分支之间
+# 建立追踪关系，在现有分支与指定的远程分支之间
+$ git branch --set-upstream [remote-branch] [local-branch]
 
-**$ git branch --set-upstream [remote-branch] [local-branch]**
+# 合并指定分支到当前分支
+$ git merge [branch]
 
-合并指定分支到当前分支
-
-**$ git merge [branch]**
-
-选择一个commit，合并进当前分支
-
+# 选择一个commit，合并进当前分支
 $ git cherry-pick [commit]
 
-删除分支
+# 删除分支
+$ git branch -d [branch-name]
 
-**$ git branch -d [branch-name]**
-
-删除远程分支
-
+# 删除远程分支
 $ git push origin --delete [branch-name]
 $ git branch -dr [remote/branch]
 
-查看本地分支及追踪的分支，可以显示本地所有分支
-
+# 查看本地分支及追踪的分支，可以显示本地所有分支
 $ git branch -vv
-
-
-
-
+```
 
 
 

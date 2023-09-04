@@ -564,6 +564,136 @@ while (true) {
 
 与调用无参的commitAsync不同，这里调用了带Map对象参数的commitAsync进行细粒度的位移提交。这样，这段代码就能够实现每处理100条消息就提交一次位移，不用再受poll方法返回的消息总数的限制了。
 
+##  副本机制
+
+根据Kafka副本机制的定义，同一个分区的所有副本保存有相同的消息序列，这些副本分散保存在不同的Broker上，从而能够对抗部分Broker宕机带来的数据不可用。
+
+下面展示的是一个有3台Broker的Kafka集群上的副本分布情况。
+
+从这张图中，我们可以看到，主题1分区0的3个副本分散在3台Broker上，其他主题分区的副本也都散落在不同的Broker上，从而实现数据冗余。
+
+<img src="img_Kafka/weixin-kafkahxzszj-b2a22704-3d2e-4e1d-8f43-0dfa869ff8a4.jpg" alt="img" style="zoom: 67%;" />
+
+### 副本角色
+
+<img src="img_Kafka/weixin-kafkahxzszj-804bdef2-6281-4dd6-bee7-ec3361cff781.jpg" alt="img" style="zoom: 50%;" />
+
+在Kafka中，副本分成两类：领导者副本（Leader Replica）和追随者副本（Follower Replica）。每个分区在创建时都要选举一个副本，称为领导者副本，其余的副本自动称为追随者副本。kafka使用多副本机制提高可靠性，但是只有leader副本对外提供读写服务，follow副本只是做消息同步。
+
+- 所有的请求都必须由**领导者副本**来处理，或者说，所有的读写请求都必须发往领导者副本所在的Broker，由该Broker负责处理。
+
+- 在Kafka中，**追随者副本**是不对外提供服务的。这就是说，任何一个追随者副本都不能响应消费者和生产者的读写请求。追随者副本不处理客户端请求，它唯一的任务就是从领导者副本**异步拉取**消息，并写入到自己的提交日志中，从而实现与领导者副本的同步。
+
+- 当领导者副本挂掉了，或者说领导者副本所在的Broker宕机时，Kafka依托于ZooKeeper提供的监控功能能够实时感知到，并立即开启新一轮的领导者选举，从追随者副本中选一个作为新的领导者。老Leader副本重启回来后，只能作为追随者副本加入到集群中。
+
+> 对于客户端用户而言，Kafka的追随者副本没有任何作用，Kafka为什么要这样设计呢？
+>
+> 这种副本机制有两个方面的好处。
+>
+> - 方便实现Read-your-writes
+>
+>   所谓Read-your-writes，顾名思义就是，当你使用生产者API向Kafka成功写入消息后，马上使用消费者API去读取刚才生产的消息。
+>
+> - 方便实现单调读（Monotonic Reads）
+>
+>   假设当前有2个追随者副本F1和F2，它们异步地拉取领导者副本数据。倘若F1拉取了Leader的最新消息而F2还未及时拉取，那么，此时如果有一个消费者先从F1读取消息之后又从F2拉取消息，它可能会看到这样的现象：第一次消费时看到的最新消息在第二次消费时不见了，这就不是单调读一致性。
+>
+>   但是，如果所有的读请求都是由Leader来处理，那么Kafka就很容易实现单调读一致性。
+
+### ISR机制
+
+In-sync Replicas，也就是所谓的ISR副本集合。
+
+- ISR中的副本都是与Leader同步的副本，相反，不在ISR中的追随者副本就被认为是与Leader不同步的。
+
+  **ISR不只是追随者副本集合，它必然包括Leader副本。甚至在某些情况下，ISR只有Leader这一个副本**。
+
+- 能够进入到ISR的追随者副本要满足一定的条件。**通过Broker端参数replica.lag.time.max.ms参数值**。这个参数的含义是Follower副本能够落后Leader副本的最长时间间隔，当前默认值是10秒。
+
+  这就是说，只要一个Follower副本落后Leader副本的时间不连续超过10秒，那么Kafka就认为该Follower副本与Leader是同步的，即使此时Follower副本中保存的消息明显少于Leader副本中的消息。
+
+- ISR是一个动态调整的集合，而非静态不变的。Follower副本唯一的工作就是不断地从Leader副本拉取消息，然后写入到自己的提交日志中。倘若该副本后面慢慢地追上了Leader的进度，那么它是能够重新被加回ISR的。
+
+### Unclean领导者选举
+
+**「Kafka把所有不在ISR中的存活副本都称为非同步副本」**。
+
+- 在Kafka中，非同步副本参与选举的过程称为Unclean领导者选举。**Broker端参数unclean.leader.election.enable控制是否允许Unclean领导者选举**
+
+- 非同步副本中保存的消息远远落后于Leader中的消息。因此，如果选择这些副本作为新Leader，就可能出现数据的丢失。
+
+  开启Unclean领导者选举可能会造成数据丢失，但好处是，它使得分区Leader副本一直存在，不至于停止对外提供服务，因此提升了高可用性。反之，禁止Unclean领导者选举的好处在于维护了数据的一致性，避免了消息丢失，但牺牲了高可用性。
+
+### 副本选举
+
+如果一个分区的leader副本不可用，就意味着整个分区不可用，此时需要从follower副本中选举出新的leader副本提供服务。
+
+- **kafka集群中会尽量分配每一个partition的副本leader在不同的broker中**，这样会避免多个leader在同一个broker，导致集群中的broker负载不平衡。对于任意的topic的分区以及副本leader的设定，都需要考虑到集群整体的负载能力的平衡性。
+
+- 在创建主题的时候，该主题的分区和副本会尽可能的均匀发布到kafka的各个broker上。
+
+  比如我们在包含3个broker节点的kafka集群上创建一个分区数为3，副本因子为3的主题`topic-partitions`时，leader副本会均匀的分布在3台broker节点上。
+
+<img src="img_Kafka/weixin-kafkahxzszj-1dfdbca2-372c-4bcf-9f9c-d58a94f32477.jpg" alt="img" style="zoom: 67%;" />
+
+- **针对同一个分区，一个broker节点上不可能出现它的多个副本**。
+
+#### 优先副本选举
+
+我们可以把leader副本所在的节点叫作分区的leader节点，把follower副本所在的节点叫作follower节点。在上面的例子中，分区0的leader节点是broker1，分区1的leader节点是broker2，分区2的leader节点是broker0。
+
+当分区leader节点发生故障时，其中的一个follower节点就会选举为新的leader节点。当原来leader的节点恢复之后，它只能成为一个follower节点，此时就导致了集群负载不均衡。
+
+比如分区1的leader节点broker2崩溃了，此时选举了在broker1上的分区1follower节点作为新的leader节点。当broker2重新恢复时，此时的kafka集群状态如下：
+
+<img src="img_Kafka/weixin-kafkahxzszj-6630b85d-2c0d-44ea-add9-aa1ea1d66ac8.jpg" alt="img" style="zoom: 67%;" />
+
+可以看到，此时broker1上负载更大，而broker2上没有负载。
+
+- 为了解决上述负载不均衡的情况，kafka支持了优先副本选举，**优先副本指的是一个分区的AR（分区中的所有副本）集合的第一个副本**。理想情况下，优先副本应该就是leader副本。
+
+  比如上面的分区1，它的AR集合是`[2,0,1]`，表示分区1的优先副本就是在broker2上。
+
+- **优先副本选举就是对分区leader副本进行选举的时候，尽可能让优先副本成为leader副本**，针对上述的情况，只要再触发一次优先副本选举就能保证分区负载均衡。
+
+kafka支持自动优先副本选举功能，默认每5分钟触发一次优先副本选举操作
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ## 安装
