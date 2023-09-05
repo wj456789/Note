@@ -80,30 +80,6 @@ Kafka是一个分布式的发布/订阅消息系统，主要用于处理活跃�
 
 ### 扩展
 
-#### Coordinator
-
-所有Broker在启动时，都会创建和开启相应的Coordinator组件，**所有Broker都有各自的Coordinator组件**
-
-Consumer 端应用程序在提交位移时，其实是向 Coordinator 所在的 Broker 提交位移，同样地，当 Consumer 应用启动时，也是向 Coordinator 所在的 Broker 发送各种请求，然后由 Coordinator 负责执行消费者组的注册、成员管理记录等元数据管理操作。
-
-Consumer Group 如何确定为它服务的 Coordinator 在哪台 Broker 上呢？
-
-通过Kafka内部主题 __consumer_offsets 。
-
-目前，Kafka 为某个 Consumer Group 确定 Coordinator 所在的 Broker 的算法有2个步骤。
-
-- 第1步：确定由 __consumer_offsets 主题的哪个分区来保存该 Group 内实例的位移数据：`partitionId=Math.abs(groupId.hashCode() % offsetsTopicPartitionCount)`。
-- 第2步：找出该分区 Leader 副本所在的 Broker ，该 Broker 即为对应的 Coordinator 。
-
-> 首先，Kafka会计算该Group的 group.id 参数的哈希值。比如你有个Group的 group.id 设置成了 test-group ，那么它的 hashCode 值就应该是627841412。
->
-> 其次，Kafka会计算 `__consumer_offsets` 的分区数，通常是50个分区，之后将刚才那个哈希值对分区数进行取模加求绝对值计算，即`abs(627841412 % 50) = 12`。此时，我们就知道了 `__consumer_offsets` 主题的分区12负责保存这个 Group 的数据。
->
-> 有了分区号，我们只需要找出 __consumer_offsets 主题分区12的 Leader 副本在哪个 Broker上 就可以了，这个 Broker ，就是我们要找的 Coordinator。
->
-
-反过来说，一个消费者组内所有消费者的位移数据都保存到 __consumer_offsets 主题的一个分区中，可以通过这个分区的领导者副本确认 Coordinator 所在的 Broker 。
-
 #### 位移
 
 - 消费者位移：Consumer Offset，消费者消费进度，每个消费者都有自己的消费者位移。
@@ -564,6 +540,49 @@ while (true) {
 
 与调用无参的commitAsync不同，这里调用了带Map对象参数的commitAsync进行细粒度的位移提交。这样，这段代码就能够实现每处理100条消息就提交一次位移，不用再受poll方法返回的消息总数的限制了。
 
+### Coordinator
+
+> 协调器是用于协调多个消费者之间能够正确地工作的一个角色, 比如计算**消费的分区分配策略**，又或者消费者的加入组与离开组的处理逻辑, 有一点类似 Kafka的控制器的角色。
+
+协调器分为 **消费组协调器** 和 **消费者协调器**两种
+
+- 消费组协调器
+
+  组协调器(GroupCoordinator)可以理解为各个消费者协调器的一个中央处理器, 每个消费者的所有交互都是和组协调器(GroupCoordinator)进行的。
+
+  - 选举Leader消费者客户端
+  - 处理申请加入组的客户端
+  - 再平衡后同步新的分配方案
+  - 维护与客户端的心跳检测
+  - 管理消费者已消费偏移量,并存储至__consumer_offset中
+
+- 消费者协调器
+
+  每个客户端都会有一个消费者协调器, 他的主要作用就是向组协调器发起请求做交互, 以及处理回调逻辑
+
+  - 向组协调器发起入组请求
+  - 向组协调器发起同步组请求(如果是Leader客户端,则还会计算分配策略数据放到入参传入)
+  - 发起离组请求
+  - 保持跟组协调器的心跳线程
+  - 向组协调器发送提交已消费偏移量的请求
+
+所有Broker在启动时，都会创建和开启相应的Coordinator组件，**所有Broker都有各自的Coordinator组件**
+
+Consumer 端应用程序在提交位移时，其实是向 Coordinator 所在的 Broker 提交位移，同样地，当 Consumer 应用启动时，也是向 Coordinator 所在的 Broker 发送各种请求，然后由 Coordinator 负责执行消费者组的注册、成员管理记录等元数据管理操作。
+
+Consumer Group 如何确定为它服务的 Coordinator 在哪台 Broker 上呢？通过Kafka内部主题 `__consumer_offsets` 。默认情况下, `__consumer_offset`有50个分区，每个消费组都会对应其中的一个分区。目前，Kafka 为某个 Consumer Group 确定 Coordinator 所在的 Broker 的算法有2个步骤。
+
+1. 第1步：确定由 __consumer_offsets 主题的哪个分区来保存该 Group 内实例的位移数据：`partitionId=Math.abs(groupId.hashCode() % offsetsTopicPartitionCount)`。
+2. 第2步：找出该分区 Leader 副本所在的 Broker ，该 Broker 即为对应的 Coordinator 。
+
+> 首先，Kafka会计算该Group的 group.id 参数的哈希值。比如你有个Group的 group.id 设置成了 test-group ，那么它的 hashCode 值就应该是627841412。
+>
+> 其次，Kafka会计算 `__consumer_offsets` 的分区数，通常是50个分区，之后将刚才那个哈希值对分区数进行取模加求绝对值计算，即`abs(627841412 % 50) = 12`。此时，我们就知道了 `__consumer_offsets` 主题的分区12负责保存这个 Group 的数据。
+>
+> 有了分区号，我们只需要找出 __consumer_offsets 主题分区12的 Leader 副本在哪个 Broker上 就可以了，这个 Broker ，就是我们要找的 Coordinator。
+
+反过来说，一个消费者组内所有消费者的位移数据都保存到 __consumer_offsets 主题的一个分区中，可以通过这个分区的领导者副本确认 Coordinator 所在的 Broker 。
+
 ##  副本机制
 
 根据Kafka副本机制的定义，同一个分区的所有副本保存有相同的消息序列，这些副本分散保存在不同的Broker上，从而能够对抗部分Broker宕机带来的数据不可用。
@@ -660,11 +679,190 @@ kafka支持自动优先副本选举功能，默认每5分钟触发一次优先�
 
 
 
+## 网络通信模型
+
+<img src="img_Kafka/weixin-kafkahxzszj-8b040ee5-4ccc-4e81-b653-611c758c9899.jpg" alt="img" style="zoom:50%;" />
+
+监听线程 -> 网络线程池 -> IO线程池 -> 网络线程池
+
+1. Broker 中`Acceptor(mainReactor)`监听新连接的到来，与新连接**建连**之后轮询选择一个`Processor(subReactor)`管理这个连接。
+
+   每个`listener`只有一个`Acceptor线程`，因为它只是作为新连接建连再分发，没有过多的逻辑，很轻量。
+
+2. 而`Processor`会**监听其管理的连接**，当事件到达之后，读取封装成`Request`，并将`Request`放入共享请求队列中。
+
+   `Processor` 在Kafka中称之为网络线程，默认网络线程池有3个线程，对应的参数是`num.network.threads`，并且可以根据实际的业务动态增减。
+
+3. 然后IO线程池不断的从该队列中取出请求，执行真正的**处理**。
+
+    IO 线程池，即`KafkaRequestHandlerPool`，执行真正的处理，对应的参数是`num.io.threads`，默认值是 8。
+
+4. 处理完之后将响应`Response`发送到对应的`Processor`的响应队列中，然后由`Processor`将`Response`返还给客户端。
+
+可以看到网络线程和IO线程之间利用的经典的生产者 - 消费者模式，不论是用于处理Request的共享请求队列，还是IO处理完返回的Response。
+
+## 幂等性
+
+**幂等性Producer**
+
+- 是0.11.0.0版本引入的新功能，在此之前，Kafka向分区发送数据时，可能会出现同一条消息被发送了多次，导致消息重复的情况。
+
+- 在Kafka中，Producer默认不是幂等性的，但我们可以创建幂等性Producer。需要设置一个参数：`enable.idempotence`，被设置成true后，Producer自动升级成幂等性Producer，其他所有的代码逻辑都不需要改变。Kafka自动帮你做消息的重复去重。
+
+  ```java
+  props.put(“enable.idempotence”, true);
+  // 或
+  props.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG， true);
+  ```
+
+- 底层具体的原理很简单，就是经典的用空间去换时间的优化思路，即在Broker端多保存一些字段。当Producer发送了具有相同字段值的消息后，Broker能够自动知晓这些消息已经重复了，于是可以在后台默默地把它们丢弃掉。
+
+**幂等性Producer的作用范围**
+
+首先，它只能保证**单分区**上的幂等性，即一个幂等性Producer能够保证某个主题的一个分区上不出现重复消息，它无法实现多个分区的幂等性。
+
+其次，它只能实现**单会话**上的幂等性，不能实现跨会话的幂等性。这里的会话，你可以理解为Producer进程的一次运行，当你重启了Producer进程之后，这种幂等性保证就丧失了。
+
+## 事务
+
+Kafka自0.11版本开始也提供了对事务的支持，默认为 read committed 隔离级别。
+
+它能保证多条消息原子性地写入到目标分区，同时也能保证 Consumer 只能看到事务成功提交的消息。
+
+**事务型Producer**
+
+事务型 Producer 能够保证将消息原子性地写入到多个分区中。这批消息要么全部写入成功，要么全部失败，另外，事务型 Producer 也不惧进程的重启。Producer 重启回来后，Kafka 依然保证它们发送消息的精确一次处理。
+
+设置事务型 Producer 的方法也很简单，满足两个要求即可：
+
+- 和幂等性 Producer 一样，开启`enable.idempotence = true`
+- 设置 Producer 端参数`transactional. id`
+
+```java
+// Producer代码
+producer.initTransactions();
+try {
+    producer.beginTransaction();
+    producer.send(record1);
+    producer.send(record2);
+    producer.commitTransaction();
+} catch (KafkaException e) {
+	producer.abortTransaction();
+}
+```
+
+事务型 Producer 调用了一些事务API，initTransaction、beginTransaction、commitTransaction和abortTransaction，它们分别对应事务的初始化、事务开始、事务提交以及事务终止。
+
+这段代码能够保证Record1和Record2被当作一个事务统一提交到Kafka，要么它们全部提交成功，要么全部写入失败。
+
+实际上即使写入失败，Kafka也会把它们写入到底层的日志中，也就是说Consumer还是会看到这些消息。
+
+**事务级别**
+
+`isolation.level`参数，这个参数有两个取值：
+
+- `read_uncommitted`：这是默认值，表明 Consumer 能够读取到 Kafka 写入的任何消息，不论事务型 Producer 提交事务还是终止事务，其写入的消息都可以读取，如果你用了事务型 Producer，那么对应的 Consumer 就不要使用这个值。
+
+- `read_committed`：表明 Consumer 只会读取事务型 Producer 成功提交事务写入的消息，它也能看到非事务型 Producer 写入的所有消息。
+
+## 拦截器
+
+**Kafka拦截器分为生产者拦截器和消费者拦截器**
+
+- 生产者拦截器允许你在发送消息前以及消息提交成功后植入你的拦截器逻辑，而消费者拦截器支持在消费消息前以及提交位移后编写特定逻辑。
+
+- 可以将一组拦截器串连成一个大的拦截器，Kafka会按照添加顺序依次执行拦截器逻辑。
+
+**实现：**
+
+当前Kafka拦截器的设置方法是通过参数配置完成的，生产者和消费者两端有一个相同的参数`interceptor.classes`，它指定的是一组类的列表，每个类就是特定逻辑的拦截器实现类。
+
+```java
+Properties props = new Properties(); 
+List interceptors = new ArrayList<>(); 
+interceptors.add("com.yourcompany.kafkaproject.interceptors.AddTimestampInterceptor"); // 拦截器1 
+interceptors.add("com.yourcompany.kafkaproject.interceptors.UpdateCounterInterceptor"); // 拦截器2 
+props.put(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG, interceptors); 
+…… 
+```
+
+Producer端拦截器实现类都要继承`org.apache.kafka.clients.producer.ProducerInterceptor`接口，里面有两个核心的方法。
+
+1. onSend：该方法会在消息发送之前被调用。
+2. onAcknowledgement：该方法会在消息成功提交或发送失败之后被调用。onAcknowledgement的调用要早于callback的调用。值得注意的是，这个方法和onSend不是在同一个线程中被调用的，因此如果你在这两个方法中调用了某个共享可变对象，一定要保证线程安全。
+
+消费者拦截器实现类要实现`org.apache.kafka.clients.consumer.ConsumerInterceptor`接口，这里面也有两个核心方法。
+
+1. onConsume：该方法在消息返回给 Consumer 程序之前调用。
+2. onCommit：Consumer 在提交位移之后调用该方法。通常你可以在该方法中做一些记账类的动作，比如打日志等。
+
+一定要注意的是，**「指定拦截器类时要指定它们的全限定名」**。通俗点说就是要把完整包名也加上，不要只有一个类名在那里，并且还要保证你的Producer程序能够正确加载你的拦截器类
 
 
 
+## 控制器
 
+控制器组件（Controller），它的主要作用是在Apache ZooKeeper的帮助下管理和协调整个Kafka集群（**管理Kafka集群**）。
 
+集群中任意一台Broker都能充当控制器的角色，但是，在运行过程中，只能有一个Broker成为控制器，行使其管理和协调的职责。
+
+Kafka控制器大量使用ZooKeeper的Watch功能实现对集群的协调管理。
+
+**控制器选举：**
+
+实际上，Broker在启动时，会尝试去ZooKeeper中创建`/controller`节点。Kafka当前选举控制器的规则是：**「第一个成功创建/controller节点的Broker会被指定为控制器」**。
+
+**控制器职责：**
+
+大致可以分为5种：
+
+- 主题管理（创建、删除、增加分区）
+
+  控制器帮助我们完成对Kafka主题的创建、删除以及分区增加的操作。
+
+- 分区重分配
+
+- Preferred领导者选举
+
+  Preferred领导者选举主要是Kafka为了避免部分Broker负载过重而提供的一种换Leader的方案。
+
+- 集群成员管理（新增Broker、Broker主动关闭、Broker宕机）
+
+  包括自动检测新增Broker、Broker主动关闭及被动宕机。这种自动检测是依赖于Watch功能和ZooKeeper临时节点组合实现的。
+
+  比如，控制器组件会利用**「Watch机制」**检查ZooKeeper的`/brokers/ids`节点下的子节点数量变更。目前，当有新Broker启动后，它会在`/brokers`下创建专属的znode节点。一旦创建完毕，ZooKeeper会通过Watch机制将消息通知推送给控制器，这样，控制器就能自动地感知到这个变化，进而开启后续的新增Broker作业。
+
+  侦测Broker存活性则是依赖于刚刚提到的另一个机制：**「临时节点」**。每个Broker启动后，会在`/brokers/ids`下创建一个临时znode。当Broker宕机或主动关闭后，该Broker与ZooKeeper的会话结束，这个znode会被自动删除。同理，ZooKeeper的Watch机制将这一变更推送给控制器，这样控制器就能知道有Broker关闭或宕机了，从而进行善后。
+
+- 数据服务
+
+  控制器上保存了最全的集群元数据信息，其他所有Broker会定期接收控制器发来的元数据更新请求，从而更新其内存中的缓存数据。
+
+  **控制器故障转移（Failover）：**
+
+  **故障转移指的是，当运行中的控制器突然宕机或意外终止时，Kafka能够快速地感知到，并立即启用备用控制器来代替之前失败的控制器**。这个过程就被称为Failover，该过程是自动完成的，无需你手动干预。
+
+  <img src="img_Kafka/weixin-kafkahxzszj-d9a4e4d3-0045-4755-87a4-4da396c7ad9f.jpg" alt="img" style="zoom: 67%;" />
+
+  最开始时，Broker 0是控制器。当Broker 0宕机后，ZooKeeper通过Watch机制感知到并删除了`/controller`临时节点。之后，所有存活的Broker开始竞选新的控制器身份。Broker 3最终赢得了选举，成功地在ZooKeeper上重建了`/controller`节点。之后，Broker 3会从ZooKeeper中读取集群元数据信息，并初始化到自己的缓存中。至此，控制器的Failover完成，可以行使正常的工作职责了。
+
+## 日志存储
+
+Kafka中的消息是以主题为基本单位进行归类的，每个主题在逻辑上相互独立。每个主题又可以分为一个或多个分区，在不考虑副本的情况下，一个分区会对应一个日志。
+
+但设计者考虑到随着时间推移，日志文件会不断扩大，因此为了防止Log过大，设计者引入了日志分段（LogSegment）的概念，将Log切分为多个LogSegment，便于后续的消息维护和清理工作。
+
+下图描绘了主题、分区、副本、Log、LogSegment五者之间的关系。
+
+<img src="img_Kafka/weixin-kafkahxzszj-da2e2224-c452-40d2-b1e6-9719e5520954.jpg" alt="img" style="zoom:67%;" />
+
+**LogSegment：**
+
+在Kafka中，每个Log对象又可以划分为多个LogSegment文件，每个LogSegment文件包括一个日志数据文件和两个索引文件（偏移量索引文件和消息时间戳索引文件）。
+
+其中，每个LogSegment中的日志数据文件大小均相等（该日志数据文件的大小可以通过在Kafka Broker的`config/server.properties`配置文件的中的**log.segment.bytes**进行设置，默认为1G大小（1073741824字节），在顺序写入消息时如果超出该设定的阈值，将会创建一组新的日志数据和索引文件）。
+
+![img](img_Kafka/weixin-kafkahxzszj-57d8c857-af51-4d68-9dcb-86c96ba3cb8e.jpg)
 
 
 
