@@ -512,6 +512,8 @@ https://blog.csdn.net/hnoysz/article/details/78666272
 ```sh
 tar -zxvf test.tar.gz		#解压缩tar.gz文件
 tar -cvf test.tar test/		#压缩为test.tar
+
+tar -zxvf test.tar.gz -C test/		#解压缩tar.gz文件到当前test目录
 ```
 
 **zip压缩命令**
