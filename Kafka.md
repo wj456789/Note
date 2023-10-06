@@ -515,7 +515,7 @@ Kafka Consumer API为手动提交提供了这样的方法：commitSync(Map)和co
 
 ```java
 // 以commitAsync为例，commitSync的调用方法和它是一样的
-private Map offsets = new HashMap<>();
+private Map<TopicPartition, OffsetAndMetadata> offsets = new HashMap<>();
 int count = 0;
 ……
 while (true) {

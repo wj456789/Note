@@ -723,9 +723,9 @@ public class UserVo {
 
 ### 错误处理
 
-1. 使用ValidatorFactory 进行手动参数校验，具体参考[Java @Valid 注解详解 校验实体属性（Java Bean Validation）](https://blog.csdn.net/weixin_43740223/article/details/100889250)
-2. 使用@Valid+errors/bindingResult，无需手动配置，需要处理报错信息
-3. 使用@Valid+@ControllerAdvice，对报错信息进行统一处理
+- 使用ValidatorFactory 进行手动参数校验，具体参考[Java @Valid 注解详解 校验实体属性（Java Bean Validation）](https://blog.csdn.net/weixin_43740223/article/details/100889250) 
+- 使用@Valid+errors/bindingResult，无需手动配置，需要处理报错信息
+- 使用@Valid+@ControllerAdvice，对报错信息进行统一处理
 
 #### 使用@Valid+errors/bindingResult
 
@@ -1487,6 +1487,8 @@ HTTP请求URL中不要使用动词，应使用资源名词，且使用名词的�
 
 1. 在web.xml中配置contextLoaderListener,并且加入spring的配置文件applicationContext.xml，把service、dao、事务、缓存、以及和其它框架的整合放到spring的配置文件里面
 2. 在web.xml中配置SpringMVC的Servlet和加入springmvc.xml
+
+**other:**
 
 ```xml
 //两个配置文件中扫描的包有重合会出现某些bean被初始化2次

@@ -531,7 +531,7 @@ names: [tom,jack,alice]
 
 2. 在application.properties文件中指定要激活的配置
 
-```java
+```properties
 # 指定激活的配置
 spring.profiles.active=pro
 ```
@@ -540,7 +540,7 @@ spring.profiles.active=pro
 
 - 单个yml中编写多个配置
 
-```java
+```yml
 #单个yml配置文件
 spring:
   profiles:
@@ -573,22 +573,22 @@ spring:
 
 - 编写多个yml文件，分别代表不同的配置
 
-```java
-//多个yml配置文件
-//application.yml
+```yml
+# 多个yml配置文件
+# application.yml
 spring:
   profiles:
     active: dev
     
-//application-test.yml
+# application-test.yml
 server:
   port: 8085
   
-//application-dev.yml
+# application-dev.yml
 server:
   port: 8086
   
-//application-prod.yml
+# application-prod.yml
 server:
   port: 8087
 ```
@@ -646,7 +646,7 @@ public class User implements Serializable {
     private Boolean status;
     ...
 }
- 
+
 // 使用@Value从配置文件中获取值
 // 将当前Bean添加到容器中
 @Component
@@ -689,7 +689,7 @@ public class User implements Serializable {...}
     
 ---------------------------------------------------
 @Component
-@PropertySource({"file:user.properties"})
+@PropertySource({"file:/user.properties"})
 public class User implements Serializable {
     @Value("${user.username}")
     private String username;
@@ -729,14 +729,6 @@ public class SpringConfig {
     /* 该依赖不传递*/
     <optional>true</optional>
 </dependency>
-```
-
-### SpringBoot获取jar包所在目录路径
-
-```java
-ApplicationHome h = new ApplicationHome(getClass());
-File jarF = h.getSource();
-System.out.println(jarF.getParentFile().toString());
 ```
 
 ### springboot实现转发和重定向
@@ -799,13 +791,9 @@ static静态代码块，在类加载的时候即自动执行。
 
 #### Spring启动时加载方式
 
-##### @PostConstruct注解
-
-PostConstruct注解使用在方法上，这个方法在对象依赖注入初始化之后执行。
-
 ##### ApplicationRunner和CommandLineRunner
 
-SpringBoot提供了两个接口来实现Spring容器启动完成后执行的功能，两个接口分别为`CommandLineRunner`和`ApplicationRunner`。
+SpringBoot提供了两个接口来实现Spring容器启动完成后执行的功能，两个接口分别为`CommandLineRunner`和`ApplicationRunner`。当Spring容器中的所有Bean都被初始化并准备好后，`ApplicationRunner`和`CommandLineRunner`的实现类就会被执行。
 
 这两个接口需要实现一个run方法，将代码在run中实现即可。这两个接口功能基本一致，其区别在于run方法的入参。`ApplicationRunner`的run方法入参为`ApplicationArguments`，为`CommandLineRunner`的run方法入参为String数组。
 
@@ -850,14 +838,6 @@ public class TestCommandLineRunner implements CommandLineRunner {
 }
 ```
 
-### 总结
-
-Spring应用启动过程中，肯定是要自动扫描有`@Component`注解的类，加载类并初始化对象进行自动注入。加载类时首先要执行static静态代码块中的代码，之后再初始化对象时会执行构造方法。
-
-在对象注入完成后，调用带有`@PostConstruct`注解的方法。当容器启动成功后，再根据@Order注解的顺序调用`CommandLineRunner`和`ApplicationRunner`接口类中的run方法。
-
-因此，加载顺序为`static`>`constructer`>`@PostConstruct`>`CommandLineRunner`和`ApplicationRunner`.
-
 
 
 
@@ -887,7 +867,7 @@ public class MvcConfig implements WebMvcConfigurer {
 
     private static List<String> myPathPatterns = new ArrayList<>();
 
-    //在初始化Servlet服务时（在Servlet构造函数执行之后、init()之前执行），@PostConstruct注解的方法被调用
+    // 在初始化Servlet服务时，@PostConstruct注解的方法被调用
     @PostConstruct
     void init() {
         System.out.println("Servlet init ... ");
@@ -895,13 +875,13 @@ public class MvcConfig implements WebMvcConfigurer {
         myPathPatterns.add("/**");
     }
 
-    //在卸载Servlet服务时（在Servlet的destroy()方法之前执行），@PreDestroy注解的方法被调用
+    // 在卸载Servlet服务时，@PreDestroy注解的方法被调用
     @PreDestroy
     void destroy() {
         System.out.println("Servlet destory ... ");
     }
 
-    //注册拦截器
+    // 注册拦截器
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
     	//addPathPatterns 用于添加拦截的规则，excludePathPatterns 用于排除拦截的规则
@@ -909,17 +889,17 @@ public class MvcConfig implements WebMvcConfigurer {
     	registry.addInterceptor(urlInterceptor).addPathPatterns(myPathPatterns).excludePathPatterns("/user/login");
     }
     
-    //视图跳转控制器，这里的配置可实现直接访问http://localhost:8080/toLogin就跳转到login.jsp页面了
+    // 视图跳转控制器，这里的配置可实现直接访问http://localhost:8080/toLogin就跳转到login.jsp页面了
     @Override
     public void addViewControllers(ViewControllerRegistry registry) {
         registry.addViewController("/toLogin").setViewName("login");
     }
 
-    //静态资源处理--过滤swagger-api
+    // 静态资源处理--过滤swagger-api
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        //addResoureHandler指的是对外暴露的访问路径，addResourceLocations指的是文件放置的目录。
-        //过滤swagger
+        // addResoureHandler指的是对外暴露的访问路径，addResourceLocations指的是文件放置的目录。
+        // 过滤swagger
         registry.addResourceHandler("swagger-ui.html")
                 .addResourceLocations("classpath:/META-INF/resources/");
 
@@ -935,7 +915,7 @@ public class MvcConfig implements WebMvcConfigurer {
         registry.addResourceHandler("/v2/api-docs/**")
                 .addResourceLocations("classpath:/META-INF/resources/v2/api-docs/");
 
-        //指定外部的目录
+        // 指定外部的目录
         registry.addResourceHandler("/my/**").addResourceLocations("file:E:/my/");
     }
     

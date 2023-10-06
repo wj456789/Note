@@ -100,7 +100,28 @@ public class Account{
 
 ## Bean的生命周期
 
-BeanFactoryPostProcessor——>代码块——>**实例化**——>**数据装配**——>初始化之前——> **初始化方法**——>初始化之后——>就绪——>使用——>销毁方法——>从容器销毁
+BeanFactoryPostProcessor——>代码块——>**实例化**——>**数据装配**——> **初始化方法**——>就绪——>使用——>销毁方法——>从容器销毁
+
+
+
+**Spring容器在创建Bean时会进行以下操作：**
+
+1. 实例化Bean。
+2. 注入依赖项，设置属性值。
+3. 如果Bean实现了`BeanNameAware`接口，调用`setBeanName()`方法。
+4. 如果Bean实现了`BeanFactoryAware`接口，调用`setBeanFactory()`方法。
+5. 如果Bean实现了`ApplicationContextAware`接口，调用`setApplicationContext()`方法。
+6. 如果Bean实现了`BeanPostProcessor`接口，调用`postProcessBeforeInitialization()`方法。
+7. 如果Bean定义了`@PostConstruct`注解的方法，调用该方法。
+8. 如果Bean实现了`InitializingBean`接口，调用`afterPropertiesSet()`方法。
+9. 如果Bean定义了自定义的初始化方法（通过`@Bean(initMethod = "init")`定义或在配置Bean的时候指定了`init-method`属性），调用该方法。
+10. 如果Bean实现了`BeanPostProcessor`接口，调用`postProcessAfterInitialization()`方法。
+
+**Spring容器在销毁Bean时会进行以下操作：**
+
+1. 如果Bean实现了`DisposableBean`接口，调用`destroy()`方法。
+2. 如果Bean定义了自定义的销毁方法（通过`@Bean(destroyMethod = "cleanup")`定义），调用该方法。
+3. 如果Bean定义了`@PreDestroy`注解的方法，调用该方法。
 
 ## Bean实例化
 
@@ -775,12 +796,8 @@ public class Zoo{
 }
 ```
 
-- `@PostConstruct` //指定该方法在对象被创建后马上调用，相当于配置文件中的init-method属性
-- `@PreDestroy` //指定该方法在对象销毁之前调用，相当于配置文件中的destory-method属性
-
-**@PostConstruct和@PreDestory执行顺序**
-
-构造函数-->postConstruct-->init-->destory-->predestory-->卸载servlet
+- `@PostConstruct` //指定该方法在对象被创建后马上调用
+- `@PreDestroy` //指定该方法在对象销毁之前调用
 
 ## AOP
 
@@ -1202,9 +1219,7 @@ public class UserServiceImpl implements UserService {
            if(user.getPassword().equals(password)){
                return user;
            }
-
        }
-
        return null;
     }
     

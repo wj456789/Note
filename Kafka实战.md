@@ -327,16 +327,147 @@ Streams API：高效的将输入流转换到输出流
 
 Connector API：从一些源系统或应用程序中拉取数据到Kafka
 
+### 依赖
+
+```xml
+<dependency>
+    <groupId>cn.hutool</groupId>
+    <artifactId>hutool-all</artifactId>
+    <version>4.1.1</version>
+</dependency>
+<dependency>
+    <groupId>org.apache.kafka</groupId>
+    <artifactId>kafka-clients</artifactId>
+    <version>2.4.0</version>
+</dependency>
+<dependency>
+    <groupId>org.apache.kafka</groupId>
+    <artifactId>kafka-streams</artifactId>
+    <version>2.4.0</version>
+</dependency>
+```
+
+### AdminClient 
+
+```java
+// 链接
+Properties properties = new Properties();
+properties.setProperty(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG,"192.168.220.128:9092");
+AdminClient adminClient = AdminClient.create(properties);
+
+// 创建主题
+CreateTopicsResult topics = adminClient.createTopics(Arrays.asList(newTopic));
+
+// 获取Topic列表
+ListTopicsResult listTopicsResult = adminClient.listTopics(options);
+
+// 删除Topic
+DeleteTopicsResult deleteTopicsResult = adminClient.deleteTopics(Arrays.asList(TOPIC_NAME));
+
+// 描述Topic
+DescribeTopicsResult describeTopicsResult = adminClient.describeTopics(Arrays.asList(TOPIC_NAME));
+
+// 查看配置信息
+DescribeConfigsResult describeConfigsResult = adminClient.describeConfigs(Arrays.asList(configResource));
+
+// 修改Config信息
+AlterConfigsResult alterConfigsResult = adminClient.incrementalAlterConfigs(configMaps);
+
+// 增加partition数量
+CreatePartitionsResult createPartitionsResult = adminClient.createPartitions(partitionsMap);
+```
 
 
 
 
-打印topicListings
-
-
-
-![1](img_Kafka%E5%AE%9E%E6%88%98/1.png)
 
 展示kafka日志，每个分区一个文件
 
 ![2](img_Kafka%E5%AE%9E%E6%88%98/2.png)
+
+
+
+
+
+
+
+### Producer
+
+KafkaProduce初始化会创建守护线程，send方法发送数据会计算批次，不断向批次中追加消息，守护线程定时扫描，把达到阈值的消息数据批量发送
+
+```java
+// 链接
+Properties properties = new Properties();
+properties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,"192.168.220.128:9092");
+properties.put(ProducerConfig.ACKS_CONFIG,"all");
+properties.put(ProducerConfig.RETRIES_CONFIG,"0");
+properties.put(ProducerConfig.BATCH_SIZE_CONFIG,"16384");
+properties.put(ProducerConfig.LINGER_MS_CONFIG,"1");
+properties.put(ProducerConfig.BUFFER_MEMORY_CONFIG,"33554432");
+
+properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,"org.apache.kafka.common.serialization.StringSerializer");
+properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,"org.apache.kafka.common.serialization.StringSerializer");
+Producer<String,String> producer = new KafkaProducer<>(properties); // Producer的主对象
+...
+producer.close();
+
+// 异步发送
+ProducerRecord<String,String> record = new ProducerRecord<>(TOPIC_NAME,"key-"+i,"value-"+i);
+producer.send(record);
+
+// 异步发送带回调函数
+ProducerRecord<String,String> record = new ProducerRecord<>(TOPIC_NAME,"key-"+i,"value-"+i);
+producer.send(record, new Callback() {
+    @Override
+    public void onCompletion(RecordMetadata recordMetadata, Exception e) {
+        System.out.println("partition : "+recordMetadata.partition()+" , offset : "+recordMetadata.offset());
+    }
+});
+
+// 异步发送带回调函数和Partition负载均衡
+properties.put(ProducerConfig.PARTITIONER_CLASS_CONFIG,"com.imooc.jiangzh.kafka.producer.SamplePartition");
+
+// 异步阻塞发送
+ProducerRecord<String,String> record = new ProducerRecord<>(TOPIC_NAME,key,"value-"+i);
+Future<RecordMetadata> send = producer.send(record);
+RecordMetadata recordMetadata = send.get();
+```
+
+```java
+public class SamplePartition implements Partitioner {
+    @Override
+    public int partition(String topic, Object key, byte[] keyBytes, Object value, byte[] valueBytes, Cluster cluster) {
+        // key值 key-1 key-2 key-3
+        String keyStr = String.valueOf(key);
+        String keyInt = keyStr.substring(4);
+        System.out.println("keyStr : "+keyStr + "keyInt : "+keyInt);
+        int i = Integer.parseInt(keyInt);
+        return i%2;
+    }
+
+    @Override
+    public void close() {}
+
+    @Override
+    public void configure(Map<String, ?> configs) {}
+}
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

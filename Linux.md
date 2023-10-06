@@ -1195,7 +1195,14 @@ YUM（全称为 Yellow dog Updater, Modified）是一个在Fedora和RedHat以及
 
 - **package：**安装的包名。
 
-  
+```sh
+# 安装下载上传工具
+$ yum install -y lrzsz
+# 显示文件夹
+$ rz
+```
+
+
 
 #### 常见bug
 
