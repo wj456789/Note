@@ -538,18 +538,32 @@ git rebase --continue
 
 [git rebase详解](https://blog.csdn.net/weixin_42310154/article/details/119004977)
 
-
-
-
-
 ```sh
 # 取消合并
 $ git reset --merge
 ```
 
+## Linux
 
+[文件格式](https://blog.csdn.net/aaaaaxss/article/details/125105101)
 
+## Zookeeper
 
+```java
+CuratorFramework client = CuratorFrameworkFactory
+        .builder()
+        .aclProvider(aclProvider)
+        .authorization(ZKSCHEME, auth)
+        .sessionTimeoutMs(SESSION_TIMEOUTMS)
+        .connectionTimeoutMs(
+                CONNECT_TIMEOUTMS) // 连接时间过长易导致应用启动阻塞，connectionTimeout一般小于sessionTimeout，此处设为10000
+        .connectString(connectStr)
+        .retryPolicy(new ExponentialBackoffRetry(1000, 2,
+                3000)) // 连接失败时间间隔过大容易阻塞启动，计算公式：baseSleepTimeMs * Math.max(1, random.nextInt(1 << (retryCount
+        .build();
+
+client.start();
+```
 
 
 
