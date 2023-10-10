@@ -491,35 +491,13 @@ VisualVM（All-in-One Java Troubleshooting Tool）是 Oracle 提供的功能最�
 
 
 
-修改TOMCAT_HOME/bin/catalina.bat，在“echo "Using CATALINA_BASE: $CATALINA_BASE"”上面加入以下行： 
-
-**JAVA_OPTS**="$JAVA_OPTS "-server" "-XX:+UseParallelGC" "-XX:ParallelGCThreads=8" "-XX:NewRatio=16" "-XX:+UseAdaptiveSizePolicy
-
-**JAVA_OPTS**="$JAVA_OPTS "-Xms4096m" "-Xmx4096m" "-Xmn2048m" "-Xss128k" "-XX:PermSize=128m" "-XX:MaxPermSize=384m" "-Djava.net.preferIPv4Stack=true
-
-**JAVA_OPTS**="$JAVA_OPTS "-Xloggc:gc.txt
-
-**JAVA_OPTS**="$JAVA_OPTS "-XX:+HeapDumpOnOutOfMemoryError
 
 
 
 
 
-**#****内存溢出时自动生成****HeapDump**
 
-**JAVA_OPTS="$JAVA_OPTS "-XX:+HeapDumpOnOutOfMemoryError**
 
-**#****打开****gc****日志**
-
-**JAVA_OPTS="$JAVA_OPTS "-Xloggc:gc.txt"**
-
-**#****打开****gc****日志的详细信息、时间戳、**
-
-**JAVA_OPTS="-XX:+PrintGCDetails" "-XX:+PrintGCTimeStamps"** 
-
-**"-XX:+PrintGCApplicationStoppedTime"** 
-
-**"-XX:+PrintGCApplicationConcurrentTime**
 
 
 
