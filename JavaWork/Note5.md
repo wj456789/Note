@@ -2,128 +2,7 @@ https://github.com/wj456789/Note
 
 ## JDK常用工具 
 
-### 常用命令
-
-1、jps：查看本机java进程信息
-
-2、jstack：打印线程的栈信息，制作 线程dump文件
-
-3、jmap：打印内存映射信息，制作 堆dump文件
-
-4、jstat：性能监控工具
-
-5、jhat：内存分析工具，用于解析堆dump文件并以适合人阅读的方式展示出来
-
-6、jconsole：简易的JVM可视化工具
-
-7、jvisualvm：功能更强大的JVM可视化工具
-
-8、javap：查看字节码
-
-### JAVA Dump 
-
-JAVA Dump就是虚拟机运行时的快照，将虚拟机运行时的状态和信息保存到文件中，包括：
-
-线程dump：包含所有线程的运行状态，纯文本格式
-
-堆dump：包含所有堆对象的状态，二进制格式
-
-
-
-## Jmap和Jstack
-
-### Jmap
-
-主要用于打印指定java进程的共享对象内存映射或堆内存细节。 
-
-jmap PID
-
-打印的信息分别为：共享对象的起始地址、映射大小、共享对象路径的全程。
-
-jmap -histo PID：查看堆中对象数量和大小
-
-打印的信息分别是：序列号、对象的数量、这些对象的内存占用大小、这些对象所属的类的全限定名
-
-如果是内部类，类名的开头会加上*，如果加上live子参数的话，如jmap –histo:live PID，这个命名会触发一次FUll GC，只统计存活对象
-
-查看对象数最多的对象
-
-jmap -histo PID|sort -k 2 -g -r|less
-
-查看占用内存最多的最象
-
-jmap -histo PID|sort -k 3 -g -r|less
-
-jmap -heap pid:查看堆使用情况 
-
-
-
-
-
-jmap -dump:format=b,file=heapdump PID
-
-将内存使用的详细情况输出到文件
-
-jmap -dump:live,format=b,file= heapdump PID
-
-将存活对象输出到文件
-
-
-
-Dump文档可以使用VisualVM工具查看大对象
-
-可以在tomcat启动参数中添加下面的参数在outofmemory时生成dump
-
-JAVA_OPTS=“$JAVA_OPTS ”-XX:+HeapDumpOnOutOfMemoryError
-
-
-
-
-
-内存溢出是指应用系统中存在无法回收的内存或使用的内存过多，最终使得程序运行要用到的内存大于虚拟机能提供的最大内存。 
-
-引起内存溢出的原因有很多种，常见的有以下几种：
-
-1.内存中加载的数据量过于庞大，如一次从数据库取出过多数据；
-
-2.集合类中有对对象的引用，使用完后未清空，使得JVM不能回收；
-
-3.代码中存在死循环或循环产生过多重复的对象实体；
-
-4.使用的第三方软件中的BUG；
-
-5.启动参数内存值设定的过小；
-
-
-
-
-
-```
-常见日志报错：
-堆内存溢出：Exception in thread “main” java.lang.OutOfMemoryError: Java heap space
-永久区内存溢出：
-Exception in thread “main” java.lang.OutOfMemoryError: PermGen space
-本地内存溢出：
-Exception in thread “main” java.lang.OutOfMemoryError: request <size> bytes for <reason>. Out of swap space?
-Exception in thread "main" java.lang.OutOfMemoryError: <reason>
-<stack trace>(Native method)
-本地线程资源不足
-Exception in thread <thread>/Caused by java.lang.OutOfMemoryError: unable to create new native thread 
-```
-
 ### jstack
-
-性能压测过程中cpu出现波动、过高、过低等情况，需要截取jstack文件看下cpu在做什么。
-
-jstack是java虚拟机自带的一种堆栈跟踪工具。jstack用于生成java虚拟机当前时刻的线程快照。线程快照是当前java虚拟机内每一条线程正在执行的方法堆栈的集合。
-
-生成线程快照的主要目的是定位线程出现长时间停顿的原因，如线程间死锁、死循环、请求外部资源导致的长时间等待等。
-
-
-
-
-
-
 
 日常程序中常见的耗CPU的操作：
 
@@ -170,34 +49,6 @@ a)线程引起，一般查看runnable状态线程
 b)内存问题引起，内存满导致频繁GC
 
 c)IO或数据库瓶颈
-
-
-
-\1. top命令查看系统使用信息，找出消耗最大的进程，如进程id为24152
-
-\2. 查找该进程内最耗费CPU的线程,可以使用如下命令：
-
-​     $ top -Hp 24152  
-
-​    如最耗费性能的线程pid为24937
-
-\3. 获取线程id 24937的十六进制值
-
-​    $ printf "%x\n" 24937
-
-​    6169
-
-\4. 查看堆栈信息
-
-4.1 使用jstack来输出线程id 24937的堆栈信息，根据线程id的十六进制值grep
-
-​    $ jstack 24152 | grep –A50 6169
-
-4.2导出进程快照
-
-​    $ jstack -l 24152 > ./24152.stack
-
-​    $ cat 24152.stack | grep '6169' -C 10
 
 
 
@@ -577,41 +428,6 @@ Flags    任务标志，参考sched.h
 
 ```
 
-```
-以下为AI生成内容，仅供参考，不允许未经评估直接将生成内容植入工作输出件中。
-
-ParNewGC和ParallelGC是Java虚拟机（JVM）中的两种垃圾收集器。它们在垃圾收集的方式和性能方面有一些区别。
-
-1. 垃圾收集方式：
-   - ParNewGC：ParNewGC是年轻代的并行垃圾收集器，主要用于新生代的垃圾回收。它使用多个线程并行地进行垃圾收集，可以充分利用多核处理器的优势。
-   - ParallelGC：ParallelGC是整堆并行垃圾收集器，用于整个堆的垃圾回收。它也使用多个线程并行地进行垃圾收集，但相比ParNewGC，它更适用于多核处理器和大内存的情况。
-
-2. 垃圾收集性能：
-   - ParNewGC：ParNewGC的主要目标是减少垃圾收集的停顿时间，因此它通常与CMS（Concurrent Mark Sweep）收集器配合使用，以实现更短的垃圾收集停顿时间。
-   - ParallelGC：ParallelGC的主要目标是提高垃圾收集的吞吐量，即在给定时间内完成尽可能多的工作。它通常与Serial Old收集器配合使用，以实现更高的吞吐量。
-
-3. 适用场景：
-   - ParNewGC：ParNewGC适用于多核处理器和较小的堆内存的情况。它在减少垃圾收集停顿时间方面表现较好，适合对响应时间要求较高的应用。
-   - ParallelGC：ParallelGC适用于多核处理器和较大的堆内存的情况。它在提高垃圾收集吞吐量方面表现较好，适合对吞吐量要求较高的应用。
-
-总的来说，ParNewGC和ParallelGC都是并行垃圾收集器，但在垃圾收集方式和性能方面有一些区别。选择哪个收集器取决于应用的需求，如响应时间要求、吞吐量要求以及系统的硬件配置等。
-不再接收
-```
-
-```
-以下为AI生成内容，仅供参考，不允许未经评估直接将生成内容植入工作输出件中。
-
-Serial、PraNew、Parallel Scavenge是Java虚拟机中的三种垃圾收集器，它们的区别如下：
-
-1. Serial收集器：Serial收集器是一种单线程的垃圾收集器，它只使用一个线程进行垃圾收集，因此它的收集效率较低。Serial收集器适用于小型应用程序和客户端应用程序，因为它的暂停时间较短。
-
-2. ParNew收集器：ParNew收集器是Serial收集器的多线程版本，它可以使用多个线程进行垃圾收集，因此它的收集效率比Serial收集器高。ParNew收集器适用于多核服务器应用程序，因为它可以利用多个CPU核心进行垃圾收集。
-
-3. Parallel Scavenge收集器：Parallel Scavenge收集器是一种多线程的垃圾收集器，它可以使用多个线程进行垃圾收集，并且可以动态调整垃圾收集线程的数量。Parallel Scavenge收集器适用于大型应用程序和服务器应用程序，因为它可以在多个CPU核心上并行执行垃圾收集，从而提高垃圾收集效率。
-
-总之，Serial收集器适用于小型应用程序和客户端应用程序，ParNew收集器适用于多核服务器应用程序，Parallel Scavenge收集器适用于大型应用程序和服务器应用程序。
-不再接收
-```
 
 
 
@@ -619,40 +435,12 @@ Serial、PraNew、Parallel Scavenge是Java虚拟机中的三种垃圾收集器�
 
 
 
-```
-以下为AI生成内容，仅供参考，不允许未经评估直接将生成内容植入工作输出件中。
 
-Serial Old、Parallel Old和CMS是Java虚拟机（JVM）中用于垃圾回收的不同算法。它们的主要区别在于垃圾回收的方式和效率。
 
-1. Serial Old（串行老年代回收）：Serial Old是一种单线程的垃圾回收算法，它会暂停应用程序的所有线程来进行垃圾回收。它适用于小型应用程序和单核处理器，因为它的效率较低。在进行垃圾回收时，它会停止应用程序的执行，直到垃圾回收完成。
 
-2. Parallel Old（并行老年代回收）：Parallel Old是一种多线程的垃圾回收算法，它会使用多个线程来进行垃圾回收，从而提高回收效率。它适用于大型应用程序和多核处理器，因为它可以充分利用多核处理器的并行能力。在进行垃圾回收时，它会暂停应用程序的执行，但相比于Serial Old，它的回收速度更快。
 
-3. CMS（Concurrent Mark Sweep，并发标记清除）：CMS是一种并发的垃圾回收算法，它可以在应用程序运行的同时进行垃圾回收，减少了应用程序的停顿时间。它适用于对停顿时间要求较高的应用程序。CMS算法通过并发标记和并发清除两个阶段来进行垃圾回收，其中标记阶段会暂停应用程序的执行，但清除阶段是与应用程序并发执行的。
 
-总结来说，Serial Old适用于小型应用程序和单核处理器，Parallel Old适用于大型应用程序和多核处理器，而CMS适用于对停顿时间要求较高的应用程序。选择哪种算法取决于应用程序的特点和性能需求。
-不再接收
-```
 
-```
-以下为AI生成内容，仅供参考，不允许未经评估直接将生成内容植入工作输出件中。
 
-Parallel Old和CMS都是Java虚拟机中的垃圾回收器，但它们有一些区别：
 
-1. 并行度：Parallel Old是一个并行垃圾回收器，它使用多个线程来同时回收垃圾。而CMS是一个并发垃圾回收器，它在应用程序运行的同时回收垃圾。
-
-2. 暂停时间：Parallel Old在进行垃圾回收时需要暂停应用程序，暂停时间较长。而CMS在进行垃圾回收时只需要短暂的暂停，对应用程序的影响较小。
-
-3. 内存占用：Parallel Old在进行垃圾回收时需要占用较多的内存，因为它需要将整个堆分成多个区域进行回收。而CMS只需要占用一小部分内存，因为它只回收部分堆区域。
-
-4. 适用场景：Parallel Old适用于需要大量内存的应用程序，因为它可以高效地回收大量垃圾。而CMS适用于需要快速响应的应用程序，因为它的暂停时间较短，对应用程序的影响较小。
-不再接收
-```
-	编译器优化相关：
--server 启用能够执行优化的编译器, 显著提高服务器的性能，但使用能够执行优化的编译器时，服务器的预备时间将会较长。生产环境的服务器强烈推荐设置此参数。
-	垃圾收集（GC）相关：
--XX:+UseParNewGC 可用来设置年轻代为并发收集【多CPU】，如果你的服务器有多个CPU，你可以开启此参数；开启此参数，多个CPU 可并发进行垃圾回收，可提高垃圾回收的速度。此参数和+UseParallelGC，-XX:ParallelGCThreads搭配使用。
-+UseParallelGC 选择垃圾收集器为并行收集器。此配置仅对年轻代有效。即上述配置下，年轻代使用并发收集，而年老代仍旧使用串行收集。可提高系统的吞吐量。
--XX:ParallelGCThreads 年轻代并行垃圾收集的前提下（对并发也有效果）的线程数，增加并行度，即：同时多少个线程一起进行垃圾回收。此值最好配置与处理器数目相等。永久存储区相关参数：参数名参数说明
--Xnoclassgc 每次永久存储区满了后一般GC 算法在做扩展分配内存前都会触发一次FULL GC，除非设置了-Xnoclassgc（不进行GC）.
 

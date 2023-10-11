@@ -2,11 +2,11 @@
 
 ## 内存结构
 
-Java会从系统内存（CPU Regisers、CPU Cache Memory、RAM Main Memory）中申请大块的堆内存、和栈区（虚拟机栈、本地方法栈、程序计数器），申请的这部分称为工作内存，是经过虚拟化了的，称为虚拟机内存。剩下的内存统一称为堆外内存。
+Java会从系统内存（CPU Regisers、CPU Cache Memory、RAM Main Memory）中申请大块的堆内存、和栈区（虚拟机栈、本地方法栈、程序计数器），申请的这部分称为工作内存，是经过虚拟化了的，称为虚拟机内存。
 
-​      堆外内存又称本地内存，本地内存中有部分可以借助工具（JNI 或者 JNA）直接访问，这部分内存称为直接内存，本地内存中的还有一部分内存划给了元空间（方法区），但是这部分内存不受XX:MaxDirectMemorySize参数限制，不知道为什么说元空间使用的是直接内存。猜测这种说法是错误的，正确的说法可能是元空间使用的本地内存而非直接内存，本地内存不等于直接内存。直接内存和元空间（方法区）是并列关系，都是在本地内存中。不知道怎样去验证这种猜测的准确性。
+剩下的内存称为本地内存，本地内存中有部分可以借助工具（JNI 或者 JNA）直接访问，这部分内存称为直接内存，本地内存中的还有一部分内存划给了元空间（方法区），但是这部分内存不受XX:MaxDirectMemorySize参数限制。直接内存和元空间（方法区）是并列关系，都是在本地内存中。
 
-简单来说虚拟机内存分为堆内存和栈内存，堆外内存又称本地内存分为直接内存和元空间。
+简单来说虚拟机内存分为堆内存和非堆内存，本地内存分为直接内存和元空间。
 
 引用：[JVM中的内存关系](https://www.wangt.cc//2022/01/jvm中的内存关系/)
 
@@ -80,15 +80,32 @@ Heap Space堆区分为新生代和老年代，新生代分为Eden和Survivor区�
 
 本地方法栈的功能和特点类似于虚拟机栈，均具有线程隔离的特点以及都能抛出StackOverflowError和OutOfMemoryError异常。不同的是，本地方法栈服务的对象是JVM执行的native方法，而虚拟机栈服务的是JVM执行的java方法。 
 
-#### 直接内存
+### 直接内存
 
-NIO的Buffer提供了一个可以不经过JVM内存直接访问**系统物理内存**的类——DirectBuffer。 
+NIO的Buffer提供了一个可以不经过JVM内存直接访问**系统物理内存**的类——DirectBuffer。 DirectBuffer类继承自ByteBuffer，但和普通的ByteBuffer不同。
 
-DirectBuffer类继承自ByteBuffer，但和普通的ByteBuffer不同，普通的ByteBuffer仍在JVM堆上分配内存，其最大内存受到最大堆内存的限制；而DirectBuffer直接分配在物理内存中，并不占用堆空间，其可申请的最大内存受操作系统限制。
+```java
+ByteBuffer有两种类型，一种是直接缓冲区，另一种是非直接缓冲区。直接缓冲区使用内存中的直接内存区域，直接分配在物理内存中，并不占用堆空间，其可申请的最大内存受操作系统限制,可以避免在用户空间和内核空间之间进行数据复制，因此在进行网络IO或文件IO等操作时，可以提高数据传输的效率。非直接缓冲区仍在JVM堆上分配内存，其最大内存受到最大堆内存的限制；
 
-直接内存的单次分配和读写操作比普通Buffer快，但它的创建、销毁比普通Buffer慢。因此直接内存使用于需要大内存空间且频繁访问的场合，不适用于频繁申请释放内存的场合。
+创建直接缓冲区
+ByteBuffer buffer = ByteBuffer.allocateDirect(1024);
 
-比如 Java8 使用元空间：元空间主要存储加载的类信息，这些数据只会在程序启动时直接分配足够的直接内存，可以减少程序的启动时间，运行期一般不会频繁加载新的类，故运行期不需要频繁分配内存。堆内存主要存放的是运行时对象，需要频繁的创建与销毁。 
+创建非直接缓冲区
+ByteBuffer buf = ByteBuffer.allocate(1024);
+```
+
+```java
+// 源码
+public static ByteBuffer allocateDirect(int capacity) {
+    return new DirectByteBuffer(capacity);
+}
+
+public static ByteBuffer allocate(int capacity) {
+    if (capacity < 0)
+        throw new IllegalArgumentException();
+    return new HeapByteBuffer(capacity, capacity);
+}
+```
 
 直接内存可以使用 -XX:MaxDirectMemorySize 配置 
 
@@ -107,12 +124,6 @@ DirectBuffer类继承自ByteBuffer，但和普通的ByteBuffer不同，普通的
 
 
 ## 内存分配
-
-```sh
-#nohup java -jar -XX:MetaspaceSize=128m -XX:MaxMetaspaceSize=128m -Xms1024m -Xmx1024m -Xmn256m -Xss256k -XX:SurvivorRatio=8 -XX:+UseConcMarkSweepGC /jar包路径 &
-```
-
-对java虚拟机运行时的内存分配的不得当会导致内存溢出，比如说OutOfMemoryError等，按照需求配置java虚拟机运行时的所需的内存——通过参数配置的形式实现参数分配自定义化。
 
 配置JVM内存的参数：      
 
@@ -141,9 +152,6 @@ DirectBuffer类继承自ByteBuffer，但和普通的ByteBuffer不同，普通的
 
   参考：[JVM常用基础参数-栈内存Xss讲解](https://blog.csdn.net/longgeqiaojie304/article/details/93972700)
 
-- **-XX:+UseConcMarkSweepGC**：指定使用的垃圾收集器，这里使用CMS收集器
-- **-XX:+PrintGCDetails**：打印详细的GC日志
-- **-XX:ParallelGCThreads**：Gc线程数
 
 
 
@@ -153,217 +161,50 @@ DirectBuffer类继承自ByteBuffer，但和普通的ByteBuffer不同，普通的
 
   它们默认都是开启的，可以手动关闭它们。 如果不允许类指针压缩，那么将没有 compressed class space 这个空间，并且-XX:CompressedClassSpaceSize 这个参数无效。 -XX:-UseCompressedClassPointers 需要搭配 -XX:+UseCompressedOops，但是反过来不是，也就是说我们可以只压缩对象指针，不压缩类指针。在对象指针压缩基础上进行类指针压缩。
 
-
-
-
-## 内存监控
-
-### JDK自带的工具
-
-这些工具都在JAVA_HOME/bin目录下，执行命令的jdk版本和所监控的jvm的jdk版本需要一致，否则会报错。
-
-jps：用来显示本地的java进程，以及进程号，进程启动的路径等。
+### 实际配置
 
 ```sh
-# jps
-9033 Bootstrap(启动的 Tomcat)
-4284 Jps
-12318 jar
-```
-
-#### jmap
-
-观察运行中的JVM 物理内存的占用情况，包括Heap size , Perm size
-
-```sh
-# 打印当前对象的个数和大小
-$ jmap -histo <java_pid>
-
-# 打印当前存活对象的个数和大小,此命令会触发一次full gc
-$ jmap -histo:live <java_pid>
-```
-
-
-
-```sh
-$ jmap -heap 9033
-Attaching to process ID 9033, please wait...
-Debugger attached successfully.
-Server compiler detected.
-JVM version is 25.112-b15
-
-using thread-local object allocation.
-Parallel GC with 2 thread(s)
-
-Heap Configuration:
-   MinHeapFreeRatio         = 0
-   MaxHeapFreeRatio         = 100
-   MaxHeapSize              = 134217728 (128.0MB)
-   NewSize                  = 44564480 (42.5MB)
-   MaxNewSize               = 44564480 (42.5MB)
-   OldSize                  = 89653248 (85.5MB)
-   NewRatio                 = 2
-   SurvivorRatio            = 8
-   MetaspaceSize            = 134217728 (128.0MB)
-   CompressedClassSpaceSize = 1073741824 (1024.0MB)
-   MaxMetaspaceSize         = 134217728 (128.0MB)
-   G1HeapRegionSize         = 0 (0.0MB)
-
-Heap Usage:
-PS Young Generation
-Eden Space:
-   capacity = 40370176 (38.5MB)
-   used     = 1921656 (1.8326339721679688MB)
-   free     = 38448520 (36.66736602783203MB)
-   4.760088239397321% used
-From Space:
-   capacity = 2097152 (2.0MB)
-   used     = 360448 (0.34375MB)
-   free     = 1736704 (1.65625MB)
-   17.1875% used
-To Space:
-   capacity = 2097152 (2.0MB)
-   used     = 0 (0.0MB)
-   free     = 2097152 (2.0MB)
-   0.0% used
-PS Old Generation
-   capacity = 89653248 (85.5MB)
-   used     = 49846600 (47.53742218017578MB)
-   free     = 39806648 (37.96257781982422MB)
-   55.599324187340095% used
-
-24752 interned Strings occupying 2413552 bytes.
-
-# 获取内存信息
-$ jmap -heap:format=b <java_pid>
-在启动时增加-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath="具体的路径"，当系统OutOfMemory之后，会将内存信息收集下来。
-
-$ jmap -dump:live,format=b,file=aaa <java_pid>
-```
-
-#### jcmd
-
-打印java进程的基本类、线程、VM信息
-
-```sh
-/*		
-    需要在启动Java程序时开启NMT(Native Memory Tracker ，是一个本地内存跟踪工具)
-    off 默认配置
-    summary 只收集汇总信息
-    detail 收集每次调用的信息
-    注意，根据Java官方文档，开启NMT会有5%－10%的性能损耗；
-*/
--XX:NativeMemoryTracking=[off | summary | detail]
- 
-#如果想JVM退出时打印退出时的内存使用情况，可以通过如下配置项:
--XX:+UnlockDiagnosticVMOptions -XX:+PrintNMTStatistics
- 
-$ java -Xmx8g -Xms8g - -XX:+UseG1GC -XX:NativeMemoryTracking=detail -jar /home/pgcp/pgcp-0.0.1-SNAPSHOT.jar
+# tomcat
+JAVA_OPTS="$JAVA_OPTS -server -XX:+UseParallelGC -XX:ParallelGCThreads=8 -XX:NewRatio=16 -XX:+UseAdaptiveSizePolicy"
+JAVA_OPTS="$JAVA_OPTS -Xms4096m -Xmx4096m -Xmn2048m -Xss128k -XX:PermSize=128m -XX:MaxPermSize=384m -Djava.net.preferIPv4Stack=true"
+JAVA_OPTS="$JAVA_OPTS -Xloggc:gc.txt"
+JAVA_OPTS="$JAVA_OPTS -XX:+HeapDumpOnOutOfMemoryError"
 ```
 
 ```sh
-$ jcmd 9033  VM.native_memory
-9033:
+# 启用能够执行优化的编译器, 显著提高服务器的性能，但使用能够执行优化的编译器时，服务器的预备时间将会较长。生产环境的服务器强烈推荐设置此参数。
+-server 
 
-Native Memory Tracking:
+# 内存溢出时自动生成HeapDump，-XX:HeapDumpPath=具体的路径
+JAVA_OPTS="$JAVA_OPTS -XX:+HeapDumpOnOutOfMemoryError"
 
-Total: reserved=1284481KB, committed=236913KB
-			#堆内存
--                 Java Heap (reserved=131072KB, committed=131072KB)
-                        (mmap: reserved=131072KB, committed=131072KB)
-    		#类加载信息
--                     Class (reserved=1100460KB, committed=58156KB)
-                        (classes #9943)
-                        (malloc=4780KB #13763)
-                        (mmap: reserved=1095680KB, committed=53376KB)
-    		#线程栈
--                    Thread (reserved=10726KB, committed=10726KB)
-                        (thread #24)
-                        (stack: reserved=10560KB, committed=10560KB)
-                        (malloc=75KB #119)
-                        (arena=91KB #46)
-    		#代码缓存
--                      Code (reserved=10639KB, committed=5375KB)
-                        (malloc=239KB #851)
-                        (mmap: reserved=10400KB, committed=5136KB)
-    		#垃圾回收
--                        GC (reserved=8265KB, committed=8265KB)
-                        (malloc=3469KB #243)
-                        (mmap: reserved=4796KB, committed=4796KB)
-    		#编译器
--                  Compiler (reserved=152KB, committed=152KB)
-                        (malloc=22KB #159)
-                        (arena=130KB #2)
-    		#内部
--                  Internal (reserved=7595KB, committed=7595KB)
-                        (malloc=7563KB #13970)
-                        (mmap: reserved=32KB, committed=32KB)
-    		#符号
--                    Symbol (reserved=13018KB, committed=13018KB)
-                        (malloc=11124KB #111613)
-                        (arena=1894KB #1)
-    		#nmt
--    Native Memory Tracking (reserved=2367KB, committed=2367KB)
-                        (malloc=134KB #2113)
-                        (tracking overhead=2234KB)
 
--               Arena Chunk (reserved=186KB, committed=186KB)
-                        (malloc=186KB)
+# 可用来设置年轻代为并发收集【多CPU】，如果你的服务器有多个CPU，你可以开启此参数；开启此参数，多个CPU 可并发进行垃圾回收，可提高垃圾回收的速度。此参数和+UseParallelGC，-XX:ParallelGCThreads搭配使用。
+-XX:+UseParNewGC 
+# 选择垃圾收集器为并行收集器。此配置仅对年轻代有效。即上述配置下，年轻代使用并发收集，而年老代仍旧使用串行收集。可提高系统的吞吐量。
+-XX:+UseParallelGC 
+# 指定使用的垃圾收集器，这里使用CMS收集器
+-XX:+UseConcMarkSweepGC
 
-reserved
-reserved memory是指JVM通过mmaped PROT_NONE申请的虚拟地址空间，在页表中已经存在了记录(entries)，保证了其他进程不会被占用。
+# 年轻代并行垃圾收集的前提下（对并发也有效果）的线程数，增加并行度，即：同时多少个线程一起进行垃圾回收。此值最好配置与处理器数目相等。永久存储区相关参数：参数名参数说明
+-XX:ParallelGCThreads 
 
-committed
-committed memory是操作系统实际分配的内存（malloc/mmap）,mmaped PROT_READ | PROT_WRITE，相当于程序实际申请的可用内存。
-committed申请的内存并不是说直接占用了物理内存，由于操作系统的内存管理是惰性的，对于已申请的内存虽然会分配地址空间，
-但并不会直接占用物理内存，真正使用的时候才会映射到实际的物理内存。所以committed > res也是很可能的。
- 
-used
-表示当前使用的内存量(以字节为单位)
+# 打开gc日志
+JAVA_OPTS="$JAVA_OPTS -Xloggc:gc.txt"
+
+#打开gc日志的详细信息、时间戳,-XX:+PrintGCDetails打印详细的GC日志
+JAVA_OPTS="-XX:+PrintGCDetails -XX:+PrintGCTimeStamps -XX:+PrintGCApplicationStoppedTime -XX:+PrintGCApplicationConcurrentTime"
+
+# 每次永久存储区满了后一般GC 算法在做扩展分配内存前都会触发一次FULL GC，除非设置了-Xnoclassgc（不进行GC）.
+-Xnoclassgc 
 ```
 
-#### jstat
+
 
 ```sh
-# 查看gc情况
-$ jstat -gc <pid> 
+# springboot
+$ nohup java -jar -XX:MetaspaceSize=128m -XX:MaxMetaspaceSize=128m -Xms1024m -Xmx1024m -Xmn256m -Xss256k -XX:SurvivorRatio=8 -XX:+UseConcMarkSweepGC /jar包路径 &
 ```
-
-```
-GC日志:
--XX:PrintGCTimeStamps：打印 GC 时间
--XX:PrintGCDetails ：打印 GC 日志；
--Xloggc: path：保存GC 日志路径。
-jstat –gcutil: 显示垃圾收集信息
-```
-
-
-
-
-
-jhat 分析jmap等方法生成的dump堆文件，解析Java堆转储文件,并启动一个 web server，可以直接访问。
-
-jinfo 查看jvm系统参数，可以动态设置参数
-
-jstat 可以查看gc和类加载情况
-
-jstack 查看线程堆栈情况
-
-jconsole 可视化工具，可以连接远程linux服务器对内存线程等监视管理。
-
-jvisualVM 傻瓜式工具，功能更强大，可以在线dump内存堆栈,也可以提供后处理工具。
-
-Heap Analyzer工具
-
-Heap Jmeter工具
-
-在故障定位(尤其是out of memory)和性能分析的时候，会用到dump文件来帮助我们排除代码问题，常用的有heap dump和thread dump，heap dump记录内存信息的，thread dump是记录CPU信息的，可以使用jmap和jstack命令获取，使用jhat命令分析。
-
-参考：
-
-[java命令--jhat命令使用](https://www.cnblogs.com/baihuitestsoftware/articles/6406271.html)
-
-[JConsole连接远程linux服务器配置](https://www.cnblogs.com/zluckiy/p/10309495.html)
 
 ## 垃圾回收
 
@@ -404,7 +245,27 @@ gc 主要的回收的内存区域有堆区和方法区
 
 ### 垃圾回收器
 
-垃圾收集算法是内存回收的方法论，那么垃圾收集器就是内存回收的具体实现。有7种作用于不同分代的收集器，其中用于回收新生代的收集器包括Serial、PraNew、Parallel Scavenge，回收老年代的收集器包括Serial Old、Parallel Old、CMS，还有用于回收整个Java堆的G1收集器。
+垃圾收集算法是内存回收的方法论，那么垃圾收集器就是内存回收的具体实现。有7种作用于不同分代的收集器，其中用于回收新生代的收集器包括Serial、Par	New、Parallel Scavenge，回收老年代的收集器包括Serial Old、Parallel Old、CMS，还有用于回收整个Java堆的G1收集器。在较早的Java版本中，例如JDK 1.7和JDK 1.8，默认的垃圾收集器通常是Parallel Scavenge（新生代）+Parallel Old（老年代）。而在JDK 1.9及之后的版本中，默认的垃圾收集器变为了G1垃圾收集器。
+
+> Serial、ParNew、Parallel Scavenge是Java虚拟机中的三种垃圾收集器，它们的区别如下：
+>
+> 1. Serial收集器：Serial收集器是一种单线程的垃圾收集器，它只使用一个线程进行垃圾收集，因此它的收集效率较低。Serial收集器适用于小型应用程序和客户端应用程序，因为它的暂停时间较短。
+>
+> 2. ParNew收集器：ParNew收集器是Serial收集器的多线程版本，它可以使用多个线程进行垃圾收集，因此它的收集效率比Serial收集器高。ParNew收集器适用于多核服务器应用程序，因为它可以利用多个CPU核心进行垃圾收集。ParNewGC在垃圾回收期间，应用程序的执行将会暂停，它通常与CMS（Concurrent Mark Sweep）收集器配合使用。
+>
+> 3. Parallel Scavenge收集器：Parallel Scavenge收集器是一种多线程的垃圾收集器，它可以使用多个线程进行垃圾收集，并且可以动态调整垃圾收集线程的数量。Parallel Scavenge收集器适用于大型应用程序和服务器应用程序，因为它可以在多个CPU核心上并行执行垃圾收集，从而提高垃圾收集效率。ParallelGC的主要目标是提高垃圾收集的吞吐量，即在给定时间内完成尽可能多的工作。为了提高吞吐量，Parallel收集器会尽可能地减少垃圾回收的次数和持续时间，从而降低对应用程序性能的影响。它通常与Serial Old收集器配合使用，以实现更高的吞吐量。
+>
+> 总之，Serial收集器适用于小型应用程序和客户端应用程序，ParNew收集器适用于多核服务器应用程序，Parallel Scavenge收集器适用于大型应用程序和服务器应用程序。
+
+> Serial Old、Parallel Old和CMS是Java虚拟机（JVM）中用于垃圾回收的不同算法。它们的主要区别在于垃圾回收的方式和效率。
+>
+> 1. Serial Old（串行老年代回收）：Serial Old是一种单线程的垃圾回收算法，它会暂停应用程序的所有线程来进行垃圾回收。它适用于小型应用程序和单核处理器，因为它的效率较低。在进行垃圾回收时，它会停止应用程序的执行，直到垃圾回收完成。
+>
+> 2. Parallel Old（并行老年代回收）：Parallel Old是一种多线程的垃圾回收算法，它会使用多个线程来进行垃圾回收，从而提高回收效率。它适用于大型应用程序和多核处理器，因为它可以充分利用多核处理器的并行能力。在进行垃圾回收时，它**会暂停应用程序的执行**，但相比于Serial Old，它的回收速度更快。
+>
+> 3. CMS（Concurrent Mark Sweep，并发标记清除）：CMS是一种并发的垃圾回收算法，它**可以在应用程序运行的同时进行垃圾回收**，减少了应用程序的停顿时间。它适用于对停顿时间要求较高的应用程序。CMS算法通过并发标记和并发清除两个阶段来进行垃圾回收，其中标记阶段会暂停应用程序的执行，但清除阶段是与应用程序并发执行的。
+>
+> 总结来说，Serial Old适用于小型应用程序和单核处理器，Parallel Old适用于大型应用程序和多核处理器，而CMS适用于对停顿时间要求较高的应用程序。选择哪种算法取决于应用程序的特点和性能需求。
 
 #### Minor GC
 
@@ -1220,10 +1081,15 @@ private void childFirstClassLoader() throws ClassNotFoundException, IllegalAcces
 ### 常见内存异常
 
 - `java.lang.OutOfMemoryError: Java heap space`: 堆内存不足。可能为内存泄漏、堆配置过小或配置不合理。可通过-Xms, -Xmx配置。
-
 - `java.lang.OutOfMemoryError: PermGen`: JDK1.7以前，“space“: 永久代(方法区)空间不足。一般为加载类型过多(加载过多的class文件)引起。可通过-XX:PermSize和-XX:MaxPermSize配置，也可以查看是否使用 -noclassgc 参数，JDK1.8之后为 `java.lang.OutOfMemoryError: Metaspace` 。
 - `StackOverFlowError`: 栈空间不足。一般为递归调用引起。通过-Xss配置。
 - `java.lang.OutOfMemoryError`: 可能为直接内存溢出。一般为通过 NIO 或 JNI 不断分配内存导致。通过 -XX:MaxDirectMemorySize配置。
+- 本地线程资源不足
+  `Exception in thread <thread>/Caused by java.lang.OutOfMemoryError: unable to create new native thread `
+- 本地内存溢出：
+  `Exception in thread “main” java.lang.OutOfMemoryError: request <size> bytes for <reason>. Out of swap space?
+  Exception in thread "main" java.lang.OutOfMemoryError: <reason>
+  <stack trace>(Native method)`
 
 ### 虚拟机栈的内存异常
 
@@ -1251,3 +1117,272 @@ private void childFirstClassLoader() throws ClassNotFoundException, IllegalAcces
 
 [如何打破双亲委派机制](https://blog.csdn.net/cy973071263/article/details/104129163)
 
+## JDK工具
+
+- jps：查看本机java进程信息
+- jstack：打印线程的栈信息，制作 线程dump文件
+- jmap：打印内存映射信息，制作 堆dump文件
+- jstat：性能监控工具
+- jhat：内存分析工具，用于解析堆dump文件并以适合人阅读的方式展示出来
+- jconsole：简易的JVM可视化工具
+- jvisualvm：功能更强大的JVM可视化工具
+- javap：查看字节码
+
+这些工具都在JAVA_HOME/bin目录下，执行命令的jdk版本和所监控的jvm的jdk版本需要一致，否则会报错。
+
+**JAVA Dump：** 
+
+JAVA Dump就是虚拟机运行时的快照，将虚拟机运行时的状态和信息保存到文件中，包括：
+
+线程dump：包含所有线程的运行状态，纯文本格式
+
+堆dump：包含所有堆对象的状态，二进制格式
+
+#### jps
+
+用来显示本地的java进程，以及进程号，进程启动的路径等。
+
+```sh
+# jps
+9033 Bootstrap(启动的 Tomcat)
+4284 Jps
+12318 jar
+```
+
+#### jmap
+
+主要用于打印指定java进程的共享对象内存映射或堆内存细节。 
+
+```sh
+# 打印当前对象的个数和大小
+$ jmap -histo <java_pid>
+# 打印的信息分别是：序列号、对象的数量、这些对象的内存占用大小、这些对象所属的类的全限定名，如果是内部类，类名的开头会加上*
+
+# 打印当前存活对象的个数和大小,此命令会触发一次full gc
+$ jmap -histo:live <java_pid>
+
+# 查看对象数最多的对象
+$ jmap -histo PID|sort -k 2 -g -r|less
+
+# 查看占用内存最多的最象
+$ jmap -histo PID|sort -k 3 -g -r|less
+```
+
+
+
+```sh
+# 查看堆使用情况 jmap -heap pid
+$ jmap -heap 9033
+Attaching to process ID 9033, please wait...
+Debugger attached successfully.
+Server compiler detected.
+JVM version is 25.112-b15
+
+using thread-local object allocation.
+Parallel GC with 2 thread(s)
+
+Heap Configuration:
+   MinHeapFreeRatio         = 0
+   MaxHeapFreeRatio         = 100
+   MaxHeapSize              = 134217728 (128.0MB)
+   NewSize                  = 44564480 (42.5MB)
+   MaxNewSize               = 44564480 (42.5MB)
+   OldSize                  = 89653248 (85.5MB)
+   NewRatio                 = 2
+   SurvivorRatio            = 8
+   MetaspaceSize            = 134217728 (128.0MB)
+   CompressedClassSpaceSize = 1073741824 (1024.0MB)
+   MaxMetaspaceSize         = 134217728 (128.0MB)
+   G1HeapRegionSize         = 0 (0.0MB)
+
+Heap Usage:
+PS Young Generation
+Eden Space:
+   capacity = 40370176 (38.5MB)
+   used     = 1921656 (1.8326339721679688MB)
+   free     = 38448520 (36.66736602783203MB)
+   4.760088239397321% used
+From Space:
+   capacity = 2097152 (2.0MB)
+   used     = 360448 (0.34375MB)
+   free     = 1736704 (1.65625MB)
+   17.1875% used
+To Space:
+   capacity = 2097152 (2.0MB)
+   used     = 0 (0.0MB)
+   free     = 2097152 (2.0MB)
+   0.0% used
+PS Old Generation
+   capacity = 89653248 (85.5MB)
+   used     = 49846600 (47.53742218017578MB)
+   free     = 39806648 (37.96257781982422MB)
+   55.599324187340095% used
+
+24752 interned Strings occupying 2413552 bytes.
+
+# 获取内存信息
+$ jmap -heap:format=b <java_pid>
+
+# 将内存使用的详细情况输出到文件
+$ jmap -dump:format=b,file=heapdump PID
+
+# 将存活对象输出到文件
+$ jmap -dump:live,format=b,file= heapdump PID
+```
+
+#### jstack
+
+jstack是java虚拟机自带的一种堆栈跟踪工具。jstack用于生成java虚拟机当前时刻的线程快照。线程快照是当前java虚拟机内每一条线程正在执行的方法堆栈的集合。
+
+性能压测过程中cpu出现波动、过高、过低等情况，需要截取jstack文件看下cpu在做什么。生成线程快照的主要目的是定位线程出现长时间停顿的原因，如线程间死锁、死循环、请求外部资源导致的长时间等待等。
+
+```sh
+1.top命令查看系统使用信息，找出消耗最大的进程，如进程id为24152
+
+2.查找该进程内最耗费CPU的线程,可以使用如下命令：
+   top -Hp 24152  
+   如最耗费性能的线程pid为24937
+
+3.获取线程id 24937的十六进制值
+  $ printf "%x\n" 24937
+  6169
+
+4.查看堆栈信息
+4.1使用jstack来输出线程id 24937的堆栈信息，根据线程id的十六进制值grep
+   $ jstack 24152 | grep –A50 6169
+4.2导出进程快照
+   $ jstack -l 24152 > ./24152.stack
+   $ cat 24152.stack | grep '6169' -C 10
+```
+
+
+
+
+
+
+
+#### jcmd
+
+打印java进程的基本类、线程、VM信息
+
+```sh
+/*		
+    需要在启动Java程序时开启NMT(Native Memory Tracker ，是一个本地内存跟踪工具)
+    off 默认配置
+    summary 只收集汇总信息
+    detail 收集每次调用的信息
+    注意，根据Java官方文档，开启NMT会有5%－10%的性能损耗；
+*/
+-XX:NativeMemoryTracking=[off | summary | detail]
+ 
+#如果想JVM退出时打印退出时的内存使用情况，可以通过如下配置项:
+-XX:+UnlockDiagnosticVMOptions -XX:+PrintNMTStatistics
+ 
+$ java -Xmx8g -Xms8g - -XX:+UseG1GC -XX:NativeMemoryTracking=detail -jar /home/pgcp/pgcp-0.0.1-SNAPSHOT.jar
+```
+
+```sh
+$ jcmd 9033  VM.native_memory
+9033:
+
+Native Memory Tracking:
+
+Total: reserved=1284481KB, committed=236913KB
+			#堆内存
+-                 Java Heap (reserved=131072KB, committed=131072KB)
+                        (mmap: reserved=131072KB, committed=131072KB)
+    		#类加载信息
+-                     Class (reserved=1100460KB, committed=58156KB)
+                        (classes #9943)
+                        (malloc=4780KB #13763)
+                        (mmap: reserved=1095680KB, committed=53376KB)
+    		#线程栈
+-                    Thread (reserved=10726KB, committed=10726KB)
+                        (thread #24)
+                        (stack: reserved=10560KB, committed=10560KB)
+                        (malloc=75KB #119)
+                        (arena=91KB #46)
+    		#代码缓存
+-                      Code (reserved=10639KB, committed=5375KB)
+                        (malloc=239KB #851)
+                        (mmap: reserved=10400KB, committed=5136KB)
+    		#垃圾回收
+-                        GC (reserved=8265KB, committed=8265KB)
+                        (malloc=3469KB #243)
+                        (mmap: reserved=4796KB, committed=4796KB)
+    		#编译器
+-                  Compiler (reserved=152KB, committed=152KB)
+                        (malloc=22KB #159)
+                        (arena=130KB #2)
+    		#内部
+-                  Internal (reserved=7595KB, committed=7595KB)
+                        (malloc=7563KB #13970)
+                        (mmap: reserved=32KB, committed=32KB)
+    		#符号
+-                    Symbol (reserved=13018KB, committed=13018KB)
+                        (malloc=11124KB #111613)
+                        (arena=1894KB #1)
+    		#nmt
+-    Native Memory Tracking (reserved=2367KB, committed=2367KB)
+                        (malloc=134KB #2113)
+                        (tracking overhead=2234KB)
+
+-               Arena Chunk (reserved=186KB, committed=186KB)
+                        (malloc=186KB)
+
+reserved
+reserved memory是指JVM通过mmaped PROT_NONE申请的虚拟地址空间，在页表中已经存在了记录(entries)，保证了其他进程不会被占用。
+
+committed
+committed memory是操作系统实际分配的内存（malloc/mmap）,mmaped PROT_READ | PROT_WRITE，相当于程序实际申请的可用内存。
+committed申请的内存并不是说直接占用了物理内存，由于操作系统的内存管理是惰性的，对于已申请的内存虽然会分配地址空间，
+但并不会直接占用物理内存，真正使用的时候才会映射到实际的物理内存。所以committed > res也是很可能的。
+ 
+used
+表示当前使用的内存量(以字节为单位)
+```
+
+#### jstat
+
+```sh
+# 查看gc情况
+$ jstat -gc <pid> 
+```
+
+```
+GC日志:
+-XX:PrintGCTimeStamps：打印 GC 时间
+-XX:PrintGCDetails ：打印 GC 日志；
+-Xloggc: path：保存GC 日志路径。
+jstat –gcutil: 显示垃圾收集信息
+```
+
+
+
+
+
+jhat 分析jmap等方法生成的dump堆文件，解析Java堆转储文件,并启动一个 web server，可以直接访问。
+
+jinfo 查看jvm系统参数，可以动态设置参数
+
+jstat 可以查看gc和类加载情况
+
+jstack 查看线程堆栈情况
+
+jconsole 可视化工具，可以连接远程linux服务器对内存线程等监视管理。
+
+jvisualVM 傻瓜式工具，功能更强大，可以在线dump内存堆栈,也可以提供后处理工具。
+
+Heap Analyzer工具
+
+Heap Jmeter工具
+
+在故障定位(尤其是out of memory)和性能分析的时候，会用到dump文件来帮助我们排除代码问题，常用的有heap dump和thread dump，heap dump记录内存信息的，thread dump是记录CPU信息的，可以使用jmap和jstack命令获取，使用jhat命令分析。
+
+参考：
+
+[java命令--jhat命令使用](https://www.cnblogs.com/baihuitestsoftware/articles/6406271.html)
+
+[JConsole连接远程linux服务器配置](https://www.cnblogs.com/zluckiy/p/10309495.html)
+
+## 
