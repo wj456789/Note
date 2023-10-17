@@ -192,7 +192,7 @@ JAVA_OPTS="$JAVA_OPTS -XX:+HeapDumpOnOutOfMemoryError"
 # 打开gc日志
 JAVA_OPTS="$JAVA_OPTS -Xloggc:gc.txt"
 
-#打开gc日志的详细信息、时间戳,-XX:+PrintGCDetails打印详细的GC日志
+#打开gc日志的详细信息、时间戳,-XX:+PrintGCDetails打印详细的GC日志 -XX:PrintGCTimeStamps打印 GC 时间
 JAVA_OPTS="-XX:+PrintGCDetails -XX:+PrintGCTimeStamps -XX:+PrintGCApplicationStoppedTime -XX:+PrintGCApplicationConcurrentTime"
 
 # 每次永久存储区满了后一般GC 算法在做扩展分配内存前都会触发一次FULL GC，除非设置了-Xnoclassgc（不进行GC）.
@@ -1122,11 +1122,12 @@ private void childFirstClassLoader() throws ClassNotFoundException, IllegalAcces
 - jps：查看本机java进程信息
 - jstack：打印线程的栈信息，制作 线程dump文件
 - jmap：打印内存映射信息，制作 堆dump文件
-- jstat：性能监控工具
-- jhat：内存分析工具，用于解析堆dump文件并以适合人阅读的方式展示出来
-- jconsole：简易的JVM可视化工具
-- jvisualvm：功能更强大的JVM可视化工具
+- jstat：性能监控工具，可以查看gc和类加载情况
+- jhat：内存分析工具，用于解析堆dump文件，解析Java堆转储文件,并启动一个 web server，可以直接访问。
+- jconsole：简易的JVM可视化工具，可以连接远程linux服务器对内存线程等监视管理。
+- jvisualvm：功能更强大的JVM可视化工具，可以在线dump内存堆栈，也可以提供后处理工具。
 - javap：查看字节码
+- jinfo：查看jvm系统参数，可以动态设置参数
 
 这些工具都在JAVA_HOME/bin目录下，执行命令的jdk版本和所监控的jvm的jdk版本需要一致，否则会报错。
 
@@ -1134,9 +1135,9 @@ private void childFirstClassLoader() throws ClassNotFoundException, IllegalAcces
 
 JAVA Dump就是虚拟机运行时的快照，将虚拟机运行时的状态和信息保存到文件中，包括：
 
-线程dump：包含所有线程的运行状态，纯文本格式
+线程dump（thread dump）：包含所有线程的运行状态，纯文本格式
 
-堆dump：包含所有堆对象的状态，二进制格式
+堆dump（heap dump）：包含所有堆对象的状态，二进制格式
 
 #### jps
 
@@ -1347,42 +1348,15 @@ used
 ```sh
 # 查看gc情况
 $ jstat -gc <pid> 
-```
 
-```
-GC日志:
--XX:PrintGCTimeStamps：打印 GC 时间
--XX:PrintGCDetails ：打印 GC 日志；
--Xloggc: path：保存GC 日志路径。
-jstat –gcutil: 显示垃圾收集信息
+# 显示垃圾收集信息
+$ jstat –gcutil: 
 ```
 
 
-
-
-
-jhat 分析jmap等方法生成的dump堆文件，解析Java堆转储文件,并启动一个 web server，可以直接访问。
-
-jinfo 查看jvm系统参数，可以动态设置参数
-
-jstat 可以查看gc和类加载情况
-
-jstack 查看线程堆栈情况
-
-jconsole 可视化工具，可以连接远程linux服务器对内存线程等监视管理。
-
-jvisualVM 傻瓜式工具，功能更强大，可以在线dump内存堆栈,也可以提供后处理工具。
-
-Heap Analyzer工具
-
-Heap Jmeter工具
-
-在故障定位(尤其是out of memory)和性能分析的时候，会用到dump文件来帮助我们排除代码问题，常用的有heap dump和thread dump，heap dump记录内存信息的，thread dump是记录CPU信息的，可以使用jmap和jstack命令获取，使用jhat命令分析。
 
 参考：
 
 [java命令--jhat命令使用](https://www.cnblogs.com/baihuitestsoftware/articles/6406271.html)
 
 [JConsole连接远程linux服务器配置](https://www.cnblogs.com/zluckiy/p/10309495.html)
-
-## 

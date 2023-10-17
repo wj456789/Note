@@ -1469,9 +1469,8 @@ No 2-5 number
 
 ### top
 
-```bash
-#top
-#top -p 进程号
+```sh
+$ top -p 进程号
 top - 09:43:54 up 195 days, 17:53,  1 user,  load average: 0.09, 0.10, 0.12
 Tasks: 461 total,   1 running, 460 sleeping,   0 stopped,   0 zombie
 %Cpu(s):  0.1 us,  0.2 sy,  0.0 ni, 99.7 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st
@@ -1494,50 +1493,99 @@ f或者F：从当前显示中添加或者删除列。
 - RES表明进程常驻内存
 - 计算某个进程所占的物理内存大小公式：RES – SHR
 
-**cpu状态信息**
+```sh
+top - 09:53:13 up 34 days, 16:37, 12 users,  load average: 0.24, 0.30, 0.38
+显示开机运行时间，当前时间，在线用户数，平均负载
 
-0.1%us【user space】— 用户空间占用CPU的百分比。
-0.2%sy【sysctl】— 内核空间占用CPU的百分比。
-0.0%ni【】— 改变过优先级的进程占用CPU的百分比
-99.7%id【idolt】— 空闲CPU百分比
-0.0%wa【wait】— IO等待占用CPU的百分比
-0.0%hi【Hardware IRQ】— 硬中断占用CPU的百分比
-0.0%si【Software Interrupts】— 软中断占用CPU的百分比
-
-**内存状态**
-
-```bash
-KiB Mem : 65685108 total, 42266972 free,  8329524 used, 15088612 buff/cache(缓存的内存量)
+09:53:13  当前时间
+up 34 days, 16:37  系统开始运行时间，格式为时:分
+12 users  当前登录用户数
+load average: 0.24, 0.30, 0.38  系统负载，即任务队列的平均长度，三个数值分别为1分钟、5分钟、15分钟前到现在的平均值。
 ```
 
-**swap交换分区信息**
+```sh
+Tasks: 193 total,   1 running, 192 sleeping,   0 stopped,   0 zombie
+任务数量和状态
 
-```bash
-KiB Swap:  7812092 total,  7759268 free,    52824 used. 53242476 avail Mem
+193 total 进程的总数
+1 running 正在运行的进程数
+192 sleeping 睡眠的进程数
+0 stopped 停止的进程数
+0 zombie 僵尸进程数
+```
+
+```sh
+Cpu(s):  0.7%us, 0.2%sy, 0.0%ni, 98.8%id, 0.1%wa, 0.0%hi, 0.2%si, 0.0%st
+CPU状态信息
+
+0.7%us  用户空间占用CPU百分比【user space】
+0.2%sy	内核空间占用CPU百分比【sysctl】
+0.0%ni  用户进程空间内改变过优先级的进程占用CPU百分比
+98.8%id	空闲CPU百分比【idolt】
+0.1%wa  IO等待CPU时间的百分比【wait】
+0.0%hi  硬中断占用CPU的百分比【Hardware IRQ】
+0.2%si  软中断占用CPU的百分比【Software Interrupts】
+0.0%st
+```
+
+```sh
+Mem:  24672844k total, 21493856k used,  3178988k free,   744316k buffers
+内存占用情况
+
+24672844k total  物理内存总量
+21493856k used  使用的物理内存总量
+3178988k free  空闲内存总量
+744316k buffers  用作内核缓存的内存量
+```
+
+```sh
+Swap: 16779852k total,   340780k used, 16439072k free, 12905060k cached
+交换分区信息
+	
+16779852k total  交换分区总量
+340780k used  使用的交换区总量
+16439072k free  空闲交换区总量
+12905060k cached   缓冲的交换区总量。
 ```
 
 Linux会将文件缓存提高读写效率，但是程序运行结束后，Cache Memory也不会自动释放，导致可用物理内存变少，当系统的物理内存不够用的时候，就需要将物理内存中的一部分空间释放出来，以供当前运行的程序使用。这些被释放的空间被临时保存到Swap空间中，等到那些被释放的空间中的程序要运行时，再从Swap分区中恢复保存的数据到内存中。也就是说将暂时不用的物理内存释放，里面的内容备份在Swap空间中，等用的时候再从swap空间中恢复
 
-**各进程（任务）的状态监控**
+```sh
+  PID  USER  PR  NI  VIRT  RES  SHR    S  %CPU  %MEM  TIME+  COMMAND
+12726  csp   16   0  5014m  3.0g  169m S  5      12.8    243:59.39  java
+进程信息
 
-PID — 进程id
-USER — 进程所有者
-PR — 进程优先级
-NI — nice值。负值表示高优先级，正值表示低优先级
-VIRT — 进程使用的虚拟内存总量，单位kb。VIRT=SWAP+RES
-RES — 进程使用的、未被换出的物理内存大小，单位kb。RES=CODE+DATA
-SHR — 共享内存大小，单位kb
-S —进程状态。D=不可中断的睡眠状态 R=运行 S=睡眠 T=跟踪/停止 Z=僵尸进程
-%CPU — 上次更新到现在的CPU时间占用百分比
-%MEM — 进程使用的物理内存百分比
-TIME+ — 进程使用的CPU时间总计，单位1/100秒
-COMMAND — 进程名称（命令名/命令行）
+PID    进程id
+PPID    父进程id
+RUSER    Realusername
+UID    进程所有者的用户id
+USER    进程所有者的用户名
+GROUP    进程所有者的组名
+TTY    启动进程的终端名。不是从终端启动的进程则显示为?
+PR    进程优先级
+NI 		nice值。负值表示高优先级，正值表示低优先级
+P    最后使用的CPU，仅在多CPU环境下有意义
+%CPU    上次更新到现在的CPU时间占用百分比
+TIME    进程使用的CPU时间总计，单位秒
+TIME+    进程使用的CPU时间总计，单位1/100秒
+%MEM    进程使用的物理内存百分比
+VIRT    进程使用的虚拟内存总量，单位kb。VIRT=SWAP+RES
+SWAP    进程使用的虚拟内存中，被换出的大小，单位kb。
+RES    进程使用的、未被换出的物理内存大小，单位kb RES=CODE+DATA
+CODE    可执行代码占用的物理内存大小，单位kb
+DATA    可执行代码以外的部分(数据段+栈)占用的物理内存大小，单位kb
+SHR    共享内存大小，单位kb
+nFLT    页面错误次数
+nDRT    最后一次写入到现在，被修改过的页面数。
+S    进程状态。D=不可中断的睡眠状态 R=运行 S=睡眠 T=跟踪/停止 Z=僵尸进程
+COMMAND    进程名称（命令名/命令行）
+WCHAN    若该进程在睡眠，则显示睡眠中的系统函数名
+Flags    任务标志，参考sched.h
+```
 
 VIRT虚拟内存
 RES常驻内存：进程当前使用的内存大小，包含其他进程的共享
 SHR共享内存：不同进程之间共享的内存通常为同一段物理内存。所有的进程都可以访问共享内存中的地址。如果某个进程向共享内存写入数据，所做的改动将立即影响到可以访问同一段共享内存的任何其他进程。
-
-
 
 参考:
 [Linux top命令详解](https://www.cnblogs.com/niuben/p/12017242.html)
