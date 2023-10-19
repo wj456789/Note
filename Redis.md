@@ -61,13 +61,13 @@ NoSQL的全称是Not only SQL，在过去的几年中，NoSQL数据库一度成�
 
    ```sh
    cd ~/software/redis-bin/bin/
-   ./redis-server #使用默认配置文件启动，默认配置文件所在目录redis-3.2.8/redis.conf
+   ./redis-server # 使用默认配置文件启动，默认配置文件所在目录redis-3.2.8/redis.conf
    或 
-   cp ~/software/redis-3.2.8/redis.conf myredis.conf #复制默认配置文件到当前目录，并改名
-   ./redis-server myredis.conf #使用指定的配置文件启动
+   cp ~/software/redis-3.2.8/redis.conf myredis.conf # 复制默认配置文件到当前目录，并改名
+   ./redis-server myredis.conf # 使用指定的配置文件启动
    ```
 
-   补充：可以将~/software/redis­bin/bin/添加到PATH变量中，便于执行命令  
+   补充：可以将~/software/redis­bin/bin/添加到PATH变量中，便于执行命令
 
    ```sh
    vi ~/.bashrc
@@ -79,9 +79,9 @@ NoSQL的全称是Not only SQL，在过去的几年中，NoSQL数据库一度成�
 5. 连接redis  
 
    ```sh
-   ./redis-cli #默认连接本机的6379端口(redis默认使用的端口号)
+   ./redis-cli # 默认连接本机的6379端口(redis默认使用的端口号)
    或 
-   ./redis-cli -h IP地址 -p 端口号 #连接指定主机、指定端口的redis，如./redis-cli -h localhost -p 6379
+   ./redis-cli -h IP地址 -p 端口号 # 连接指定主机、指定端口的redis，如./redis-cli -h localhost -p 6379
    ```
 
 ### 关闭  
@@ -144,7 +144,7 @@ Redis数据就是以key­-value形式来存储的，key只能是字符串类型�
 
 type命令实际返回的就是当前键的数据结构类型，它们分别是：string（字符串）、hash（哈希）、list（列表）、set（集合）、zset（有序集合），但这些只是Redis对外的数据结构。实际上每种数据结构都有自己底层的内部编码实现，而且是多种实现，这样Redis会在合适的场景选择合适的内部编码。内部编码即是外部数据结构的内部实现，也就是redis底层的内部数据结构。
 
-![img](img_Redis/1260387-20171217225104530-830166094.png)
+<img src="img_Redis/1260387-20171217225104530-830166094.png" alt="img" style="zoom: 80%;" />
 
 我们可以通过object encoding命令查询内部编码，如：
 
