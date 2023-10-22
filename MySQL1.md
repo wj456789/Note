@@ -1188,7 +1188,7 @@ select * from sql_p where name='张三';
 倒排索引通常也称之为反向索引，它是搜索引擎主要使用的索引方式。倒排索引是一种面向单词的索引机制，每个文档都可以用一系列单词来表示，可以很方便地通过单词找到对应的文档。  
 
 - 正向索引：文档-->单词
-- 倒排索引：单词-->文档  
+- 倒排索引：单词-->文档
 
 ```mysql
 #对以下文档内容建索引，得到的结果如下图。
@@ -1218,7 +1218,7 @@ INSERT INTO ft_en(title,body) VALUES
 ('MySQL Security','When configured properly, MySQL ...');
 
 
-#如果建表时未创建全文索引，也可以使用create fulltext index创建
+# 如果建表时未创建全文索引，也可以使用create fulltext index创建
 CREATE FULLTEXT INDEX ft_title_body ON ft_en(title,body);
 ```
 
@@ -1229,14 +1229,14 @@ MySQL支持三种模式的全文检索，自然语言模式、布尔模式和查
 - 自然语言模式  
 
 ```mysql
-#将搜索字符串解释为自然人类语言，除双引号外，没有特殊的运算符
-#未指定查询模式或指定为 IN NATURAL LANGUAGE MODE，都表示自然语言搜索
+# 将搜索字符串解释为自然人类语言，除双引号外，没有特殊的运算符
+# 未指定查询模式或指定为 IN NATURAL LANGUAGE MODE，都表示自然语言搜索
 SELECT * FROM ft_en WHERE MATCH (title, body) AGAINST ('database');
 ```
 
 ```mysql
-#score越大表示相关度越高
-select *,MATCH (title, body) AGAINST ('database') as score from ft_en;
+# score越大表示相关度越高
+select *, MATCH (title, body) AGAINST ('database') as score from ft_en;
 ```
 
 ![image-20210831074441897](img_MySQL/image-20210831074441897.png)
@@ -1583,7 +1583,7 @@ set transaction_isolation ='read-uncommitted';
 
 ### binlog日志
 
-MySQL的二进制日志binlog可以说是MySQL最重要的日志，它记录了所有的DDL和DML语句（除了数据查询语句select），以事件形式记录，还包含语句所执行的消耗的时间，MySQL的二进制日志是事务安全型的。
+MySQL的二进制日志binlog可以说是MySQL最重要的日志，它记录了所有的DDL和DML语句，以事件形式记录，还包含语句所执行的消耗的时间，MySQL的二进制日志是事务安全型的。
 
 万一遇到数据丢失的紧急情况下，可以使用binlog日志进行数据恢复（定时全备份+binlog日志恢复增量数据部分）。
 
