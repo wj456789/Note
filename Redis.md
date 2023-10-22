@@ -1010,16 +1010,14 @@ Sorted­-Sets和Sets类型极为相似，也称为Zset，它们都是字符串�
 
   获取长度 redis键/
 
-  /
+  判断 redis键 map键
 
   删除redis键 map键/
 
-  
-
-  
+  存在设置 redis键 map键 map值/
 
   ```sh
-  #给键值为myhash的键设置字段为field1，值为itany
+#给键值为myhash的键设置字段为field1，值为itany
   127.0.0.1:6379> hset myhash field1 "itany"
   (integer) 1
   
@@ -1059,7 +1057,7 @@ Sorted­-Sets和Sets类型极为相似，也称为Zset，它们都是字符串�
   127.0.0.1:6379> hsetnx myhash field1 "itany"
   (integer) 0
   ```
-
+  
 - `hincrby`  
 
   ```sh
@@ -1669,44 +1667,6 @@ id对应下标，值为0表示今天未活跃，1表示活跃
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ## 事务
 
 ### 概述
@@ -1828,7 +1788,7 @@ OK
    OK
    ```
 
-   上面的方式只是保证了在执行slaveof命令之后，redis*6380*成为了*redis*6379的slave，一旦服务(redis_6380)重新启动之后，他们之间的复制关系将终止。 
+   上面的方式只是保证了在执行slaveof命令之后，redis6380 成为了 redis6379 的slave，一旦服务(redis_6380)重新启动之后，他们之间的复制关系将终止。 
 
    如果希望长期保证这两个服务器之间的Replication关系，可以在redis_6380的配置文件中做如下修改：
 
@@ -2003,25 +1963,145 @@ Jedis是一个封装了redis的java客户端，集成了redis的一些命令操�
 
 
 
+## Redis实现分布式锁
+
+### 原生方式
+
+使用Java和Jedis库实现Redis分布式锁：
+
+首先，确保你的项目中已经添加了Jedis依赖。如果使用Maven，可以在pom.xml文件中添加以下依赖：
+
+```xml
+<dependency>  
+    <groupId>redis.clients</groupId>  
+    <artifactId>jedis</artifactId>  
+    <version>3.7.0</version>  
+</dependency>
+```
+
+```java
+import redis.clients.jedis.Jedis;  
+  
+public class RedisDistributedLock {  
+    private Jedis jedis;  
+    private String lockKey;  
+    private long acquireTimeout;  
+    private long lockTimeout;  
+  
+    public RedisDistributedLock(Jedis jedis, String lockKey, long acquireTimeout, long lockTimeout) {  
+        this.jedis = jedis;  
+        this.lockKey = lockKey;  
+        this.acquireTimeout = acquireTimeout;  
+        this.lockTimeout = lockTimeout;  
+    }  
+  
+    public boolean acquireLock() {  
+        long end = System.currentTimeMillis() + acquireTimeout;  
+        String lockValue = String.valueOf(System.currentTimeMillis() + lockTimeout);  
+  
+        while (System.currentTimeMillis() < end) {  
+            if (jedis.setnx(lockKey, lockValue) == 1) {  
+                return true;  
+            }  
+  
+            String currentValue = jedis.get(lockKey);  
+            if (currentValue != null && Long.parseLong(currentValue) < System.currentTimeMillis()) {  
+                String oldValue = jedis.getSet(lockKey, lockValue);  
+                if (oldValue != null && oldValue.equals(currentValue)) {  
+                    return true;  
+                }  
+            }  
+            
+            try {  
+                Thread.sleep(100);  
+            } catch (InterruptedException e) {  
+                Thread.currentThread().interrupt();  
+            }  
+        }  
+  
+        return false;  
+    }  
+  
+    public void releaseLock() {  
+        String currentValue = jedis.get(lockKey);  
+        if (currentValue != null && Long.parseLong(currentValue) > System.currentTimeMillis()) {  
+            jedis.del(lockKey);  
+        }  
+    }  
+}
+```
+
+在上面的代码中，`acquireLock`方法尝试获取锁，如果获取成功，则返回true；如果获取失败，则等待直到超时，然后检查锁是否过期，如果过期则尝试获取锁，如果获取成功则返回true，否则返回false。`releaseLock`方法释放锁。
+
+### 使用Redisson 实现分布式锁
+
+Redisson 是一个在 Redis 的基础上实现的 Java 驻留部分，它不仅提供了丰富的 Redis 操作接口，还提供了许多分布式相关的服务，包括但不限于 Redisson 分布式锁、Map、队列、分布式执行服务等。
+
+下面是一个使用 Redisson 实现分布式锁的基本示例：
+
+```java
+import org.redisson.Redisson;  
+import org.redisson.api.RLock;  
+import org.redisson.api.RedissonClient;  
+import org.redisson.config.Config;  
+  
+public class RedissonLockDemo {  
+    public static void main(String[] args) throws InterruptedException {  
+        // 1. 配置集群节点  
+        Config config = new Config();  
+        config.useClusterServers()  
+                // 主节点  
+                .addNodeAddress("redis://127.0.0.1:7001")  
+                // 从节点  
+                .addNodeAddress("redis://127.0.0.1:7002", "redis://127.0.0.1:7003");  
+  
+        // 2. 创建 RedissonClient 对象  
+        RedissonClient redisson = Redisson.create(config);  
+  
+        // 3. 获取分布式锁  
+        RLock lock = redisson.getLock("myLock");  
+  
+        // 4. 加锁，并且设置锁的释放时间为 10 秒  
+        lock.lock(10, TimeUnit.SECONDS);  
+          
+        // 在锁释放之后再次尝试加锁  
+        boolean res = lock.tryLock(3, 10, TimeUnit.SECONDS);  
+        if(res) {  
+            try {  
+                // 在锁中执行的代码  
+            } finally {  
+                // 最后不要忘记释放锁  
+                lock.unlock();  
+            }  
+        }  
+  
+        // 5. 关闭 Redisson 客户端连接  
+        redisson.shutdown();  
+    }  
+}
+```
+
+在这个示例中，我们首先创建了一个 RedissonClient 对象，然后通过这个对象获取了一个名为 "myLock" 的分布式锁。我们尝试获取这个锁，并且设置它的超时时间。如果成功获取了锁，那么就可以在锁内执行需要执行的代码。最后，我们不要忘记在代码执行完毕后释放锁。在所有操作完成后，我们关闭了 Redisson 客户端连接。
+
+### redis分布式锁常见问题及解决方案
+
+- 锁需要具备唯一性
+- 锁需要有超时时间,防止死锁
+  - SETNX + EXPIRE
+- 锁的创建和设置锁超时时间需要具备原子性
+  - 使用Lua脚本(包含SETNX + EXPIRE两条指令)
+  - SET的扩展命令（SET EX PX NX）
+- 锁的超时的续期问题
+- B的锁被A给释放了的问题
+  - SET EX PX NX  + 校验唯一随机值,再删除
+  - Redisson框架
+- 锁的可重入问题
+- 集群下分布式锁的问题
+  - 多机实现的分布式锁Redlock+Redisson
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+[redis分布式锁常见问题及解决方案](https://blog.csdn.net/qq_39291929/article/details/129543126)
 
 
 
