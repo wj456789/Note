@@ -2308,13 +2308,56 @@ APP 首页有大量热点数据，在某大型活动期间，针对不同时间�
 
 
 
+### 布隆过滤器
 
+Redis的布隆过滤器是一种概率型数据结构，它可以用于查询一个元素是否存在于一个集合中。布隆过滤器在查询时会有一定的误识别率，即可能会判断元素存在于集合中，但实际上并不存在。同时，它也无法删除元素。
 
+布隆过滤器利用哈希表这个数据结构，通过多个哈希函数将元素映射到一个二进制位数组中的某个位置。如果这个位置的值为1，说明元素可能存在于集合中；如果值为0，则说明元素一定不存在于集合中。
 
+在Redis中，布隆过滤器可以用于提高查询效率，例如在处理大规模的集合时，可以使用布隆过滤器来判断元素是否存在于集合中，从而减少不必要的查询操作。同时，由于布隆过滤器的误识别率较高，因此也需要注意它的使用场景和精度要求。
 
+```java
+import redis.clients.jedis.Jedis;  
+import redis.clients.jedis.params.SetParams;  
+import redis.clients.jedis.BitOP;  
+  
+public class BloomFilter {  
+    private Jedis jedis;  
+    private String filterName;  
+    private int filterSize;  
+    private double falsePositiveRate;  
+  
+    public BloomFilter(Jedis jedis, String filterName, int filterSize, double falsePositiveRate) {  
+        this.jedis = jedis;  
+        this.filterName = filterName;  
+        this.filterSize = filterSize;  
+        this.falsePositiveRate = falsePositiveRate;  
+    }  
+  
+    public void add(String element) {  
+        String hexElement = toHexString(element);  
+        int bitIndex = getBitIndex(hexElement);  
+        jedis.bitset(filterName, bitIndex, 1);  
+    }  
+  
+    public boolean contains(String element) {  
+        String hexElement = toHexString(element);  
+        int bitIndex = getBitIndex(hexElement);  
+        return jedis.bitget(filterName, bitIndex) == 1;  
+    }  
+  
+    private String toHexString(String element) {  
+        return String.format("%" + filterSize * 2 + "x", Integer.parseInt(element));  
+    }  
+  
+    private int getBitIndex(String hexElement) {  
+        int index = Integer.parseInt(hexElement, 16);  
+        return index % filterSize;  
+    }  
+}
+```
 
-
-
+BloomFilter类封装了Redis布隆过滤器的逻辑。构造函数接受一个Jedis客户端实例、布隆过滤器的名称、大小和误识别率作为参数。add()方法用于向布隆过滤器中添加元素，contains()方法用于检查元素是否存在于集合中。toHexString()方法将元素转换为十六进制字符串，getBitIndex()方法将元素映射到布隆过滤器的位数组中的位置。最后，使用jedis客户端实例执行bitset和bitget命令来设置和获取位数组的值。
 
 
 
