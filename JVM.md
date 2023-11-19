@@ -1,16 +1,32 @@
 # JVM
 
-## 内存结构
+## 结构组成
 
-Java会从系统内存（CPU Regisers、CPU Cache Memory、RAM Main Memory）中申请大块的堆内存、和栈区（虚拟机栈、本地方法栈、程序计数器），申请的这部分称为工作内存，是经过虚拟化了的，称为虚拟机内存。
+### 主要组成部分
 
-剩下的内存称为本地内存，本地内存中有部分可以借助工具（JNI 或者 JNA）直接访问，这部分内存称为直接内存，本地内存中的还有一部分内存划给了元空间（方法区），但是这部分内存不受XX:MaxDirectMemorySize参数限制。直接内存和元空间（方法区）是并列关系，都是在本地内存中。
+<img src="img_JVM/640" alt="图片" style="zoom:67%;" />
+
+JVM包含两个子系统和两个组件，两个子系统为Class loader(类装载)、Execution engine(执行引擎)；两个组件为Runtime data area(运行时数据区)、Native Interface(本地接口)。
+
+- Class loader(类装载)：根据给定的全限定名类名(如：java.lang.Object)来装载class文件到运行时数据区中的方法区。
+- Execution engine（执行引擎）：执行字节码中的指令。
+- Native Interface(本地接口)：与native libraries交互，是与其它编程语言交互的接口。
+- Runtime data area(运行时数据区域)：这就是我们常说的JVM的内存。
+
+**作用** ：首先通过编译器把 Java 代码转换成字节码，类加载器（ClassLoader）再把字节码加载到内存中，将其放在运行时数据区（Runtime data area）的方法区内，而字节码文件只是 JVM 的一套指令集规范，并不能直接交给底层操作系统去执行，因此需要特定的解释器执行引擎（Execution Engine），将字节码翻译成底层系统指令，再交由 CPU 去执行，而这个过程中需要调用其他语言的本地库接口（Native Interface）来实现整个程序的功能。
+
+### 运行时数据区
+
+#### 虚拟机和本地
+
+- **虚拟机内存**：Java会从系统内存（CPU Regisers、CPU Cache Memory、RAM Main Memory）中申请大块的堆内存、和栈区（虚拟机栈、本地方法栈、程序计数器），申请的这部分称为工作内存，是经过虚拟化了的，称为虚拟机内存。
+- **本地内存**：剩下的内存称为本地内存，本地内存中有部分可以借助工具（JNI 或者 JNA）直接访问，这部分内存称为直接内存，本地内存中的还有一部分内存划给了元空间（方法区），但是这部分内存不受XX:MaxDirectMemorySize参数限制。直接内存和元空间（方法区）是并列关系，都是在本地内存中。
 
 简单来说虚拟机内存分为堆内存和非堆内存，本地内存分为直接内存和元空间。
 
 引用：[JVM中的内存关系](https://www.wangt.cc//2022/01/jvm中的内存关系/)
 
-
+#### 堆区和非堆区
 
 JVM按照其存储数据的内容将所需内存分配为堆区与非堆区两个部分：所谓堆区即为通过new的方式创建的对象(类实例)所占用的内存空间;非堆区即为代码、常量、外部访问(如文件访问流所占资源)等。然而虽然java的垃圾回收机制主要是对堆区的内存进行回收的。
 
@@ -22,27 +38,31 @@ JVM按照其存储数据的内容将所需内存分配为堆区与非堆区两�
 
 Max Memory = eden + survivor + old + String Constant Pool + Code cache + compressed class space + Metaspace + Thread stack(*thread num) + Direct + Mapped + JVM + Native Memory，可以使用JDK自带工具查看。
 
+## 结构详解
+
 ### 堆区
 
-**堆内存**：Java 虚拟机具有一个堆，堆是运行时数据区域，所有类实例和数组的内存均从此处分配。堆是在 Java 虚拟机启动时创建的。对象的堆内存由称为垃圾回收器的自动内存管理系统回收。 
+Java 虚拟机具有一个堆，堆是运行时数据区域，所有类实例和数组的内存均从此处分配。堆是在 Java 虚拟机启动时创建的。对象的堆内存由称为垃圾回收器的自动内存管理系统回收。 
 
-Heap Space堆区分为新生代和老年代，新生代分为Eden和Survivor区。
+**Heap Space堆区分为新生代和老年代，新生代分为Eden和Survivor区。**
 
-**eden（伊甸区）**
+新生代：
 
-大多数情况下，new出来的对象首先分配在eden区。当eden区没有足够空间进行分配时，虚拟机将发起一次MinorGC。GC回收一次后对象若还活着，则移到s0。
+- eden（伊甸区）
 
-**s0、s1区(Survivor区)**
+  大多数情况下，new出来的对象首先分配在eden区。当eden区没有足够空间进行分配时，虚拟机将发起一次MinorGC。GC回收一次后对象若还活着，则移到s0。
 
-同一时刻，所有对象只会存在s0或s1区域。如果对象在eden出生并经过第一次Minor GC后仍然存活，并且能被s0容纳的话，将被移动到s0空间，并且对象年龄设为1。根据GC回收的复制算法，再进行一次回收后，s0区域会出现分片的内存空间，不利于后续对象的存储，浪费内存空间，此时会将s0区域的对象按内存空间顺序整理后拷贝到s1空间，然后s0空间重置为空，此时的s1就变回原来的from s0区域，而s0变回原来的to s1区域，对象在s0和s1区中每经过一次Minor GC，年龄就增加1岁，当它的年龄增加到一定程度（默认15岁），就会被晋升到老年代。
+- s0、s1区(Survivor区)
 
-**老年代(tenured区)**
+  同一时刻，所有对象只会存在s0或s1区域。如果对象在eden出生并经过第一次Minor GC后仍然存活，并且能被s0容纳的话，将被移动到s0空间，并且对象年龄设为1。根据GC回收的复制算法，再进行一次回收后，s0区域会出现分片的内存空间，不利于后续对象的存储，浪费内存空间，此时会将s0区域的对象按内存空间顺序整理后拷贝到s1空间，然后s0空间重置为空，此时的s1就变回原来的from s0区域，而s0变回原来的to s1区域，对象在s0和s1区中每经过一次Minor GC，年龄就增加1岁，当它的年龄增加到一定程度（默认15岁），就会被晋升到老年代。
+
+老年代(tenured区)：
 
 当老年代区域的内存满了，则会触发full GC，full GC会使程序暂停，所以要避免老年代区域的内存达到所配置的大小。
 
 ### 非堆区
 
-非堆区包括永久代、栈内存等。
+非堆区包括永久代、栈内存、程序计数器等。
 
 #### 永久代(permanent generation区)
 
@@ -68,7 +88,7 @@ Heap Space堆区分为新生代和老年代，新生代分为Eden和Survivor区�
 - 虚拟机栈是用于描述java方法执行的内存模型。 每个java方法在执行时，会创建一个“栈帧”。
 - 通常说的“栈内存”，确切的说，指的是虚拟机栈的栈帧中的局部变量表，因为这里存放了一个方法的所有局部变量。 
 
-###### 栈帧
+栈帧：
 
 栈帧的大小在程序代码编译时确定。
 
@@ -79,6 +99,10 @@ Heap Space堆区分为新生代和老年代，新生代分为Eden和Survivor区�
 ##### 本地方法栈(Native Stack)
 
 本地方法栈的功能和特点类似于虚拟机栈，均具有线程隔离的特点以及都能抛出StackOverflowError和OutOfMemoryError异常。不同的是，本地方法栈服务的对象是JVM执行的native方法，而虚拟机栈服务的是JVM执行的java方法。 
+
+#### 程序计数器（Program Counter Register）
+
+当前线程所执行的字节码的行号指示器，字节码解释器的工作是通过改变这个计数器的值，来选取下一条需要执行的字节码指令，分支、循环、跳转、异常处理、线程恢复等基础功能，都需要依赖这个计数器来完成；
 
 ### 直接内存
 
@@ -123,7 +147,7 @@ public static ByteBuffer allocate(int capacity) {
 
 
 
-## 内存分配
+## 内存分配参数
 
 配置JVM内存的参数：      
 
@@ -134,7 +158,7 @@ public static ByteBuffer allocate(int capacity) {
 - **-XX:newSize**：表示新生代初始内存的大小,应该小于 -Xms的值;
 - **-XX:MaxnewSize**：表示新生代可被分配的内存的最大上限;当然这个值应该小于 -Xmx的值;
 - **-Xmn**：至于这个参数则是对 -XX:newSize、-XX:MaxnewSize两个参数的同时配置,也就是说如果通过-Xmn来配置新生代的内存大小,那么-XX:newSize = -XX:MaxnewSize = -Xmn,虽然会很方便,但需要注意的是这个参数是在JDK1.4版本以后才使用的。Sun官方推荐配置为整个堆的3/8
-- **-XX:NewRatio=4**：设置新生代和老年代的内存比例为 1:4；
+- **-XX:NewRatio=4**：设置新生代和老年代的内存比例为 1:4；一般设置为2
 - **-XX:SurvivorRatio**：设置新生代中Eden和Survivor的比例(默认值为8，即Eden:FromSpace:ToSpace，默认比例8:1:1，假如值为4表示：Eden:S0:S1 = 4:3:3)
 - **-XX:MaxTenuringThreshold**：设置对象晋升老年代的年龄阈值，默认15
 
@@ -179,20 +203,25 @@ JAVA_OPTS="$JAVA_OPTS -XX:+HeapDumpOnOutOfMemoryError"
 JAVA_OPTS="$JAVA_OPTS -XX:+HeapDumpOnOutOfMemoryError"
 
 
-# 可用来设置年轻代为并发收集【多CPU】，如果你的服务器有多个CPU，你可以开启此参数；开启此参数，多个CPU 可并发进行垃圾回收，可提高垃圾回收的速度。此参数和+UseParallelGC，-XX:ParallelGCThreads搭配使用。
+# 可用来设置年轻代为并发收集【多CPU】，如果你的服务器有多个CPU，你可以开启此参数；
 -XX:+UseParNewGC 
-# 选择垃圾收集器为并行收集器。此配置仅对年轻代有效。即上述配置下，年轻代使用并发收集，而年老代仍旧使用串行收集。可提高系统的吞吐量。
+# 选择垃圾收集器为并行收集器。此配置仅对年轻代有效。
 -XX:+UseParallelGC 
+# -XX:+UseParallelGC 前提下的线程数，增加并行度，即：同时多少个线程一起进行垃圾回收。此值最好配置与处理器数目相等。
+-XX:ParallelGCThreads 
+
+# 对老年代并行垃圾回收器。
+-XX:+UseParallelOldGC
 # 指定使用的垃圾收集器，这里使用CMS收集器
 -XX:+UseConcMarkSweepGC
 
-# 年轻代并行垃圾收集的前提下（对并发也有效果）的线程数，增加并行度，即：同时多少个线程一起进行垃圾回收。此值最好配置与处理器数目相等。永久存储区相关参数：参数名参数说明
--XX:ParallelGCThreads 
+
 
 # 打开gc日志
 JAVA_OPTS="$JAVA_OPTS -Xloggc:gc.txt"
 
-#打开gc日志的详细信息、时间戳,-XX:+PrintGCDetails打印详细的GC日志 -XX:PrintGCTimeStamps打印 GC 时间
+#打开gc日志的详细信息、时间戳
+#-XX:+PrintGC：开启打印gc信息   -XX:+PrintGCDetails打印详细的GC日志   -XX:PrintGCTimeStamps打印 GC 时间
 JAVA_OPTS="-XX:+PrintGCDetails -XX:+PrintGCTimeStamps -XX:+PrintGCApplicationStoppedTime -XX:+PrintGCApplicationConcurrentTime"
 
 # 每次永久存储区满了后一般GC 算法在做扩展分配内存前都会触发一次FULL GC，除非设置了-Xnoclassgc（不进行GC）.
@@ -214,23 +243,17 @@ $ nohup java -jar -XX:MetaspaceSize=128m -XX:MaxMetaspaceSize=128m -Xms1024m -Xm
 
 #### GC root 可达性分析
 
-**GC root原理**：通过对枚举GC root对象做引用可达性分析，即从GC roots对象开始，向下搜索，形成的路径称之为引用链（从GC Roots开始遍历对象，没有被遍历到的对象为垃圾 ）。如果一个对象到GC roots对象没有任何引用，没有形成引用链，那么该对象等待GC回收。 
+GC root原理：当一个对象到GC Roots不可达时，在下一个垃圾回收周期中尝试回收该对象。定义一系列的 GC ROOT 为起点，从起点开始向下开始搜索，搜索走过的路径称为引用链，当一个对象到 GC ROOT没有任何引用链相连的话，则对象可以判定是可以被回收的。
 
-**Java中可以作为GC Roots的对象**
+Java中可以作为GC Roots的对象：
 
-1、虚拟机栈（javaStack）中引用的对象，也就是方法栈使用到的参数、局部变量、临时变量等。
-
-2、方法区中的类静态属性引用的对象。
-
-3、方法区中常量引用的对象。
-
-4、本地方法栈中 JNI (Native方法)引用的对象。
+- 虚拟机栈（javaStack）中引用的对象，也就是方法栈使用到的参数、局部变量、临时变量等。
+- 方法区中的类静态变量、常量引用的对象。
+- 本地方法栈中 JNI (Native方法)引用的对象。
 
 #### 引用计数法
 
-记录每个对象被引用的数量，当被引用的数量为0时，则标记为垃圾
-
-缺点：无法处理循环引用的问题
+为每个对象创建一个引用计数器，有对象引用时计数器 +1，引用被释放时计数 -1，当计数器为 0 时就可以被回收。它有一个缺点不能解决循环引用的问题；
 
 
 
@@ -340,17 +363,17 @@ gc 主要的回收的内存区域有堆区和方法区
 
 #### 详解
 
-##### strong reference
+**strong reference**
 
 Object c = new Car(); //只要c还指向car object, car object就不会被回收，只要强引用还存在，垃圾收集器永远不会回收掉被引用的对象。
 
-##### soft reference 
+**soft reference** 
 
 当系统内存不足时， soft reference指向的object才会被回收。
 
 有些还有用但并非必需的对象。在系统将要发生内存溢出异常之前，将会把这些对象列进回收范围进行二次回收，如果这次回收还没有足够的内存，才会抛出内存溢出异常。 
 
-##### weak reference
+**weak reference**
 
 描述非必需对象。被弱引用关联的对象只能生存到下一次垃圾回收之前，垃圾收集器工作之后，无论当前内存是否足够，都会回收掉只被弱引用关联的对象。 
 
@@ -360,7 +383,7 @@ Object c = new Car(); //只要c还指向car object, car object就不会被回收
 
 另外， java提供了一个ReferenceQueue来保存这些所指向的对象已经被回收的reference。
 
-##### PhantomReference
+**PhantomReference**
 
 无用对象，这个引用存在的唯一目的就是在这个对象被收集器回收时收到一个系统通知，被虚引用关联的对象，和其生存时间完全没关系。 
 
@@ -415,8 +438,6 @@ public class TomcatConfig extends TomcatEmbeddedServletContainerFactory{
 
 eclipse.ini文件，参数中-vmargs的意思是设置JVM参数，如-vmargs -Xms1024M -Xmx1024M -XX:PermSize=1024M -XX:MaxPermSize=1024M
 
-
-
 ## 类加载
 
 ### 类加载过程
@@ -441,7 +462,7 @@ Java代码从编码完成到运行，包含两个步骤：
 
 1. 验证：验证字节码信息是否符合 jvm 规范；验证包括对于**文件格式**的验证，比如常量中是否有不被支持的常量？文件中是否有不规范的或者附加的其他信息？对于**元数据的验证**，比如该类是否继承了被final修饰的类？类中的字段，方法是否与父类冲突？是否出现了不合理的重载；对于**字节码的验证**，保证程序语义的合理性，比如要保证类型转换的合理性。对于**符号引用的验证**，比如校验符号引用中通过全限定名是否能够找到对应的类？校验符号引用中的访问性（private，public等）是否可被当前类访问？
 2. 准备：为变量分配内存，并且赋予初值，初值不是代码中的初始化的值而是根据不同变量设置默认值，其中引用类型为null。
-3. 解析：将常量池中的符号引用转换为直接引用。也可以在初始化之后再开始，来支持 java 的运行时绑定。例如调用hello()方法，替换为方法的内存地址。
+3. 解析：将常量池中的符号引用转换为直接引用。符号引用可以理解为一个标识，而直接引用直接指向内存中的地址；也可以在初始化之后再开始，来支持 java 的运行时绑定。例如调用hello()方法，替换为方法的内存地址。
 
 **初始化**
 
