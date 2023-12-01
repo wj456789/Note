@@ -1401,18 +1401,45 @@ timeout：配置事务的超时时间，一般不配置，超过这个超时时�
 
 
 
+## 源码解析
 
 
 
 
 
+```
+BeanFactoryPostProcessor接口
+	实现类PropertySourcesPlaceholderConfigurer 解析Bean定义信息中的${...}
+	实现类ConfigurationClassPostProcessor 解析使用@Configuration注解注释的类
+```
+
+![image-20231201235309464](img_Spring/image-20231201235309464.png)
 
 
 
+```
+BeanPostProcessor接口
+	实现类AbstractAutoProxyCreators定义了createProxy方法，方法中会根据实现方式不同选择CGLIB代理或者JDK动态代理，返回代理类，这个类是AOP的入口
+	
+```
+
+context.getBean拿到的是代理类而不是原始对象
 
 
 
+```
+三级缓存
+DefaultSingletonBeanRegistry
+	private final Map<String, Object> singletonObjects = new ConcurrentHashMap(256);
+    private final Map<String, ObjectFactory<?>> singletonFactories = new HashMap(16);
+    private final Map<String, Object> earlySingletonObjects = new ConcurrentHashMap(16);
+```
+
+FactoryBean可以创建自定义Bean，不需要走原始Bean完整的生命周期
+
+![image-20231202002333062](img_Spring/image-20231202002333062.png)
 
 
 
+![image-20231202002533017](img_Spring/image-20231202002533017.png)
 
