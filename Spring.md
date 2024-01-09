@@ -1346,7 +1346,7 @@ propagation：定义事务的边界，用来定义当前方法是否需要事务
   以⾮事务⽅式运⾏，如果当前存在事务，则抛出异常。
 
 - Propagation.NESTED（nested）
-  如果当前存在事务，则创建⼀个事务作为当前事务的嵌套事务来运⾏；如果当前没有事务，则该取值等价于PROPAGATION_REQUIRED。
+  如果当前存在事务，则作为当前事务的嵌套事务来运⾏（本质是创建外层事务的保存点）；如果当前没有事务，则该取值等价于PROPAGATION_REQUIRED。
 
 ![img](img_Spring/3377df92131e4a9d90ec1532fd00c0fe.png)
 
@@ -1403,38 +1403,6 @@ timeout：配置事务的超时时间，一般不配置，超过这个超时时�
 
 ## 源码解析
 
-
-
-
-
-```
-BeanFactoryPostProcessor接口
-	实现类PropertySourcesPlaceholderConfigurer 解析Bean定义信息中的${...}
-	实现类ConfigurationClassPostProcessor 解析使用@Configuration注解注释的类
-```
-
-![image-20231201235309464](img_Spring/image-20231201235309464.png)
-
-
-
-```
-BeanPostProcessor接口
-	实现类AbstractAutoProxyCreators定义了createProxy方法，方法中会根据实现方式不同选择CGLIB代理或者JDK动态代理，返回代理类，这个类是AOP的入口
-	
-```
-
-context.getBean拿到的是代理类而不是原始对象
-
-
-
-```
-三级缓存
-DefaultSingletonBeanRegistry
-	private final Map<String, Object> singletonObjects = new ConcurrentHashMap(256);
-    private final Map<String, ObjectFactory<?>> singletonFactories = new HashMap(16);
-    private final Map<String, Object> earlySingletonObjects = new ConcurrentHashMap(16);
-```
-
 FactoryBean可以创建自定义Bean，不需要走原始Bean完整的生命周期
 
 ![image-20231202002333062](img_Spring/image-20231202002333062.png)
@@ -1443,3 +1411,267 @@ FactoryBean可以创建自定义Bean，不需要走原始Bean完整的生命周�
 
 ![image-20231202002533017](img_Spring/image-20231202002533017.png)
 
+
+
+
+
+#### Spring Bean生命周期
+
+![image-20231220233925934](img_Spring/image-20231220233925934.png)
+
+
+
+![image-20231220231907803](img_Spring/image-20231220231907803.png)
+
+
+
+![image-20231220234645164](img_Spring/image-20231220234645164.png)
+
+
+
+#### Spring Bean 初始化和实例化源码
+
+```java
+// AnnotationConfigApplicationContext使用注解，ClassPathXmlApplicationContext使用配置文件
+public class ClassPathXmlApplicationContext extends AbstractXmlApplicationContext {
+    
+    public ClassPathXmlApplicationContext(
+			String[] configLocations, boolean refresh, @Nullable ApplicationContext parent)
+			throws BeansException {
+
+		super(parent);
+		setConfigLocations(configLocations);
+		if (refresh) {
+			refresh();
+		}
+	}
+}
+
+// AbstractApplicationContext是ClassPathXmlApplicationContext父类
+public abstract class AbstractApplicationContext extends DefaultResourceLoader implements ConfigurableApplicationContext {
+
+    	public void refresh() throws BeansException, IllegalStateException {
+            synchronized(this.startupShutdownMonitor) {
+                this.prepareRefresh(); // 1准备工作
+                ConfigurableListableBeanFactory beanFactory = this.obtainFreshBeanFactory(); // 2获取DefaultListableBeanFactory
+                this.prepareBeanFactory(beanFactory); // 3设置Bean工厂属性值
+                try {
+                    this.postProcessBeanFactory(beanFactory); // 4空实现，扩展方法BeanFactoryPostProcessor
+                    this.invokeBeanFactoryPostProcessors(beanFactory); // 5调用扩展方法BeanFactoryPostProcessor
+                    this.registerBeanPostProcessors(beanFactory);// 6注册BeanPostProcessor，Spring 从所有的 @Bean 定义中抽取出来了BeanPostProcessor，然后都注册进 beanPostProcessors，等待后面的的顺序调用 
+
+                    this.initMessageSource(); // i18n国际化
+                    this.initApplicationEventMulticaster(); // 初始化事件监听多路广播器
+                    this.onRefresh(); // 一个空的实现
+                    this.registerListeners(); // 注册监听器
+
+                    this.finishBeanFactoryInitialization(beanFactory); // 7读取bean定义信息通过反射（空构造器）创建对象，再进行属性赋值数据装配操作，之后调用初始化方法init-method
+                    this.finishRefresh();// 刷新完成工作
+                } catch (BeansException var9) {
+                    if (this.logger.isWarnEnabled()) {
+                        this.logger.warn("Exception encountered during context initialization - cancelling refresh attempt: " + var9);
+                    }
+                    this.destroyBeans();
+                    this.cancelRefresh(var9);
+                    throw var9;
+                } finally {
+                    this.resetCommonCaches();
+                }
+            }
+        }
+}
+```
+
+
+
+```java
+// 2 obtainFreshBeanFactory() 方法调用
+public abstract class AbstractRefreshableApplicationContext extends AbstractApplicationContext {
+    @Override
+	protected final void refreshBeanFactory() throws BeansException {
+		if (hasBeanFactory()) {
+			destroyBeans();
+			closeBeanFactory();
+		}
+		try {
+			DefaultListableBeanFactory beanFactory = createBeanFactory();// 2.1 创建Bean工厂
+			beanFactory.setSerializationId(getId());
+			customizeBeanFactory(beanFactory);
+			loadBeanDefinitions(beanFactory);// 2.2 加载Bean定义信息
+			this.beanFactory = beanFactory;
+		}
+		catch (IOException ex) {
+			throw new ApplicationContextException("I/O error parsing bean definition source for " + getDisplayName(), ex);
+		}
+	}
+}
+```
+
+
+
+
+
+```java
+BeanFactoryPostProcessor接口
+	实现类PropertySourcesPlaceholderConfigurer 解析Bean定义信息中的${...}
+	实现类ConfigurationClassPostProcessor 解析@Configuration注解
+```
+
+![image-20231201235309464](img_Spring/image-20231201235309464.png)
+
+![image-20231220230227930](img_Spring/image-20231220230227930.png)
+
+
+
+```java
+BeanPostProcessor接口
+	实现类AbstractAutoProxyCreators定义了createProxy方法，方法中会根据实现方式不同选择CGLIB代理或者JDK动态代理，返回代理类，这个类是AOP的入口
+	实现类CommonAnnotationBeanPostProcessor 解析@PostConstruct @PreDestroy注解
+    实现类AutowiredAnnotationBeanPostProcessor 解析@Autowired注解
+```
+
+context.getBean拿到的是代理类而不是原始对象
+
+
+
+
+
+#### spring中想要在自定义对象中获取容器对象
+
+```java
+自定义类中实现 BeanFactoryAware 和 ApplicationContextAware 接口，重写其中的set方法，spring容器会在 AbstractAutowireCapableBeanFactory 的 invokeAwareMethods 方法中自动调用set方法传入容器对象
+```
+
+![image-20231220232936387](img_Spring/image-20231220232936387.png)
+
+
+
+![image-20231220233012165](img_Spring/image-20231220233012165.png)
+
+
+
+![image-20231220233051571](img_Spring/image-20231220233051571.png)
+
+
+
+![image-20231220233202049](img_Spring/image-20231220233202049.png)
+
+
+
+
+
+#### spring加载配置文件到应用程序中
+
+![image-20231221225355957](img_Spring/image-20231221225355957.png)
+
+会把解析的元素放到BeanDefinition中
+
+
+
+### 提问
+
+#### Spring原理和底层实现
+
+![image-20240101171650733](img_Spring/image-20240101171650733.png)
+
+
+
+
+
+![image-20240101173851133](img_Spring/image-20240101173851133.png)
+
+
+
+
+
+
+
+
+
+
+
+#### 循环依赖
+
+![image-20231225225912087](img_Spring/image-20231225225912087.png)
+
+
+
+
+
+
+
+![image-20231225230316643](img_Spring/image-20231225230316643.png)
+
+
+
+![image-20231225231035385](img_Spring/image-20231225231035385.png)
+
+
+
+```java
+三级缓存
+DefaultSingletonBeanRegistry
+	private final Map<String, Object> singletonObjects = new ConcurrentHashMap(256);
+    private final Map<String, Object> earlySingletonObjects = new ConcurrentHashMap(16);
+	private final Map<String, ObjectFactory<?>> singletonFactories = new HashMap(16);
+```
+
+![image-20231226232857428](img_Spring/image-20231226232857428.png)
+
+
+
+
+
+
+
+![image-20231226233737507](img_Spring/image-20231226233737507.png)
+
+
+
+![image-20231226234740049](img_Spring/image-20231226234740049.png)
+
+
+
+#### 缓存的放置时间和删除时间
+
+![image-20231228231605204](img_Spring/image-20231228231605204.png)
+
+
+
+#### BeanFactory和FactoryBean
+
+![image-20231230131522813](img_Spring/image-20231230131522813.png)
+
+
+
+#### Spring中设计模式
+
+![image-20231230132157418](img_Spring/image-20231230132157418.png)
+
+
+
+#### Spring的AOP底层原理
+
+![image-20231230140926350](img_Spring/image-20231230140926350.png)
+
+
+
+#### Spring事务回滚
+
+
+
+![image-20231230141532730](img_Spring/image-20231230141532730.png)
+
+
+
+![image-20240101163219746](img_Spring/image-20240101163219746.png)
+
+
+
+#### Spring事务传播
+
+![image-20240101164406018](img_Spring/image-20240101164406018.png)
+
+
+
+![image-20240101164458658](img_Spring/image-20240101164458658.png)
