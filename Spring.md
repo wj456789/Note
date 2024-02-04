@@ -1403,9 +1403,9 @@ timeout：配置事务的超时时间，一般不配置，超过这个超时时�
 
 ## 源码解析
 
-FactoryBean可以创建自定义Bean，不需要走原始Bean完整的生命周期
 
-![image-20231202002333062](img_Spring/image-20231202002333062.png)
+
+
 
 
 
@@ -1513,8 +1513,8 @@ public abstract class AbstractRefreshableApplicationContext extends AbstractAppl
 
 ```java
 BeanFactoryPostProcessor接口
-	实现类PropertySourcesPlaceholderConfigurer 解析Bean定义信息中的${...}
-	实现类ConfigurationClassPostProcessor 解析@Configuration注解
+	实现类 PropertySourcesPlaceholderConfigurer 解析Bean定义信息中的${...}
+	实现类 ConfigurationClassPostProcessor 解析@Configuration注解
 ```
 
 ![image-20231201235309464](img_Spring/image-20231201235309464.png)
@@ -1525,9 +1525,9 @@ BeanFactoryPostProcessor接口
 
 ```java
 BeanPostProcessor接口
-	实现类AbstractAutoProxyCreators定义了createProxy方法，方法中会根据实现方式不同选择CGLIB代理或者JDK动态代理，返回代理类，这个类是AOP的入口
-	实现类CommonAnnotationBeanPostProcessor 解析@PostConstruct @PreDestroy注解
-    实现类AutowiredAnnotationBeanPostProcessor 解析@Autowired注解
+	实现类 AbstractAutoProxyCreators定义了createProxy方法，方法中会根据实现方式不同选择CGLIB代理或者JDK动态代理，返回代理类，这个类是AOP的入口
+	实现类 CommonAnnotationBeanPostProcessor 解析@PostConstruct @PreDestroy注解
+    实现类 AutowiredAnnotationBeanPostProcessor 解析@Autowired注解
 ```
 
 context.getBean拿到的是代理类而不是原始对象
@@ -1642,7 +1642,9 @@ DefaultSingletonBeanRegistry
 
 ![image-20231230131522813](img_Spring/image-20231230131522813.png)
 
+FactoryBean可以创建自定义Bean，不需要走原始Bean完整的生命周期
 
+![image-20231202002333062](img_Spring/image-20231202002333062.png)
 
 #### Spring中设计模式
 

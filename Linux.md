@@ -1648,6 +1648,69 @@ $ bash -euxo pipefail script.sh
 
 
 
+### xargs
+
+将参数列表转换成小块分段传递给其他命令，以避免参数列表过长的问题。
+
+xargs 可以从管道、stdin 或文件中读取数据，并把这些数据转换成命令行参数。它通常用作给其他命令传递参数的过滤器，也是组合多个命令的工具。xargs 默认的命令是 echo，这意味着通过管道传递给 xargs 的输入将会包含换行和空白，不过通过 xargs 的处理，换行和空白将被空格取代。
+
+xargs的常用选项
+
+- -n 选项表示每次构建命令行的时候取几个参数
+- -d 选项则用于指定分割符，默认情况下 xargs 会将标准输入中的内容按照空白字符（空格、换行）分割。
+- -p 选项，使用该选项之后 xargs 并不会马上执行其后面的命令，而是输出即将要执行的完整的命令（包括命令以及传递给命令的命令行参数），询问是否执行，输入 y 才继续执行，否则不执行。
+- -t 在执行每个命令之前先打印出该命令
+- `-I{}` 是一个选项，为 `xargs` 替换传递给命令的参数。如：`cat files.txt | xargs -I{} find /path/to/search -name {}`，`-I{}` 告诉 `xargs` 使用 `{}` 作为每个参数的占位符。然后，`find` 命令将使用这个占位符来查找文件。
+
+```sh
+# 方式一：逐个拷贝
+cp redis-6.2.4/redis.conf dir_7001
+cp redis-6.2.4/redis.conf dir_7002
+cp redis-6.2.4/redis.conf dir_7003
+
+# 方式二：管道组合命令，一键拷贝
+echo dir_7001 dir_7002 dir_7003 | xargs -t -n 1 cp redis-6.2.4/redis.conf
+```
+
+```sh
+# 逐一执行
+sed -i '1a replica-announce-ip 192.168.150.101' dir_7001/redis.conf
+sed -i '1a replica-announce-ip 192.168.150.101' dir_7002/redis.conf
+sed -i '1a replica-announce-ip 192.168.150.101' dir_7003/redis.conf
+
+# 或者一键修改
+printf '%s\n' dir_7001 dir_7002 dir_7003 | xargs -I{} -t sed -i '1a replica-announce-ip 192.168.150.101' {}/redis.conf
+```
+
+### printf
+
+用于格式化输出
+
+```
+printf format-options string
+```
+
+ 其中，`format-options` 是你希望输出的格式，而 `string` 是包含这些格式选项的字符串。
+
+以下是一些常用的 `printf` 格式选项：
+
+- `%d`：输出十进制整数。
+- `%s`：输出字符串。
+- `%f`：输出浮点数。
+- `%c`：输出字符。
+- `%x`：输出十六进制数。
+- `%%`：输出百分号。
+
+```sh
+# 输出一个简单的字符串
+printf "Hello, World!\n"
+
+# 输出一个整数
+printf "The value of pi is approximately %d\n" 3.141592653589793
+```
+
+
+
 ## 常用软件
 
 ### jdk
