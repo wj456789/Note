@@ -39,9 +39,39 @@ public class CSMSThreadFactory implements ThreadFactory {
 }
 ```
 
+```
+scheduleAtFixedRate和scheduleWithFixedDelay都是Java中的定时任务调度方法，但它们有一些区别：
+
+1. 执行时间不同
+scheduleAtFixedRate是按照固定的时间间隔来执行任务的，不管上一个任务是否执行完成，下一个任务都会在指定的时间间隔后开始执行。
+scheduleWithFixedDelay是在上一个任务执行完成后，再间隔指定的时间后开始执行下一个任务。
+
+2. 任务执行时间不同
+scheduleAtFixedRate是按照固定的时间间隔来执行任务的，如果任务的执行时间比时间间隔还长，那么就会出现任务重叠的情况。
+scheduleWithFixedDelay是在上一个任务执行完成后，再间隔指定的时间后开始执行下一个任务，不会出现任务重叠的情况。
+
+3. 取消任务的方式不同
+scheduleAtFixedRate可以通过调用ScheduledFuture的cancel方法来取消任务。
+scheduleWithFixedDelay可以通过在任务执行方法中判断是否需要取消任务来实现取消任务的功能。
+
+总的来说，scheduleAtFixedRate适合执行固定时间间隔的任务，而scheduleWithFixedDelay适合执行耗时较长的任务，或者需要等待上一个任务执行完成后再执行下一个任务的情况。
+```
+
+```java
+ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1);
+executorService.scheduleAtFixedRate(new Runnable() {
+    @Override
+    public void run() {
+        ...
+    }
+}, 0, 10 * 60 * 1000, TimeUnit.MILLISECONDS);
+```
+
 
 
 ### CompletableFuture
+
+使用 CompletableFuture 的方法来等待所有任务完成并返回结果，再进行新的任务。
 
 #### runAsync 和 supplyAsync方法
 
@@ -209,9 +239,44 @@ String -> LocalDate
 DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 LocalDate occupyStartDate = LocalDate.parse("2023-07-12", dtf);
 occupyStartDate.isBefore(LocalDate.now());
+
+LocalDateTime  --> String        
+LocalDateTime localDateTime = LocalDateTime.now();
+DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd hh:mm:ss");
+String format = localDateTime.format(formatter2);
 ```
 
+```java
+List -> Map
+Map<String, List<Student>> map = list.stream().collect(Collectors.groupingBy(obj -> obj.getNo + "_" + obj.getName));
 
+
+Map<String, Teacher> map = 
+	list.stream().collect(Collectors.toMap(
+	    Student::getNo, 
+		stu -> {
+            Teacher teacher = new Teacher();
+            teacher.setNo(stu.getNo());
+            teacher.setName(stu.getName());
+            return teacher;
+        },  
+        (key1 , key2) -> key1
+));
+```
+
+```java
+flatMap
+
+List<String> slotList = Arrays.asList("A,B,C", "C,D,E", "");
+List<String> slotIdList = slotList.stream()
+            .filter(StringUtils::isNotBlank)
+            .flatMap(str -> Arrays.stream(str.split(",")))
+            .distinct()
+            .collect(Collectors.toList());
+
+List<List<String>> list = Arrays.asList(Arrays.asList("1","2"), Arrays.asList("3","4"), Arrays.asList("5","6"));
+List<String> collect = list.stream().flatMap(Collection::stream).collect(Collectors.toList());
+```
 
 
 
@@ -565,13 +630,130 @@ CuratorFramework client = CuratorFrameworkFactory
 client.start();
 ```
 
+## XML
+
+```xml
+xml文件中特殊字符需要使用实体引用，比如使用&gt; &lt; 代替 < >
+```
+
+[MyBatis XML文件中处理特殊符号](https://blog.csdn.net/weixin_44684272/article/details/130805154)
 
 
 
+## Spring整合mybatis
 
+web.xml
 
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns="http://xmlns.jcp.org/xml/ns/javaee"
+    xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_3_1.xsd"
+    id="WebApp_ID" version="3.1">
+    <context-param>
+        <param-name>contextConfigLocation</param-name>
+        <param-value>
+            classpath:spring.xml
+            /WEB-INF/classes/*.service.xml
+            classpath*:META-INF/spring/global.datasource.xml
+            classpath*:conf/*.web.xml
+            classpath*:spring/**/*.service.xml 
+            classpath*:META-INF/spring/dsp-*-spring.xml
+        </param-value>
+    </context-param>
+    <listener>
+        <listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
+    </listener>
+    <servlet>
+        <servlet-name>springDispatcherServlet</servlet-name>
+        <servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
+        <!-- 配置DispatcherServletd 一个初始化参数：配置springmvc配置文件的位置和名称 -->
+        <!-- 实际上也可以不通过 contextConfigLocation 来配置Springmvc的配置文件，而是用默认的 即默认的配置文件为
+            /WEB-INF/<servlet-name>-servlet.xml 本项目默认位置配置文件即为： /WEB-INF/springDispatcherServlet-servlet.xml -->
+        <init-param>
+            <param-name>contextConfigLocation</param-name>
+            <param-value>
+                classpath:springmvc.xml
+                classpath:META-INF/spring/spring_restful_servlet.xml
+                classpath:conf/pcm.web.service.xml
+                classpath*:*/spring/*.customization.spring.restful.servlet.xml
+            </param-value>
+        </init-param>
+        <!-- 表示springDispatcherServlet在加载的时候被创建 -->
+        <load-on-startup>1</load-on-startup>
+    </servlet>
 
+    <!-- Map all requests to the DispatcherServlet for handling -->
+    <servlet-mapping>
+        <servlet-name>springDispatcherServlet</servlet-name>
+        <url-pattern>/</url-pattern>
+    </servlet-mapping>
+</web-app>
+```
 
+springmvc.xml 
 
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:mvc="http://www.springframework.org/schema/mvc"
+    xmlns:context="http://www.springframework.org/schema/context"
+    xsi:schemaLocation="http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc.xsd
+        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
 
+    <!-- 配置需要扫描的包 -->
+    <context:component-scan base-package="springandspringmvc"
+        use-default-filters="false">
+        <context:include-filter type="annotation"
+            expression="org.springframework.stereotype.Controller" />
+        <context:include-filter type="annotation"
+            expression="org.springframework.stereotype.Service" />
+    </context:component-scan>
+    <!-- 配置视图解析器 如何把handler 方法返回值解析为实际的物理视图 -->
+    <bean
+        class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+        <property name="prefix" value="/WEB-INF/views/"></property>
+        <property name="suffix" value=".jsp"></property>
+    </bean>
+
+    <mvc:annotation-driven></mvc:annotation-driven>
+</beans>
+```
+
+spring.xml
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:context="http://www.springframework.org/schema/context"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
+
+    <context:component-scan
+        base-package="springandspringmvc"
+        use-default-filters="false">
+        <context:exclude-filter type="annotation"
+            expression="org.springframework.stereotype.Controller" />
+        <context:exclude-filter type="annotation"
+            expression="org.springframework.stereotype.Service" />
+    </context:component-scan>
+</beans>
+```
+
+```
+classpath和classpath*都是Java中用于指定类加载路径的参数，但它们有着不同的含义和使用场景。
+
+- classpath：表示类加载器在加载类时只会在指定的路径中查找类文件，不会查找子目录中的类文件。例如，如果classpath指定为/home/user/classes，那么类加载器只会在该目录中查找类文件，而不会查找/home/user/classes/subdir中的类文件。
+
+- classpath*：表示类加载器在加载类时会在指定的路径及其子目录中查找类文件。例如，如果classpath*指定为/home/user/classes，那么类加载器会在该目录及其子目录中查找类文件。
+
+因此，classpath*的搜索范围更广，适用于需要加载多个目录或者需要递归查找类文件的情况。而classpath则适用于只需要加载单个目录中的类文件的情况。
+```
+
+## SpringBoot
+
+[外置tomcat](https://www.cnblogs.com/liboware/p/15137007.html)
 
