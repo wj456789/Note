@@ -20,7 +20,7 @@ Docker是容器模型中的一种具体的实现产品，是一个运行在Windo
 
 ### 容器
 
-可以把容器看装镜像的盒子，容器彼此之间相互隔离、互不可见，可以运行里边的镜像里的应用。镜像的静态文件在容器中动态运行。
+可以把容器看装镜像的盒子，容器彼此之间相互隔离、互不可见，可以运行里边的镜像里的应用。**镜像的静态文件在容器中动态运行。**
 
 > 镜像：是静态的，里边有应用，是没有运行起来的应用。好比Java的类。
 >
@@ -103,21 +103,22 @@ Docker是容器模型中的一种具体的实现产品，是一个运行在Windo
 >
 > 2. 注册阿里云账号
 >
-> 3. 找到镜像加速器，拿到专属自己的镜像加速地址   [https://ycq9id5i.mirror.aliyuncs.com](https://ycq9id5i.mirror.aliyuncs.com)    
+> 3. 找到镜像加速器(https://cr.console.aliyun.com/cn-hangzhou/instances/mirrors)，拿到专属自己的镜像加速地址   https://m127ubmx.mirror.aliyuncs.com
 >
->    将说明中的配置，配置到Docker引擎的配置文件/etc/docker/daemon.json
+>    针对Docker客户端版本大于 1.10.0 的用户
 >
+>    可以修改daemon配置文件/etc/docker/daemon.json来使用加速器
+>
+>    ```
+>    sudo mkdir -p /etc/docker
+>    sudo tee /etc/docker/daemon.json <<-'EOF'
 >    {
->
->    ​	 "registry-mirrors": ["https://ycq9id5i.mirror.aliyuncs.com"]
->
+>      "registry-mirrors": ["https://m127ubmx.mirror.aliyuncs.com"]
 >    }
->
->    //可选网易：http://hub-mirror.c.163.com
->
-> 4. 让上面的配置文件生效，重新加载一下：systemctl daemon-reload
->
-> 5. 重启docker：systemctl restart docker
+>    EOF
+>    sudo systemctl daemon-reload
+>    sudo systemctl restart docker
+>    ```
 
 **下载放置地址**
 
@@ -373,7 +374,11 @@ $ docker run -it  centos:7  [/bin/bash]
 #终端既是访问入口，比如远程链接工具使用ssh访问linux服务器，使用的就是bash终端输入
 ```
 
-
+```sh
+举例：
+$ docker run --name nginxService -p 8081:80 -dit nginx:1.24.0 /bin/bash
+$ docker run --name iMysql -e MYSQL_ROOT_PASSWORD=123456 -p 3306:3306 -v /home/mysql/conf/hmy.cnf:/etc/mysql/conf.d/hmy.cnf -v /home/mysql/data:/var/lib/mysql -dit mysql:5.7.25
+```
 
 ##### 运行流程和启动命令
 
@@ -647,21 +652,25 @@ $ docker container diff  test
 
 ```sh
 $ docker volume create [-d  local]  test   
-
-#使用-d参数可以指定不同的驱动，本地卷是内置的local驱动，本地卷只能被所在节点(这里所在节点是本地)的容器使用，第三方驱动可以通过插件方式接入
 ```
 
-**卷插件：**
+```
+使用-d参数可以指定不同的驱动，本地卷是内置的local驱动，本地卷只能被所在节点(这里所在节点是本地)的容器使用，下面说的都是本地卷
 
+第三方驱动可以通过插件方式接入
+卷插件：
 - 块存储：相对性能更高，适用于对小块数据的随机访问负载。
 - 文件存储：包括 NFS 和 SMB 协议的系统，同样在高性能场景下表现优异。
 - 对象存储：适用于较大且长期存储的、很少变更的二进制数据存储。通常对象存储是根据内容寻址，并且性能较低。
+```
 
-> 使用 local 驱动创建的卷在 Docker 主机上均有其专属目录，
+> 这种方式创建的都是普通数据卷，在 Docker 主机上均有其专属目录，
 >
 > 在 Linux 中位于 `/var/lib/docker/volumes` 目录下，
 >
 > 在 Windows 中位于`C:\ProgramData\Docker\volumes` 目录下。
+
+#### 查看
 
 ```sh
 #查看本地卷，只能查看volumes/目录下的数据卷，也就是说只能查看普通数据卷，无法查看bind绑定数据卷
@@ -694,11 +703,11 @@ $ docker volume rm test
 $ docker [container] rm -v  xxxid
 ```
 
-#### 使用
+### 挂载数据卷
 
-使用run命令+--mount选项来使用数据卷
+**使用run命令+--mount选项来挂载数据卷：**
 
-**--mount选项支持三种类型的数据卷，包括:**
+--mount选项支持三种类型的数据卷，包括:
 
 - volume:普通数据卷，映射到主机/var/lib/docker/volumes路径下; 
 - bind:绑定数据卷，映射到主机指定路径下;
@@ -706,15 +715,35 @@ $ docker [container] rm -v  xxxid
 
 ```sh
 #使用centos:7镜像创建一个centos容器，并创建一个数据卷挂载到容器的/test目录:
+
+# 数据卷挂载
+$ docker volume create testvolume
 $ docker container run -dit --name centos  --mount  type=volume,source=testvolume, destination=/test  centos:7 #source指定数据卷名称
+
+# 直接挂载
 $ docker container run -dit --name centos1  --mount  type=bind,source=/root/abc,destination=/test centos:7 #数据卷名称随机
 
+# 当使用 --mount时，如果宿主机中没有这个文件会报错找不到指定文件，不会自动创建指定文件
+```
 
-#宿主机目录：容器目录，宿主机目录省略时默认使用volumn数据卷，不省略即为bind写法
+**使用run命令+-v选项来挂载数据卷：**
+
+- -v volume名称:容器内目录
+- -v 宿主机文件:容器内文件
+- -v 宿主机目录:容器内目录
+
+```sh
+# 直接挂载
 $ docker container run -dit --name centos2  -v  /root/abc:/test/  centos:7 
 
-#本地目录的路径必须是绝对路径，容器内路径可以为相对路径。如果目录不存在，Docker会自动创建。
+# 数据卷挂载
+$ docker container run -dit --name centos2  -v  testvolume:/test/  centos:7
+
+# 本地目录的路径必须是绝对路径，容器内路径可以为相对路径。
+# 使用 -v 挂载时，如果宿主机上没有指定文件不会报错，会自动创建指定文件；
 ```
+
+
 
 ```sh
 #Docker挂载数据卷的默认权限是读写(rw), 用户也可以通过ro指定为只读，加了:ro之后，容器内对所挂载数据卷内的数据就无法修改了
@@ -724,8 +753,14 @@ $ docker container run -dit --name centos3  -v  /root/abc:/test:ro  centos:7
 **注意：**
 
 - 同一个目录可以和多个容器建立关联
-
 - 推荐挂载文件所在的目录到容器内进行同步，挂载的时候也是可以把一个文件同步到容器，但是使用文件编辑工具，可能会造成文件inode的改变，可能会导致报错。
+
+```sh
+举例：
+$ docker run --name nginxService3 -p 8082:80 -v nginx-html:/usr/share/nginx/html -dit nginx:1.24.0
+```
+
+
 
 ### 数据卷容器
 
