@@ -565,6 +565,8 @@ $ docker logs -t -f --tail 3  容器id	#显示历史记录尾部3行之后持续
 $ docker ps 
 
 $ docker container ls
+
+$ docker ps -a --no-trunc | grep container_name   # 通过docker --no-trunc参数来详细展示容器运行命令
 ```
 
 #### 查看详情
@@ -895,17 +897,119 @@ $ ping 172.17.0.2
 
 
 
+## Dockerfile
 
+自定义镜像
 
+### 镜像结构
 
+镜像是将应用程序及其需要的系统函数库、环境、配置、依赖打包而成。
 
+![image-20210731175806273](img_Docker/image-20210731175806273.png)
 
+简单来说，**镜像就是在系统函数库、运行环境基础上，添加应用程序文件、配置文件、依赖文件等组合，然后编写好启动脚本打包在一起形成的文件。**
 
+我们要构建镜像，其实就是实现上述打包的过程。
 
+### Dockerfile语法
 
+**Dockerfile**就是一个文本文件，其中包含一个个的**指令(Instruction)**，用指令来说明要执行什么操作来构建镜像。每一个指令都会形成一层Layer。
 
+![image-20210731180321133](img_Docker/image-20210731180321133.png)
 
+官网文档： https://docs.docker.com/engine/reference/builder
 
+## DockerCompose
+
+### 安装
+
+```sh
+# 通过命令下载
+$ curl -L https://github.com/docker/compose/releases/download/1.23.1/docker-compose-`uname -s`-`uname -m` > /usr/local/bin/docker-compose
+
+# 修改权限
+$ chmod +x /usr/local/bin/docker-compose
+
+# Base自动补全命令
+$ curl -L https://raw.githubusercontent.com/docker/compose/1.29.1/contrib/completion/bash/docker-compose > /etc/bash_completion.d/docker-compose
+# 如果这里出现错误，需要修改自己的hosts文件：
+$ echo "199.232.68.133 raw.githubusercontent.com" >> /etc/hosts
+```
+
+### 概述
+
+DockerCompose文件可以看做是将多个docker run命令写到一个文件
+
+Compose文件是一个文本文件，通过指令定义集群中的每个容器如何运行。格式如下：
+
+```yaml
+version: "3.2"
+
+services:
+  nacos:
+    image: nacos/nacos-server
+    environment:
+      MODE: standalone
+    ports:
+      - "8848:8848"
+  mysql:
+    image: mysql:5.7.25
+    environment:
+      MYSQL_ROOT_PASSWORD: 123
+    volumes:
+      - "$PWD/mysql/data:/var/lib/mysql"
+      - "$PWD/mysql/conf:/etc/mysql/conf.d/"
+  userservice:
+    build: ./user-service
+  orderservice:
+    build: ./order-service
+  gateway:
+    build: ./gateway
+    ports:
+      - "10010:10010"
+```
+
+可以看到，其中包含5个容器：
+
+- `nacos`：作为注册中心和配置中心
+
+  - `image: nacos/nacos-server`： 基于nacos/nacos-server镜像构建
+  - `environment`：环境变量
+    - `MODE: standalone`：单点模式启动
+  - `ports`：端口映射，这里暴露了8848端口
+
+- `mysql`：一个基于`mysql:5.7.25`镜像构建的容器，并且挂载了两个目录
+
+  - `image: mysql:5.7.25`：镜像版本是mysql:5.7.25
+  - `environment`：环境变量
+    - `MYSQL_ROOT_PASSWORD: 123`：设置数据库root账户的密码为123
+  - `volumes`：数据卷挂载，这里挂载了mysql的data、conf目录，其中有我提前准备好的数据
+
+- `userservice`、`orderservice`、`gateway`：都是基于Dockerfile临时构建的，基于`docker build`临时构建的镜像容器，内容如下：
+
+  ```dockerfile
+  FROM java:8-alpine
+  COPY ./app.jar /tmp/app.jar
+  ENTRYPOINT java -jar /tmp/app.jar
+  ```
+
+  
+
+### 部署
+
+![image-20240515080609426](img_Docker/image-20240515080609426.png)
+
+在Compose文件同级目录，运行下面的命令：
+
+```
+docker-compose up -d
+```
+
+```
+docker-compose logs -f 
+docker-compose logs -f gateway userservice
+docker-compose restart gateway userservice
+```
 
 
 

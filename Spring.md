@@ -1425,7 +1425,7 @@ timeout：配置事务的超时时间，一般不配置，超过这个超时时�
 
 #### Spring Bean生命周期
 
-![image-20231220233925934](img_Spring/image-20231220233925934.png)
+![Snipaste_2024-05-13_16-59-18](img_Spring/Snipaste_2024-05-13_16-59-18.png)
 
 
 
@@ -1472,7 +1472,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader i
                     this.initApplicationEventMulticaster(); // 初始化事件监听多路广播器
                     this.onRefresh(); // 一个空的实现
                     this.registerListeners(); // 注册监听器
-
+ 
                     this.finishBeanFactoryInitialization(beanFactory); // 7读取bean定义信息通过反射（空构造器）创建对象，再进行属性赋值数据装配操作，之后调用初始化方法init-method
                     this.finishRefresh();// 刷新完成工作
                 } catch (BeansException var9) {
