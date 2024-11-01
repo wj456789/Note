@@ -1,5 +1,7 @@
 # Docker
 
+https://hub-stage.docker.com/
+
 ## 虚拟机(VM)和容器
 
 - 虚拟机允许多应用能够稳定、安全地同时运行在一个服务器中的技术，但是最大的缺点就是依赖其专用的操作系统(OS)，OS会占用额外的CPU、RAM和存储，而且安装在OS上的应用，进行迁移难度和成本都很高。
@@ -377,7 +379,8 @@ $ docker run -it  centos:7  [/bin/bash]
 ```sh
 举例：
 $ docker run --name nginxService -p 8081:80 -dit nginx:1.24.0 /bin/bash
-$ docker run --name iMysql -e MYSQL_ROOT_PASSWORD=123456 -p 3306:3306 -v /home/mysql/conf/hmy.cnf:/etc/mysql/conf.d/hmy.cnf -v /home/mysql/data:/var/lib/mysql -dit mysql:5.7.25
+$ docker run --name mysqlService -e MYSQL_ROOT_PASSWORD=123456 -p 3306:3306 -v /home/mysql/conf/hmy.cnf:/etc/mysql/conf.d/hmy.cnf -v /home/mysql/data:/var/lib/mysql -dit mysql:5.7.25
+$ docker run --name nacosService -dit -p 8848:8848 nacos/nacos-server:1.4.1
 ```
 
 ##### 运行流程和启动命令
@@ -967,6 +970,19 @@ services:
     build: ./gateway
     ports:
       - "10010:10010"
+      
+  nginx:
+    image: nginx:1.24.0
+    volumes:
+      - "$PWD/nginx/conf:/etc/nginx/"
+    ports:
+      - "8080":"80"
+  nacos1:
+    image: nacos/nacos-server:1.4.1
+    ports:
+      - "8845:8848"
+    volumes:
+      - "$PWD/nacos/conf:/home/nacos/conf"
 ```
 
 可以看到，其中包含5个容器：

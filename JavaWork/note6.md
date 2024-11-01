@@ -956,21 +956,7 @@ $ profiler stop
 JProfiler
 ```
 
-```
-使用arthas定位接口性能问题
 
-将 arth.tar工具包放入容器
-
-使用命令启动
-$ java -jar arthas-boot.jar
-
-然后会自动分析目前的进程 选择需要监控的进程
-
-trace 目录 方法
-$ trace com.huawei.ssf.iptrace.cmcclogquery.resultupload.mloguserupload.service.impl.MfLogUserRealTimeFeedBackServiceImpl sendRequest -v -n 5 --skipJDKMethod false '1==1'
-然后用trace方法来启动监控
-
-```
 
 
 

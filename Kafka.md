@@ -56,7 +56,7 @@ Kafka是一个分布式的发布/订阅消息系统，主要用于处理活跃�
 
 - Topic：主题，发布订阅的对象，可以为每 个业务、每个应用甚至是每类数据都创建专属的主题
 
-- Partition：分区，每个主题 Topic 划分成多个分区 Partition，每个分区是一组有序的消息日志，生产者生产的每条消息只会被发送到主题的一个分区中，生产者向分区写入消息，**每条消息在分区中的位置信息叫位移**
+- Partition：分区，每个主题 Topic 划分成多个分区 Partition，每个分区是一组有序的消息日志，生产者生产的每条消息只会被发送到主题的某一个分区中，生产者向分区写入消息，**每条消息在分区中的位置信息叫位移**
 
 - Replication：副本，每个分区可以有多个副本，分布在不同的Broker上；定义了两类副本：领导者副本和追随者副本，每个分区只能有 1 个领 导者副本和 N-1 个追随者副本；
 
@@ -221,27 +221,20 @@ Producer producer = new KafkaProducer<>(props);
 
 ### 概念
 
-- 消费者组内有多个消费者或消费者实例，它们共享一个公共的ID，这个ID被称为Group ID。组内的所有消费者协调在一起来消费订阅主题的所有分区。
+- 消费者组内有多个消费者或消费者实例，这里的实例可以是一个单独的进程，也可以是同一进程下的线程。它们共享一个公共的ID，这个ID被称为Group ID，Group ID是一个字符串，在一个Kafka集群中，它标识唯一的一个Consumer Group。
 
 - 主题中的每个分区只能由同一个消费者组内的一个Consumer实例来消费，组内其他消费者实例不能消费该分区
 
   一个主题可以配置几个分区，生产者发送的消息分发到不同的分区中，消费者接收数据的时候是按照消费者组来接收的，Kafka确保每个分区的消息只能被同一个消费者组中的一个消费者消费，如果想要重复消费，那么需要其他的消费者组来消费，同时一个消费者可以消费多个分区。
+
+- 当Consumer Group订阅了多个主题后，组内的每个实例不要求一定要订阅主题的所有分区，它只会消费部分分区中的消息。
+- Consumer Group之间彼此独立，互不影响，它们能够订阅相同的一组主题而互不干涉。
 
 - Kafka使用Consumer Group机制，同时实现了传统消息引擎系统的两大模型：
   - 如果所有实例都属于同一个Group，那么它实现的就是消息队列模型；
   - 如果所有实例分别属于不同的Group，那么它实现的就是发布/订阅模型。
 
 **Consumer Group是Kafka提供的可扩展且具有容错性的消费者机制**。
-
-### 特性
-
-- Consumer Group下可以有一个或多个Consumer实例，这里的实例可以是一个单独的进程，也可以是同一进程下的线程。
-- Group ID是一个字符串，在一个Kafka集群中，它标识唯一的一个Consumer Group。
-- Consumer Group下所有实例订阅的主题的单个分区，只能分配给组内的某个Consumer实例消费，这个分区当然也可以被其他的Group消费。
-
-当Consumer Group订阅了多个主题后，组内的每个实例不要求一定要订阅主题的所有分区，它只会消费部分分区中的消息。
-
-Consumer Group之间彼此独立，互不影响，它们能够订阅相同的一组主题而互不干涉。
 
 ### 消费者实例
 
@@ -252,44 +245,6 @@ Consumer Group之间彼此独立，互不影响，它们能够订阅相同的一
 **理想情况下，Consumer实例的数量应该等于该Group订阅主题的分区总数。**
 
 假设一个Consumer Group订阅了3个主题，分别是A、B、C，它们的分区数依次是1、2、3，那么通常情况下，为该Group设置 1+2+3=6 个Consumer实例是比较理想的情形，因为它能最大限度地实现高伸缩性。
-
-**位移Offset**
-
-老版本的Consumer Group把位移保存在ZooKeeper中。Apache ZooKeeper是一个分布式的协调服务框架，Kafka重度依赖它实现各种各样的协调管理。将位移保存在ZooKeeper外部系统的做法，最显而易见的好处就是减少了Kafka Broker端的状态保存开销。不过，慢慢地发现了一个问题，即ZooKeeper这类元框架其实并不适合进行频繁的写更新，而Consumer Group的位移更新却是一个非常频繁的操作。这种大吞吐量的写操作会极大地拖慢ZooKeeper集群的性能。
-
-于是，在新版本的Consumer Group中，Kafka社区重新设计了Consumer Group的位移管理方式，采用了将位移保存在Kafka内部主题的方法。这个内部主题就是 __consumer_offsets 。
-
-### 位移
-
-- 消费者位移：Consumer Offset，消费者消费进度，每个消费者都有自己的消费者位移。
-
-- 重平衡：Rebalance，消费者组内某个消费者实例挂掉后，其他**消费者实例自动重新分配订阅主题分区的过程**，Rebalance 是 Kafka 消费者端实现高可用的重要手段。
-
-- AR（Assigned Replicas）：分区中的所有副本统称为AR。
-
-  所有消息会先发送到 leader 副本，然后 follower 副本才能从 leader 中拉取消息进行同步。但是在同步期间，follower 对于 leader 而言会有一定程度的滞后，这个时候 follower 和 leader 并非完全同步状态
-
-- OSR（Out Sync Replicas）：follower 副本与 leader 副本没有完全同步或滞后的副本集合
-
-- ISR（In Sync Replicas）：AR 中的一个子集，ISR 中的副本都是与 leader 保持完全同步的副本，如果某个在 ISR 中的 follower 副本落后于 leader 副本太多，则会被从 ISR 中移除，否则如果完全同步，会从 OSR 中移至 ISR 集合。
-
-  在默认情况下，当leader副本发生故障时，只有在ISR集合中的follower副本才有资格被选举为新leader，而OSR中的副本没有机会（可以通过`unclean.leader.election.enable`进行配置）
-
-- HW（High Watermark）：高水位，它标识了一个特定的消息偏移量（offset），消费者只能拉取到这个水位 offset 之前的消息
-
-  下图表示一个日志文件，这个日志文件中只有9条消息，第一条消息的offset（LogStartOffset）为0，最有一条消息的offset为8，offset为9的消息使用虚线表示的，代表下一条待写入的消息。
-
-  日志文件的 HW 为6，表示消费者只能拉取offset在 0 到 5 之间的消息，offset为6的消息对消费者而言是不可见的。
-
-  <img src="img_Kafka/weixin-kafkahxzszj-f27928a8-9a91-4e39-a68d-c74d8a3291f1.jpg" alt="img" style="zoom: 80%;" />
-
-- LEO（Log End Offset）：标识当前日志文件中下一条待写入的消息的offset
-
-  上图中offset为9的位置即为当前日志文件的 LEO，LEO 的大小相当于当前日志分区中最后一条消息的offset值加1
-
-  分区 ISR 集合中的每个副本都会维护自身的 LEO ，而 ISR 集合中最小的 LEO 即为分区的 HW，对消费者而言只能消费 HW 之前的消息
-
-同步副本最小的 LEO 即为高水位
 
 ### 消费者策略
 
@@ -352,6 +307,7 @@ Rebalance 发生时，Group 下所有的 Consumer 实例都会协调在一起共
 **可避免Rebalance的配置**
 
 - 第一类Rebalance是因为未能及时发送心跳，导致 Consumer 被踢出 Group 而引发的，因此可以设置 session.timeout.ms 和 heartbeat.interval.ms 的值。
+
   - 设置`session.timeout.ms` = 6s。
   - 设置`heartbeat.interval.ms` = 2s。
 
@@ -362,6 +318,48 @@ Rebalance 发生时，Group 下所有的 Consumer 实例都会协调在一起共
 - 第二类Rebalance是Consumer消费时间过长导致的
 
   你要为你的业务处理逻辑留下充足的时间，这样Consumer就不会因为处理这些消息的时间太长而引发Rebalance了。
+
+### 位移
+
+**位移Offset**
+
+老版本的Consumer Group把位移保存在ZooKeeper中。Apache ZooKeeper是一个分布式的协调服务框架，Kafka重度依赖它实现各种各样的协调管理。将位移保存在ZooKeeper外部系统的做法，最显而易见的好处就是减少了Kafka Broker端的状态保存开销。不过，慢慢地发现了一个问题，即ZooKeeper这类元框架其实并不适合进行频繁的写更新，而Consumer Group的位移更新却是一个非常频繁的操作。这种大吞吐量的写操作会极大地拖慢ZooKeeper集群的性能。
+
+于是，在新版本的Consumer Group中，Kafka社区重新设计了Consumer Group的位移管理方式，采用了将位移保存在Kafka内部主题的方法。这个内部主题就是 __consumer_offsets 。
+
+**位移和副本**
+
+- 消费者位移：Consumer Offset，消费者消费进度，每个消费者都有自己的消费者位移。
+
+- 重平衡：Rebalance，消费者组内某个消费者实例挂掉后，其他**消费者实例自动重新分配订阅主题分区的过程**，Rebalance 是 Kafka 消费者端实现高可用的重要手段。
+
+- AR（Assigned Replicas）：分区中的所有副本统称为AR。
+
+  所有消息会先发送到 leader 副本，然后 follower 副本才能从 leader 中拉取消息进行同步。但是在同步期间，follower 对于 leader 而言会有一定程度的滞后，这个时候 follower 和 leader 并非完全同步状态
+
+- OSR（Out Sync Replicas）：follower 副本与 leader 副本没有完全同步或滞后的副本集合
+
+- ISR（In Sync Replicas）：AR 中的一个子集，ISR 中的副本都是与 leader 保持完全同步的副本，如果某个在 ISR 中的 follower 副本落后于 leader 副本太多，则会被从 ISR 中移除，否则如果完全同步，会从 OSR 中移至 ISR 集合。
+
+  在默认情况下，当leader副本发生故障时，只有在ISR集合中的follower副本才有资格被选举为新leader，而OSR中的副本没有机会（可以通过`unclean.leader.election.enable`进行配置）
+
+- HW（High Watermark）：高水位，它标识了一个特定的消息偏移量（offset），消费者只能拉取到这个水位 offset 之前的消息
+
+  下图表示一个日志文件，这个日志文件中只有9条消息，第一条消息的offset（LogStartOffset）为0，最有一条消息的offset为8，offset为9的消息使用虚线表示的，代表下一条待写入的消息。
+
+  日志文件的 HW 为6，表示消费者只能拉取offset在 0 到 5 之间的消息，offset为6的消息对消费者而言是不可见的。
+
+  <img src="img_Kafka/weixin-kafkahxzszj-f27928a8-9a91-4e39-a68d-c74d8a3291f1.jpg" alt="img" style="zoom: 80%;" />
+
+- LEO（Log End Offset）：标识当前日志文件中下一条待写入的消息的offset
+
+  上图中offset为9的位置即为当前日志文件的 LEO，LEO 的大小相当于当前日志分区中最后一条消息的offset值加1
+
+  分区 ISR 集合中的每个副本都会维护自身的 LEO ，而 ISR 集合中最小的 LEO 即为分区的 HW，对消费者而言只能消费 HW 之前的消息
+
+同步副本最小的 LEO 即为高水位
+
+
 
 ### 位移主题
 
@@ -696,31 +694,11 @@ kafka支持自动优先副本选举功能，默认每5分钟触发一次优先�
 
 可以看到网络线程和IO线程之间利用的经典的生产者 - 消费者模式，不论是用于处理Request的共享请求队列，还是IO处理完返回的Response。
 
-## 幂等性
 
-**幂等性Producer**
-
-- 是0.11.0.0版本引入的新功能，在此之前，Kafka向分区发送数据时，可能会出现同一条消息被发送了多次，导致消息重复的情况。
-
-- 在Kafka中，Producer默认不是幂等性的，但我们可以创建幂等性Producer。需要设置一个参数：`enable.idempotence`，被设置成true后，Producer自动升级成幂等性Producer，其他所有的代码逻辑都不需要改变。Kafka自动帮你做消息的重复去重。
-
-  ```java
-  props.put(“enable.idempotence”, true);
-  // 或
-  props.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG， true);
-  ```
-
-- 底层具体的原理很简单，就是经典的用空间去换时间的优化思路，即在Broker端多保存一些字段。当Producer发送了具有相同字段值的消息后，Broker能够自动知晓这些消息已经重复了，于是可以在后台默默地把它们丢弃掉。
-
-**幂等性Producer的作用范围**
-
-首先，它只能保证**单分区**上的幂等性，即一个幂等性Producer能够保证某个主题的一个分区上不出现重复消息，它无法实现多个分区的幂等性。
-
-其次，它只能实现**单会话**上的幂等性，不能实现跨会话的幂等性。这里的会话，你可以理解为Producer进程的一次运行，当你重启了Producer进程之后，这种幂等性保证就丧失了。
 
 ## 事务
 
-Kafka自0.11版本开始也提供了对事务的支持，默认为 read committed 隔离级别。
+Kafka自0.11版本开始也提供了对事务的支持，默认为 READ_UNCOMMITTED 隔离级别。
 
 它能保证多条消息原子性地写入到目标分区，同时也能保证 Consumer 只能看到事务成功提交的消息。
 
@@ -752,7 +730,7 @@ try {
 
 实际上即使写入失败，Kafka也会把它们写入到底层的日志中，也就是说Consumer还是会看到这些消息。
 
-**事务级别**
+**Consumer事务配置**
 
 `isolation.level`参数，这个参数有两个取值：
 
@@ -842,6 +820,22 @@ Producer端拦截器实现类都要继承`org.apache.kafka.clients.producer.Prod
   <img src="img_Kafka/weixin-kafkahxzszj-d9a4e4d3-0045-4755-87a4-4da396c7ad9f.jpg" alt="img" style="zoom: 67%;" />
 
   最开始时，Broker 0是控制器。当Broker 0宕机后，ZooKeeper通过Watch机制感知到并删除了`/controller`临时节点。之后，所有存活的Broker开始竞选新的控制器身份。Broker 3最终赢得了选举，成功地在ZooKeeper上重建了`/controller`节点。之后，Broker 3会从ZooKeeper中读取集群元数据信息，并初始化到自己的缓存中。至此，控制器的Failover完成，可以行使正常的工作职责了。
+
+### 控制器和协调器区别
+
+**职责不同**
+
+1. ‌**控制器（Controller）**‌：控制器是Kafka集群的核心组件，主要负责管理和协调整个Kafka集群。它负责选举分区leader、处理新加入和失败的Broker节点、重新平衡分区、分配新的leader等任务‌。控制器本身也是一个普通的Broker，但在运行过程中，集群中只能有一个Broker成为控制器，负责这些管理工作‌。
+2. ‌**协调器（Coordinator）**‌：协调器主要负责协调消费者的工作分配。主要有两种协调器：消费者协调器（ConsumerCoordinator）和组协调器（GroupCoordinator）。消费者协调器负责同一个消费者组下各消费者与服务端的通信，管理消费者的消费偏移量；组协调器则管理部分消费者组和该消费者组下的每个消费者的消费状态‌。
+
+**数量不同**
+
+1. ‌**控制器**‌：Kafka集群中始终只有一个Controller Broker，负责整个集群的管理和协调工作‌。
+2. ‌**协调器**‌：每个KafkaServer启动时都会创建一个GroupCoordinator实例，用于管理部分消费者组和该消费者组下的每个消费者的消费偏移量。同时，每个消费者实例化时也会创建一个ConsumerCoordinator对象，负责与服务端的GroupCoordinator进行通信‌。
+
+综上所述，控制器和协调器在Kafka中扮演着不同的角色，控制器负责整个集群的管理和协调，而协调器则负责消费者的具体工作分配和状态管理。
+
+
 
 ## 日志存储
 
@@ -949,8 +943,8 @@ Consumer端丢失数据主要体现在Consumer端要消费的消息不见了。
 2. 设置`acks = all`，acks是Producer的一个参数，代表了你对已提交消息的定义，如果设置成all，则表明所有副本Broker都要接收到消息，该消息才算是已提交。
 3. 设置retries为一个较大的值。这里的retries同样是Producer的参数，对应前面提到的Producer自动重试，当出现网络的瞬时抖动时，消息发送可能会失败，此时配置了`retries > 0`的Producer能够自动重试消息发送，避免消息丢失。
 4. 设置`unclean.leader.election.enable = false`，这是Broker端的参数，它控制的是哪些Broker有资格竞选分区的Leader，如果一个Broker落后原先的Leader太多，那么它一旦成为新的Leader，必然会造成消息的丢失，故一般都要将该参数设置成false，即不允许这种情况的发生。
-5. 设置`replication.factor >= 3`，这也是Broker端的参数，将消息多保存几份，目前防止消息丢失的主要机制就是冗余。
-6. 设置`min.insync.replicas > 1`，这依然是Broker端参数，控制的是消息至少要被写入到多少个副本才算是已提交，设置成大于1可以提升消息持久性，在实际环境中千万不要使用默认值1。
+5. 设置分区副本数 `replication.factor >= 3`，这也是Broker端的参数，将消息多保存几份，目前防止消息丢失的主要机制就是冗余。
+6. 设置最少同步副本数 `min.insync.replicas > 1`，这依然是Broker端参数，控制的是消息至少要被写入到多少个副本才算是已提交，设置成大于1可以提升消息持久性，在实际环境中千万不要使用默认值1。
 7. 确保`replication.factor > min.insync.replicas`，如果两者相等，那么只要有一个副本挂机，整个分区就无法正常工作了，我们不仅要改善消息的持久性，防止数据丢失，还要在不降低可用性的基础上完成，推荐设置成`replication.factor = min.insync.replicas + 1`。
 8. 确保消息消费完成再提交，Consumer端有个参数`enable.auto.commit`，最好把它设置成false，并采用手动提交位移的方式。
 
@@ -977,6 +971,63 @@ Consumer端丢失数据主要体现在Consumer端要消费的消息不见了。
 1、提高消费能力，提高单条消息的处理速度；根据实际场景可讲`max.poll.interval.ms`值设置大一点，避免不必要的rebalance；可适当减小`max.poll.records`的值，默认值是500，可根据实际消息速率适当调小。
 
 2、生成消息时，可加入唯一标识符如消息id，在消费端，保存最近的1000条消息id存入到redis或mysql中，消费的消息通过前置去重。
+
+## 幂等性
+
+**幂等性Producer**
+
+- 是0.11.0.0版本引入的新功能，在此之前，Kafka向分区发送数据时，可能会出现同一条消息被发送了多次，导致消息重复的情况。
+
+- 在Kafka中，Producer默认不是幂等性的，但我们可以创建幂等性Producer。需要设置一个参数：`enable.idempotence`，被设置成true后，Producer自动升级成幂等性Producer，其他所有的代码逻辑都不需要改变。Kafka自动帮你做消息的重复去重。
+
+  ```java
+  props.put(“enable.idempotence”, true);
+  // 或
+  props.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG， true);
+  ```
+
+- 底层具体的原理很简单，就是经典的用空间去换时间的优化思路，即在Broker端多保存一些字段。当Producer发送了具有相同字段值的消息后，Broker能够自动知晓这些消息已经重复了，于是可以在后台默默地把它们丢弃掉。
+
+**幂等性Producer的作用范围**
+
+首先，它只能保证**单分区**上的幂等性，即一个幂等性Producer能够保证某个主题的一个分区上不出现重复消息，它无法实现多个分区的幂等性。
+
+其次，它只能实现**单会话**上的幂等性，不能实现跨会话的幂等性。这里的会话，你可以理解为Producer进程的一次运行，当你重启了Producer进程之后，这种幂等性保证就丧失了。
+
+
+
+**Kafka的producer如何实现幂等性**
+
+在Kafka中，Producer的幂等性是指在发送消息时，确保消息在服务器端只被持久化一次，避免重复和丢失。以下是实现幂等性的关键步骤和原理：
+
+- **开启幂等性**：
+  要启用幂等性，需要在Producer的配置中设置`enable.idempotence`为`true`。这会使得Producer在单个会话内保证消息不重复且不丢
+
+  每个Producer在初始化时会被分配一个唯一的ProducerID（PID），这个ID在Producer的生命周期内保持不变。PID用于标识每个Producer客户端。对于每个ProducerID，Producer发送的每条消息（更准确地说是每一个消息批次）都会带有序列号。序列号从0开始单调递增。Broker会为每个TopicPartition组合维护PID和序列号。
+  当Producer发送消息时，消息会附带PID和序列号。Broker接收到消息后，会检查序列号是否比Broker维护的值严格+1。如果是，则接受消息；如果不是，则丢弃消息。这样可以有效避免重复消息。
+  如果Producer在发送消息后未收到Broker的确认（ACK），它会触发重试机制。由于消息附带了PID和序列号，Broker能够识别并丢弃重复的消息，从而保证幂等性。
+
+- **配置参数**：
+  - `enable.idempotence`：设置为`true`以启用幂等性。
+  - `acks`：必须设置为`all`，以确保消息被所有副本确认。
+  - `max.in.flight.requests.per.connection`：不能设置为大于5的值，否则可能会导致某些批次的元数据被挤出缓存，影响幂等性。
+
+- **示例代码**：
+
+  ```java
+  Properties props = new Properties();
+  props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "127.0.0.1:9092");
+  props.put(ProducerConfig.ACKS_CONFIG, "all");
+  props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+  props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+  props.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, "true");
+  
+  KafkaProducer<String, String> kafkaProducer = new KafkaProducer<>(props);
+  kafkaProducer.send(new ProducerRecord<String, String>("truman_kafka_center", "1", "hello world.")).get();
+  kafkaProducer.close();
+  ```
+
+通过以上配置，Kafka的Producer能够实现幂等性，确保消息在服务器端只被持久化一次，避免重复和丢失。
 
 ## 消息顺序问题
 

@@ -455,15 +455,117 @@ public class SamplePartition implements Partitioner {
 
 
 
+## 实例
 
+### 生产者批量发送
 
+```java
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.Producer;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import java.util.Properties;
+ 
+public class KafkaBatchProducer {
+    public static void main(String[] args) {
+        // 配置生产者属性
+        Properties props = new Properties();
+        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+        props.put(ProducerConfig.BATCH_SIZE_CONFIG, 16384); // 批量发送的大小
+        props.put(ProducerConfig.LINGER_MS_CONFIG, 10); // 批处理的延迟时间
+        props.put(ProducerConfig.BUFFER_MEMORY_CONFIG, 33554432); // 记录的内存缓冲区大小
+        props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer");
+        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer");
+ 
+        // 创建生产者实例
+        Producer<String, String> producer = new KafkaProducer<>(props);
+ 
+        // 发送数据
+        for (int i = 0; i < 100; i++) {
+            producer.send(new ProducerRecord<>("your-topic", "Key", "Message " + i));
+        }
+ 
+        // 关闭生产者实例
+        producer.close();
+    }
+}
+```
 
+在这个示例中，我们配置了几个关键的批量发送属性：
 
+- `BATCH_SIZE_CONFIG`: 控制批量发送的大小，达到该值后消息会被发送出去。
+- `LINGER_MS_CONFIG`: 控制批处理的延迟时间，当消息累积到足够的数量或者等待了设定的时间后，消息会被发送出去。
+- `BUFFER_MEMORY_CONFIG`: 控制生产者可以使用的内存缓冲区大小，该值越大，批量处理的消息越多。
 
+这些属性可以帮助生产者更高效地批量发送消息，从而提高Kafka生产者的性能。
 
+### 消费者+线程池
 
-
-
+```java
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import java.util.Arrays;
+import java.util.Properties;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+ 
+public class KafkaConsumerExample {
+ 
+    private final KafkaConsumer<String, String> consumer;
+    private final ExecutorService executor;
+    private final int threadNumber;
+ 
+    public KafkaConsumerExample(String bootstrapServers, String groupId, String topic, int threadNumber) {
+        Properties props = new Properties();
+        props.put("bootstrap.servers", bootstrapServers);
+        props.put("group.id", groupId);
+        props.put("enable.auto.commit", "true");
+        props.put("auto.commit.interval.ms", "1000");
+        props.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+        props.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+ 
+        this.consumer = new KafkaConsumer<>(props);
+        this.consumer.subscribe(Arrays.asList(topic));
+ 
+        this.threadNumber = threadNumber;
+        this.executor = Executors.newFixedThreadPool(threadNumber);
+    }
+ 
+    public void pollMessages() {
+        try {
+            while (true) {
+                ConsumerRecords<String, String> records = consumer.poll(100);
+                for (int i = 0; i < records.count(); i++) {
+                    ConsumerRecord<String, String> record = records.iterator().next();
+                    executor.submit(new MessageHandler(record));
+                }
+            }
+        } finally {
+            consumer.close();
+        }
+    }
+ 
+    public static void main(String[] args) {
+        KafkaConsumerExample example = new KafkaConsumerExample("localhost:9092", "test-group", "test-topic", 5);
+        example.pollMessages();
+    }
+}
+ 
+class MessageHandler implements Runnable {
+    private final ConsumerRecord<String, String> record;
+ 
+    public MessageHandler(ConsumerRecord<String, String> record) {
+        this.record = record;
+    }
+ 
+    @Override
+    public void run() {
+        // 处理消息的逻辑
+        System.out.println("Received message: " + record.value());
+    }
+}
+```
 
 
 

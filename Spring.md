@@ -1,4 +1,4 @@
-# Spring
+Spring
 
 轻量级的Java开发框架
 
@@ -1411,18 +1411,6 @@ timeout：配置事务的超时时间，一般不配置，超过这个超时时�
 
 ## 源码解析
 
-
-
-
-
-
-
-![image-20231202002533017](img_Spring/image-20231202002533017.png)
-
-
-
-
-
 #### Spring Bean生命周期
 
 ![Snipaste_2024-05-13_16-59-18](img_Spring/Snipaste_2024-05-13_16-59-18.png)
@@ -1433,11 +1421,35 @@ timeout：配置事务的超时时间，一般不配置，超过这个超时时�
 
 
 
-![image-20231220234645164](img_Spring/image-20231220234645164.png)
+**容器和对象的创建流程：**
 
+1. 先创建容器
 
+2. 加载配置文件，封装成BeanDefinition
+
+3. 调用执行BeanFactoryPostProcessor
+
+   准备工作：
+
+   - 准备beanPostProcessor
+   - 准备监听器，事件，广播器
+
+4. 实例化
+
+5. 初始化
+
+6. 获取到完整对象
 
 #### Spring Bean 初始化和实例化源码
+
+```java
+public static void main(String[] args) {
+	ApplicationContext context = new ClassPathXmlApplicationContext("test.xml");
+	TestService testService = context.getBean("testService", TestService.class);
+}
+```
+
+
 
 ```java
 // AnnotationConfigApplicationContext使用注解，ClassPathXmlApplicationContext使用配置文件
@@ -1512,10 +1524,166 @@ public abstract class AbstractRefreshableApplicationContext extends AbstractAppl
 			throw new ApplicationContextException("I/O error parsing bean definition source for " + getDisplayName(), ex);
 		}
 	}
+    ...
+}
+
+// 7 finishBeanFactoryInitialization(beanFactory)方法调用
+public abstract class AbstractApplicationContext extends DefaultResourceLoader
+		implements ConfigurableApplicationContext {
+    protected void finishBeanFactoryInitialization(ConfigurableListableBeanFactory beanFactory) {
+        for (String weaverAwareName : weaverAwareNames) {
+            getBean(weaverAwareName);
+        }
+        ...
+    }
+    ...
 }
 ```
 
 
+
+
+
+![Snipaste_2024-10-20_09-36-47](img_Spring/Snipaste_2024-10-20_09-36-47.png)
+
+```java
+public interface BeanFactory {
+    <T> T getBean(String name, Class<T> requiredType) throws BeansException;
+    ...
+}
+
+public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport implements ConfigurableBeanFactory {
+    @Override
+	public <T> T getBean(String name, Class<T> requiredType) throws BeansException {
+		return doGetBean(name, requiredType, null, false);
+	}
+    
+    protected <T> T doGetBean(
+			String name, @Nullable Class<T> requiredType, @Nullable Object[] args, boolean typeCheckOnly)
+			throws BeansException {
+        // 1
+        getSingleton(beanName);
+        // 2
+        createBean(beanName, mbd, args);
+        ...
+    }
+    ...
+}
+
+// 1
+public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements SingletonBeanRegistry {
+    private final Map<String, Object> singletonObjects = new ConcurrentHashMap<>(256);
+	private final Map<String, Object> earlySingletonObjects = new ConcurrentHashMap<>(16);
+	private final Map<String, ObjectFactory<?>> singletonFactories = new HashMap<>(16);
+    
+    @Override
+	@Nullable
+	public Object getSingleton(String beanName) {
+		return getSingleton(beanName, true);
+	}
+    
+    @Nullable
+	protected Object getSingleton(String beanName, boolean allowEarlyReference) {
+		Object singletonObject = this.singletonObjects.get(beanName);
+		if (singletonObject == null && isSingletonCurrentlyInCreation(beanName)) {
+			singletonObject = this.earlySingletonObjects.get(beanName);
+			if (singletonObject == null && allowEarlyReference) {
+                // singletonObjects -> earlySingletonObjects -> singletonFactories
+				synchronized (this.singletonObjects) {
+					singletonObject = this.singletonObjects.get(beanName);
+					if (singletonObject == null) {
+						singletonObject = this.earlySingletonObjects.get(beanName);
+						if (singletonObject == null) {
+							ObjectFactory<?> singletonFactory = this.singletonFactories.get(beanName);
+							if (singletonFactory != null) {
+								singletonObject = singletonFactory.getObject();
+								this.earlySingletonObjects.put(beanName, singletonObject);
+								this.singletonFactories.remove(beanName);
+							}
+						}
+					}
+				}
+			}
+		}
+		return singletonObject;
+	}
+    ...
+}
+
+// 2
+public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFactory
+		implements AutowireCapableBeanFactory {
+    @Override
+	protected Object createBean(String beanName, RootBeanDefinition mbd, @Nullable Object[] args)
+			throws BeanCreationException {
+        Object beanInstance = doCreateBean(beanName, mbdToUse, args);
+        ...
+    }
+    
+    protected Object doCreateBean(String beanName, RootBeanDefinition mbd, @Nullable Object[] args)
+			throws BeanCreationException {
+        // 2.1 创建对象
+        createBeanInstance(beanName, mbd, args);
+        // 1.1 三级缓存替换代理对象
+        addSingletonFactory(beanName, () -> getEarlyBeanReference(beanName, mbd, bean));
+        // 2.2 属性注入
+        populateBean(beanName, mbd, instanceWrapper);
+        // 2.3 初始化操作
+        initializeBean(beanName, exposedObject, mbd);
+        ...
+    }
+    
+    // 2.1 
+    protected BeanWrapper createBeanInstance(String beanName, RootBeanDefinition mbd, @Nullable Object[] args) {
+        instantiateBean(beanName, mbd);
+        ...
+    }
+    
+    protected BeanWrapper instantiateBean(String beanName, RootBeanDefinition mbd) {
+        getInstantiationStrategy().instantiate(mbd, beanName, this);
+        ...
+    }
+    
+    // 2.3
+    protected Object initializeBean(String beanName, Object bean, @Nullable RootBeanDefinition mbd) {
+        invokeAwareMethods(beanName, bean);
+        applyBeanPostProcessorsBeforeInitialization(wrappedBean, beanName);
+        invokeInitMethods(beanName, wrappedBean, mbd);
+        applyBeanPostProcessorsAfterInitialization(wrappedBean, beanName);
+        ...
+    }
+    
+    private void invokeAwareMethods(String beanName, Object bean) {
+		if (bean instanceof Aware) {
+			if (bean instanceof BeanFactoryAware) {
+				((BeanFactoryAware) bean).setBeanFactory(AbstractAutowireCapableBeanFactory.this);
+			}
+            ...
+		}
+        ...
+	}
+    
+    ...
+}
+
+public class SimpleInstantiationStrategy implements InstantiationStrategy {
+    @Override
+	public Object instantiate(RootBeanDefinition bd, @Nullable String beanName, BeanFactory owner) {
+        constructorToUse = clazz.getDeclaredConstructor();
+        return BeanUtils.instantiateClass(constructorToUse);
+        ...
+    }
+    ...
+}
+
+public abstract class BeanUtils {
+    public static <T> T instantiateClass(Constructor<T> ctor, Object... args) throws BeanInstantiationException {
+        return ctor.newInstance(argsWithDefaultValues);
+        ...
+    }
+    ...
+}
+```
 
 
 
@@ -1526,8 +1694,6 @@ BeanFactoryPostProcessor接口
 ```
 
 ![image-20231201235309464](img_Spring/image-20231201235309464.png)
-
-![image-20231220230227930](img_Spring/image-20231220230227930.png)
 
 
 
@@ -1540,29 +1706,29 @@ BeanPostProcessor接口
 
 context.getBean拿到的是代理类而不是原始对象
 
-
-
-
-
 #### spring中想要在自定义对象中获取容器对象
 
-```java
 自定义类中实现 BeanFactoryAware 和 ApplicationContextAware 接口，重写其中的set方法，spring容器会在 AbstractAutowireCapableBeanFactory 的 invokeAwareMethods 方法中自动调用set方法传入容器对象
+
+```java
+public interface BeanFactoryAware extends Aware {
+
+	void setBeanFactory(BeanFactory beanFactory) throws BeansException;
+
+}
+
+public interface ApplicationContextAware extends Aware {
+
+	void setApplicationContext(ApplicationContext applicationContext) throws BeansException;
+
+}
 ```
 
-![image-20231220232936387](img_Spring/image-20231220232936387.png)
 
-
-
-![image-20231220233012165](img_Spring/image-20231220233012165.png)
 
 
 
 ![image-20231220233051571](img_Spring/image-20231220233051571.png)
-
-
-
-![image-20231220233202049](img_Spring/image-20231220233202049.png)
 
 
 

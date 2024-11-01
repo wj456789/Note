@@ -241,6 +241,23 @@ MyISAM中，没有任何where条件的`count(*)`非常快，当有where条件时
 
    - 水平切分，针对数据量大的表，这一步最麻烦，最能考验技术水平，要选择一个合理的sharding key(切分键)， 为了有好的查询效率，表结构要改动，做一定的冗余，应用也要改，sql中尽量带sharding key，将数据定位到限定的表上去查，而不是扫描全部的表
 
+#### SQL优化
+
+分别优化偏移量和数据量
+
+```sql
+-- 优化偏移量 采用子查询方式
+-- 某些 mysql 版本不支持在 in 子句中使用 limit，所以采用了多个嵌套select
+SELECT * FROM `user_operation_log` WHERE id IN (SELECT t.id FROM (SELECT id FROM `user_operation_log` LIMIT 1000000, 10) AS t)
+
+
+-- 优化数据量大 不推荐使用select * 的原因，最主要是避免回表带来的随机io操作
+SELECT * FROM `user_operation_log` LIMIT 1, 1000000
+SELECT id, user_id, ip, op_data, attr1, attr2, attr3, attr4, attr5, attr6, attr7, attr8, attr9, attr10, attr11, attr12 FROM `user_operation_log` LIMIT 1, 1000000
+```
+
+
+
 #### 垂直分表
 
 把主键和一些列放在一个表，然后把主键和另外的列放在另一个表中。
@@ -285,6 +302,96 @@ MyISAM中，没有任何where条件的`count(*)`非常快，当有where条件时
 - **数据迁移，容量规划，扩容等问题** 来自淘宝综合业务平台团队，它利用对2的倍数取余具有向前兼容的特性（如对4取余得1的数对2取余也是1）来分配数据，避免了行级别的数据迁移，但是依然需要进行表级别的迁移，同时对扩容规模和分表数量都有限制。总得来说，这些方案都不是十分的理想，多多少少都存在一些缺点，这也从一个侧面反映出了Sharding扩容的难度。
 
 - **ID问题** 一旦数据库被切分到多个物理结点上，我们将不能再依赖数据库自身的主键生成机制。一方面，某个分区数据库自生成的ID无法保证在全局上是唯一的；另一方面，应用程序在插入数据之前需要先获得ID,以便进行SQL路由. 一些常见的主键生成策略
+
+### 千万数据插入优化
+
+**当表中数据量比较庞大时，插入数据会变得缓慢的原因有很多。其中最主要的原因包括：**
+
+- 索引更新：插入数据时，需要更新表的索引，而随着数据量增加，索引的更新会变得更加耗时。
+- 日志写入：MySQL会生成redo log，用于恢复数据。当插入大量数据时，redo log的写入也会变得更频繁，导致性能下降。
+- 锁竞争：插入数据时需要获取表级别或行级别的锁，当数据量大时，锁的竞争会增加，影响性能。
+
+**对于MySQL千万级数据的插入优化，可以从几个方面来考虑：**
+
+- 批量插入：使用单个`INSERT`语句一次性插入多行数据，而不是为每行数据发送单独的`INSERT`语句。
+- 禁用自动提交：在插入大量数据时，可以关闭自动提交功能，将多次插入操作合并成一个事务提交，减少日志写入次数。
+- 禁用索引：在插入数据前，可以暂时禁用或删除索引，数据插入完成后再重新创建索引。
+- 调整批次大小：根据服务器性能和资源限制，适当调整每次插入的数据量大小。
+- 使用合适的存储引擎：对于非事务型的数据，可以考虑使用MyISAM存储引擎，它在插入性能上有更好的表现。
+- 使用LOAD DATA INFILE：MySQL提供了LOAD DATA INFILE命令，可以直接从文件中导入数据到表中，比起逐条插入数据会更快。
+
+**使用 JDBC 批处理，且开启事务速度最快：**
+
+```java
+private long begin = 33112001;//起始id
+private long end = begin+100000;//每次循环插入的数据量
+private String url = "jdbc:mysql://localhost:3306/bigdata?useServerPrepStmts=false&rewriteBatchedStatements=true&useUnicode=true&amp;characterEncoding=UTF-8";
+private String user = "root";
+private String password = "0203";
+
+
+@org.junit.Test
+public void insertBigData() {
+    //定义连接、statement对象
+    Connection conn = null;
+    PreparedStatement pstm = null;
+    try {
+        //加载jdbc驱动
+        Class.forName("com.mysql.jdbc.Driver");
+        //连接mysql
+        conn = DriverManager.getConnection(url, user, password);
+  		//将自动提交关闭
+  		conn.setAutoCommit(false);
+        //编写sql
+        String sql = "INSERT INTO person VALUES (?,?,?,?,?,?,?)";
+        //预编译sql
+        pstm = conn.prepareStatement(sql);
+        //开始总计时
+        long bTime1 = System.currentTimeMillis();
+
+        //循环10次，每次十万数据，一共1000万
+        for(int i=0;i<10;i++) {
+
+            //开启分段计时，计1W数据耗时
+            long bTime = System.currentTimeMillis();
+            //开始循环
+            while (begin < end) {
+                //赋值
+                pstm.setLong(1, begin);
+                pstm.setString(2, RandomValue.getChineseName());
+                pstm.setString(3, RandomValue.name_sex);
+                pstm.setInt(4, RandomValue.getNum(1, 100));
+                pstm.setString(5, RandomValue.getEmail(4, 15));
+                pstm.setString(6, RandomValue.getTel());
+                pstm.setString(7, RandomValue.getRoad());
+                //添加到同一个批处理中
+                pstm.addBatch();
+                begin++;
+            }
+            //执行批处理
+            pstm.executeBatch();
+           	//提交事务
+			conn.commit();
+            //边界值自增10W
+            end += 100000;
+            //关闭分段计时
+            long eTime = System.currentTimeMillis();
+            //输出
+            System.out.println("成功插入10W条数据耗时："+(eTime-bTime));
+        }
+        //关闭总计时
+        long eTime1 = System.currentTimeMillis();
+        //输出
+        System.out.println("插入100W数据共耗时："+(eTime1-bTime1));
+    } catch (SQLException e) {
+        e.printStackTrace();
+    } catch (ClassNotFoundException e1) {
+        e1.printStackTrace();
+    }
+}
+```
+
+
 
 ## MySQL的锁
 

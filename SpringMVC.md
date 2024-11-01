@@ -1091,7 +1091,7 @@ public class ExceptionController {
 
 spring和springmvc容器中，相对路径都是相对于web应用的根目录`http://ip:port/contextpath`
 
-## 拦截器
+## 过滤器和拦截器
 
 - 过滤器(Filter)：
 
@@ -1100,6 +1100,63 @@ spring和springmvc容器中，相对路径都是相对于web应用的根目录`h
 - 拦截器(Interceptor)：
 
   Spring的一个组件，在实现上基于Java的反射机制，属于面向切面编程（AOP）的一种运用。归Spring管理配置在Spring的文件中，可以使用Spring内的任何资源、对象（可以粗浅的认为是IOC容器中的Bean对象），而Filter则不能使用访问这些资源；
+
+### 过滤器
+
+**使用原生servlet注解定义Filter：**
+
+```java
+// 直接用@WebFilter就可以进行配置，同样，可以设置url匹配模式，过滤器名称等。这里需要注意一点的是@WebFilter这个注解是Servlet3.0的规范，并不是Spring boot提供的。除了这个注解以外，我们还需在启动类中加另外一个注解：@ServletComponetScan，指定扫描的包。
+@WebFilter(filterName = "LoginFilter" ,urlPatterns = "/*")
+@Slf4j
+@Order(2)
+public class LoginFilter implements Filter {
+    @Override
+    public void init(FilterConfig filterConfig) throws ServletException {
+        log.info("进入过滤器init");
+        super.init(filterConfig);
+    }
+
+    @Override
+    public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) throws IOException, ServletException {
+        log.info("进入过滤器"+servletRequest.getRemoteAddr()+"|"+servletRequest.getRemoteHost()+"|"+servletRequest.getLocalPort()+"|"+servletRequest.getServerPort()
+        );
+        filterChain.doFilter(servletRequest,servletResponse);
+    }
+
+    @Override
+    public void destroy() {
+        log.info("进入过滤器destroy");
+        super.destroy();
+    }
+}
+```
+
+**使用spring boot提供的FilterRegistrationBean注册Filter：**
+
+```java
+@Slf4j
+@Order(1)
+public class MyFilter implements Filter {
+    @Override
+    public void init(FilterConfig filterConfig) throws ServletException {
+        Filter.super.init(filterConfig);
+    }
+
+    @Override
+    public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) throws IOException, ServletException {
+        log.info("-----------------------MyFilter");
+        filterChain.doFilter(servletRequest,servletResponse);
+    }
+
+    @Override
+    public void destroy() {
+        Filter.super.destroy();
+    }
+}
+```
+
+### 拦截器
 
 ```java
 public class HelloInterceptor implements HandlerInterceptor {
@@ -1146,9 +1203,44 @@ public class HelloInterceptor implements HandlerInterceptor {
 </mvc:interceptors>
 ```
 
+```java
+// springBoot
+@Configuration
+public class WebMvcConfig extends WebMvcConfigurationSupport {
+
+    private final AuthInterceptor authInterceptor;
+
+    public WebMvcConfig(AuthInterceptor authInterceptor) {
+        this.authInterceptor = authInterceptor;
+    }
+
+    @Override
+    protected void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(authInterceptor)
+                .addPathPatterns("/**");
+    }
+}
+
+```
+
 HandlerInterceptorAdapter适配器，通过继承HandlerInterceptorAdapter抽象类，允许我们只实现三个方法中需要的回调方法
 
 
+
+### 区别
+
+- **归属不同**‌：Filter的生命周期由 Servlet 容器管理，而拦截器则通过 IOC 容器来管理。
+
+- **运行顺序不同**‌：过滤器是在请求进入 Servlet 容器后，但请求进入servlet之前进行预处理的。请求结束返回也是，是在servlet处理完后，返回给前端之前。而拦截器在执行 Controller 逻辑前后调用。‌
+- **原理不同**：Filter的执行由Servlet容器回调完成，而拦截器通常通过动态代理（反射）的方式来执行。
+
+- **配置方式不同**‌：过滤器在‌ web.xml 中进行配置，而拦截器可以在Spring的配置文件或使用注解的方式进行配置。‌
+- **操作对象不同**‌：过滤器只能对‌ request 和 response 进行操作，而拦截器可以对 request、response、handler、modelAndView、exception 进行操作。
+- **用途不同**‌：拦截器主要用于对控制器层的请求进行处理，涉及身份验证、日志记录和权限检查等业务逻辑；过滤器用于处理通用的请求和响应内容，如过滤敏感词汇（防止sql注入），设置字符编码，URL级别的权限访问控制，压缩响应信息
+
+
+过滤器只能在请求的前后使用，而拦截器可以详细到每个方法，调用方法流程如下：
+![在这里插入图片描述](img_SpringMVC/002b5ef59ef1842b2615963dfa95cedd.png)
 
 
 
