@@ -1411,6 +1411,12 @@ timeout：配置事务的超时时间，一般不配置，超过这个超时时�
 
 ## 源码解析
 
+**来源：**
+
+[马士兵全套Spring源码深度解析：AOP、IOC、Bean生命周期、循环依赖、事务、SpringBoot自动装配等](https://www.bilibili.com/video/BV1284y1p7HC?vd_source=28cc187ab31692ca526eed5a90e3aef3&p=34&spm_id_from=333.788.videopod.episodes)
+
+
+
 #### Spring Bean生命周期
 
 ![Snipaste_2024-05-13_16-59-18](img_Spring/Snipaste_2024-05-13_16-59-18.png)
@@ -1842,7 +1848,9 @@ FactoryBean可以创建自定义Bean，不需要走原始Bean完整的生命周�
 
 ![image-20240101163219746](img_Spring/image-20240101163219746.png)
 
+**参考：**
 
+[spring源码分析-事务的底层源码](https://blog.csdn.net/java_lyvee/article/details/136762710)
 
 #### Spring事务传播
 
@@ -1851,3 +1859,36 @@ FactoryBean可以创建自定义Bean，不需要走原始Bean完整的生命周�
 
 
 ![image-20240101164458658](img_Spring/image-20240101164458658.png)
+
+> 外层和内层都有sql操作，报错捕获指的是在外层代码中捕获内层的报错
+>
+> 内层设置：
+> REQUIRED
+> 外层		内层			结果
+> 报错		不报错		全部回滚
+> 不报错	报错			全部回滚
+> 不报错	报错捕获	报错Transaction rolled back because it has been marked as rollback-only
+>
+> REQUIRES_NEW
+> 外层		内层			结果
+> 报错		不报错		外层回滚，内层提交
+> 不报错	报错			全部回滚
+> 不报错	报错捕获	外层提交，内层回滚
+>
+> NESTED
+> 外层		内层			结果
+> 报错		不报错		全部回滚
+> 不报错	报错			全部回滚
+> 不报错	报错捕获	外层提交，内层回滚
+
+
+
+**总结：**
+
+- 错误的执行机制是优于事务的传播机制的
+- 内层设置为 REQUIRED 和 NESTED ，事务传播都是同一个大的事务，NESTED 相当于开启了一个子事务，所以无论内外，**只要有报错就会全部回滚**。在外层代码中捕获内层的报错，REQUIRED 不能出现有的回滚了，有的不回滚，所以报错Transaction rolled back because it has been marked as rollback-only；NESTED 由于设置了保存点，可以实现子事务回滚，外层正常提交
+- 内层设置为 REQUIRED_NEW ，事务传播为两个事务，两者互不影响
+
+**参考：**
+
+[18个示例详解 Spring 事务传播机制](https://cloud.tencent.com/developer/article/2226182)

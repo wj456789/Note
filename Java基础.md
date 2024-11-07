@@ -1725,6 +1725,66 @@ new Thread(new Runnable() {
 
 
 
+### equals()和hashcode()重写原则
+
+在Java中，`equals()`方法被用于比较对象的相等性，而`hashCode()`方法则用于生成对象的哈希码。**当我们在类中重写equals()方法来比较对象的相等性时，必须同时重写hashCode()方法。**
+
+> java中哈希码有以下约定：
+>
+> 在同一个java程序执行过程中，不论调用hashCode方法多少次，都要返回相同的值，
+> **两个对象的equals方法相同，hashCode方法一定相同**，
+> 两个对象的equals方法不相同，hashCode方法不一定不同，
+> 两个对象的hashCode方法不相同，equals方法一定不同，
+> **两个对象的hashCode方法相同，equals方法不一定相同**。
+
+hashCode()在Object中是一个native方法，注释上说是对象内存地址的编码，具体实现是当前线程有关的一个随机数+三个确定值，运用xorshift随机数算法得到的一个随机数。
+
+`hashCode()`方法用于**支持基于哈希表的数据结构**，如HashMap、HashSet等。这些数据结构在存储对象时使用哈希码来快速定位对象。当我们将对象存储在哈希表中时，首先会**根据对象的哈希码计算出一个索引位置**，然后在该位置上进行查找或存储操作。如果两个对象通过`equals()`方法相等但它们的`hashCode()`方法返回不同的值，那么它们可能会被错误地存储在不同的位置，导致无法正确地获取或比较这些对象。
+
+违反`equals()`和`hashCode()`的一致性规则可能导致一些问题。例如，如果我们将一个对象添加到HashSet或HashMap中，并且后续尝试使用另一个相等的对象查找或删除它，由于哈希码不同，我们将无法正确地找到该对象。这会导致数据结构中存在重复的对象或无法正确地操作对象。
+
+**为了正确地重写`equals()`和`hashCode()`方法，我们可以遵循以下指导原则：**
+
+- `equals()`方法的重写应该基于对象的内容，而不仅仅是基于引用的相等性。比较对象的属性值来确定它们是否相等。
+- `hashCode()`方法的重写应该与`equals()`方法的比较条件保持一致。即，如果两个对象通过`equals()`方法相等，它们的`hashCode()`方法应该返回相同的值。
+- 如果在类中使用可变的属性作为`equals()`和`hashCode()`方法的比较依据，确保在修改这些属性时同时更新`hashCode()`的计算，以保持一致性。
+- 使用IDE工具（如Eclipse、IntelliJ IDEA）可以自动生成`equals()`和`hashCode()`方法的模板代码，避免手动编写时出现错误。
+
+```java
+public class Person {
+    private String name;
+    private int age;
+
+    public Person(String name, int age) {
+        this.name = name;
+        this.age = age;
+    }
+
+    // 重写equals()方法
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
+        Person person = (Person) obj;
+        return age == person.age && Objects.equals(name, person.name);
+    }
+
+    // 重写hashCode()方法
+    @Override
+    public int hashCode() {
+        return Objects.hash(name, age);
+    }
+}
+```
+
+来源：
+
+[为什么重写equals()方法时必须重写hashCode()方法？](https://www.w3cschool.cn/article/38170076.html)
+
 ## 启动 jar 包
 
 使用命令启动 jar 包
@@ -2090,7 +2150,25 @@ list.stream().sorted(Comparator.comparing((Employee e)->Integer.parseInt(e.getOr
                      .thenComparing(Person::getId)).collect(Collectors.toList());                     
 ```
 
+## 值传递和引用传递
 
+编程语言中需要进行方法间的参数传递，这个传递的策略叫做求值策略。在程序设计中，求值策略有很多种，比较常见的就是值传递和引用传递。还有一种值传递的特例——共享对象传递。**值传递和引用传递最大的区别是传递的过程中有没有复制出一个副本来，如果是传递副本，那就是值传递，否则就是引用传递。**
+
+在Java中，其实是通过值传递实现的参数传递，只不过对于Java对象的传递，传递的内容是对象的引用副本。我们说Java中只有值传递，只不过传递的内容是对象的引用。这也是没毛病的。但是，绝对不能认为Java中有引用传递。
+
+Java中的对象传递，是通过复制的方式把引用关系传递了。如果我们没有改引用关系，而是找到引用的地址，把里面的内容改了，是会对调用方有影响的，因为实际参数和形参指向的是同一个共享对象。如果是修改引用，是不会对原来的对象有任何影响的。
+
+**找到引用的地址，把里面的内容改了：**
+
+![在这里插入图片描述](img_Java%E5%9F%BA%E7%A1%80/97bc058836db378554c56397ef3d5c50.png)
+
+**改引用关系：**
+
+![在这里插入图片描述](img_Java%E5%9F%BA%E7%A1%80/0090f51a951b97e97397bfeead99f381.png)
+
+来源：
+
+[什么是值传递，什么是引用传递？](https://blog.csdn.net/longgetaotao_06/article/details/125941193)
 
 ## 浅拷贝和深拷贝
 
