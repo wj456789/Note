@@ -120,7 +120,141 @@ public class SecurityController {
 
 > 过滤器如何进行加载的？
 >
-> 结合上图和源码，Security在**DelegatingFilterProxy**的doFilter()调用了initDelegat()方法，在该方法中调用了WebApplicationContext的getBean()方法，该方法出发FilterChainProxy的doFilterInternal方法，用于获取过滤链中的所有过滤器并进行加载。
+> 结合源码，Security在**DelegatingFilterProxy**过滤器的doFilter()调用了getBean()方法获取到了FilterChainProxy对象，容器已经把所有过滤器封装到了此对象中，FilterChainProxy的doFilter()获取过滤链中的所有过滤器并依次执行。
+
+```java
+public interface Filter {
+    default void init(FilterConfig filterConfig) throws ServletException {}
+
+    void doFilter(ServletRequest var1, ServletResponse var2, FilterChain var3) throws IOException, ServletException;
+
+    default void destroy() {}
+}
+
+public interface FilterChain {
+    void doFilter(ServletRequest var1, ServletResponse var2) throws IOException, ServletException;
+}
+
+public interface SecurityFilterChain {
+	boolean matches(HttpServletRequest request);
+	List<Filter> getFilters();
+}
+```
+
+
+
+```java
+public abstract class GenericFilterBean implements Filter, BeanNameAware, EnvironmentAware, EnvironmentCapable, ServletContextAware, InitializingBean, DisposableBean {
+    ...
+}
+
+
+// 1. 在DelegatingFilterProxy拿到springSecurity的过滤器链，并调用它的doFilter()方法；同时把原来的过滤器链传递下去
+public class DelegatingFilterProxy extends GenericFilterBean {
+    @Override
+	public void doFilter(ServletRequest request, ServletResponse response, FilterChain filterChain)
+			throws ServletException, IOException {
+        Filter delegateToUse = initDelegate(wac);
+        invokeDelegate(delegateToUse, request, response, filterChain);
+        ...
+    }
+    
+    protected Filter initDelegate(WebApplicationContext wac) throws ServletException {
+        // targetBeanName 是 springSecurityFilterChain，Filter 是 FilterChainProxy 类对象，此时过滤器链2中已经存放了上述十几种过滤器
+        Filter delegate = wac.getBean(targetBeanName, Filter.class);
+        ...
+        return delegate;
+    }
+    
+    protected void invokeDelegate(
+			Filter delegate, ServletRequest request, ServletResponse response, FilterChain filterChain)
+			throws ServletException, IOException {
+		delegate.doFilter(request, response, filterChain);
+	}
+    ...
+}
+
+
+
+public class FilterChainProxy extends GenericFilterBean {
+    private List<SecurityFilterChain> filterChains;
+    
+    @Override
+	public void doFilter(ServletRequest request, ServletResponse response,
+			FilterChain chain) throws IOException, ServletException {
+		doFilterInternal(request, response, chain);
+        ...
+	}
+    
+    private void doFilterInternal(ServletRequest request, ServletResponse response,
+			FilterChain chain) throws IOException, ServletException {
+        List<Filter> filters = getFilters(fwRequest);
+		VirtualFilterChain vfc = new VirtualFilterChain(fwRequest, chain, filters);
+		vfc.doFilter(fwRequest, fwResponse);
+        ...
+	}
+    
+    private List<Filter> getFilters(HttpServletRequest request) {
+		for (SecurityFilterChain chain : filterChains) {
+			if (chain.matches(request)) {
+				return chain.getFilters();
+			}
+		}
+		return null;
+	}
+    
+    
+    // 2. springSecurity的过滤器链在list中封装了所有过滤器，依次调用所有过滤器；其中将过滤器链传入到过滤器中，使用过滤器回调的方式实现了责任链模式
+    private static class VirtualFilterChain implements FilterChain {
+		private final FilterChain originalChain;
+		private final List<Filter> additionalFilters;
+		private final int size;
+		private int currentPosition = 0;
+        ...
+
+		private VirtualFilterChain(FirewalledRequest firewalledRequest,
+				FilterChain chain, List<Filter> additionalFilters) {
+			this.originalChain = chain;
+			this.additionalFilters = additionalFilters;
+			this.size = additionalFilters.size();
+			this.firewalledRequest = firewalledRequest;
+		}
+
+		@Override
+		public void doFilter(ServletRequest request, ServletResponse response)
+				throws IOException, ServletException {
+			if (currentPosition == size) {
+                // 走回到原来的过滤器链
+				originalChain.doFilter(request, response);
+			}
+			else {
+				currentPosition++;
+				Filter nextFilter = additionalFilters.get(currentPosition - 1);
+                // 把springSecurity过滤器链传递给每个过滤器
+				nextFilter.doFilter(request, response, this);
+			}
+            ...
+		}
+	}
+}
+
+
+
+public final class WebAsyncManagerIntegrationFilter extends OncePerRequestFilter {
+	@Override
+	protected void doFilterInternal(HttpServletRequest request,
+			HttpServletResponse response, FilterChain filterChain)
+			throws ServletException, IOException {
+		...
+        // springSecurity过滤器链回调doFilter方法
+		filterChain.doFilter(request, response);
+	}
+}
+```
+
+
+
+
 
 
 
@@ -716,6 +850,18 @@ public class MyUserDetailService implements UserDetailsService {
 
 
 # 七、角色和权限
+
+![Snipaste_2024-11-13_08-33-02](img_SpringSecurity/Snipaste_2024-11-13_08-33-02.png)
+
+```
+sys_user
+sys_role
+sys_permission
+sys_role_permission
+sys_role_user
+```
+
+
 
 ## 1.角色和权限的概念
 
