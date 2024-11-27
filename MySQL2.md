@@ -76,7 +76,29 @@ MySQL 最重要、最与众不同的特性就是它的**可插拔存储引擎架
 
 
 
+### profile详情
 
+```mysql
+# 当前MySQL是否支持profile操作
+>SELECT @@have_profiling ;
+
+# 通过set语句在 session/global 级别开启profiling
+>SET profiling = 1; 
+```
+
+
+
+```mysql
+# 执行一系列的业务SQL的操作，然后通过如下指令查看指令的执行耗时:
+
+-- 查看每一条SQL的耗时基本情况，可以找到每条sql的query_id
+>show profiles;
+
+-- 查看指定query_id的SQL语句各个阶段的耗时情况
+>show profile for query query_id;
+-- 查看指定query_id的SQL语句CPU的使用情况
+>show profile cpu for query query_id;
+```
 
 
 
@@ -92,7 +114,7 @@ explain的使用很简单，只需要在SQL语句之前加上explain命令即可
 
 **参数**
 
-- id	一个查询中各个子查询的执行顺序
+- **id**	一个查询中各个子查询的执行顺序
 
   - id相同执行顺序由上至下。
   - id不同，id值越大优先级越高，越先被执行。
@@ -111,18 +133,23 @@ explain的使用很简单，只需要在SQL语句之前加上explain命令即可
 
 - partitions	匹配的分区
 
-- **type** 	访问类型，如`system、const、eq_ref、ref、range、index、all`等，越往后语句越差，优化时至少要达到 range 级别，要求是ref级别，如果可以是consts最好。 
+- **type** 	连接类型，如`NULL、system、const、eq_ref、ref、range、index、all`等，越往后语句越差，优化时至少要达到 range 级别，要求是ref级别，如果可以是consts最好。 
 
-  - `ALL` 扫描全表数据
-  - `index` 遍历索引，索引物理文件全扫描
+  - `NULL` 不查询任何表，如`select 'ABC'`
+  - `system` 查询系统表
+  - `consts` 使用唯一索引查询。 
+  - `eq_ref` 在join查询中使用`PRIMARY KEY or UNIQUE NOT NULL`索引关联。
+  - `ref` 使用普通索引查找数据
   - `range` 对索引进行范围检索
+  - `index` 遍历索引，索引物理文件全扫描
+  - `ALL` 扫描全表数据
+
+  
+
   - `index_subquery` 在子查询中使用 ref
   - `unique_subquery` 在子查询中使用 eq_ref
   - `ref_or_null` 对Null进行索引的优化的 ref
   - `fulltext` 使用全文索引
-  - `ref` 使用非唯一索引查找数据，即使用普通的索引（normal index）
-  - `eq_ref` 在join查询中使用`PRIMARY KEY or UNIQUE NOT NULL`索引关联。
-  - `consts` 单表中最多只有一个匹配行（主键或者唯一索引），在优化阶段即可读取到数据。 
 
 - possible_keys	可能使用的索引
 
@@ -132,9 +159,9 @@ explain的使用很简单，只需要在SQL语句之前加上explain命令即可
 
 - ref	列与索引的比较，上述表的连接匹配条件，即哪些列或常量被用于查找索引列上的值
 
-- **rows**	扫描的行数
+- **rows**	MySQL认为必须要执行查询的行数，在innodb引擎的表中，是一个估计值，可能并不总是准确的。
 
-- **filtered**	选取的行数占扫描的行数的百分比，理想的结果是100
+- **filtered**	返回结果的行数占需读取行数的百分比，理想的结果是100
 
 - extra	其他额外信息
 
