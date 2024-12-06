@@ -763,660 +763,6 @@ t3.frm			#以frm结尾的是该表的表结构定义文件
 
 
 
-## 索引
-
-**索引（index）是帮助MySQL高效获取数据的数据结构(有序)。**索引的实现通常使用B树及其变种B+树。
-
-### 优缺点
-
-**索引的优点**
-
-- 提高数据检索的效率，降低数据库的IO成本。
-- 通过索引列对数据进行排序，降低数据排序的成本，降低CPU的消耗。
-
-**索引的缺点**
-
-- 创建索引和维护索引要耗费时间，具体地，当对表中的数据进行增加、删除和修改的时候，索引也要动态的维护，会降低增/改/删的执行效率；
-- 索引列也是要占用空间的。
-
-### 索引类型
-
-![image-20210812075313482](img_MySQL/image-20210812075313482.png)
-
-- **普通索引** 最基本的索引，没有任何限制，仅加速查询。
-- **唯一索引** 索引列的值必须唯一，但允许有空值。
-  - **主键索引** 针对于表中主键创建的索引，一种特殊的唯一索引，不允许有空值。默认自动创建，一张表只能有一个。
-- **复合索引** 两个或多个列上的索引被称作复合索引。
-
-
-
-- **Hash索引** 底层数据结构是用哈希表实现的, 只有精确匹配索引列的查询才有效, 不支持范围查询。
-- **Full-text（全文索引）** 是一种通过建立倒排索引，快速匹配文档的方式。全文索引查找的是文本中的关键词，而不是比较索引中的值，类似于Lucene，Solr，ES。
-- **R-tree（空间索引）**空间索引是MyISAM引擎的一个特殊索引类型，主要用于地理空间数据类型，通常使用较少。
-
-
-
-**存储引擎支持的索引类型：**
-
-不同的存储引擎支持的索引类型不一样，MySQL中主要使用的索引结构类型是B+Tree。  
-
-| 索引        | InnoDB          | MyISAM | Memory |
-| ----------- | --------------- | ------ | ------ |
-| B+tree索引  | 支持            | 支持   | 支持   |
-| Hash 索引   | 不支持          | 不支持 | 支持   |
-| R-tree 索引 | 不支持          | 支持   | 不支持 |
-| Full-text   | 5.6版本之后支持 | 支持   | 不支持 |
-
-
-
-### 索引使用
-
-```mysql
-1、创建索引
-# 创建普通索引
->CREATE INDEX indexName ON tableName(columnName(length)); 
-# 创建唯一索引
->CREATE UNIQUE INDEX indexName ON tableName(columnName(length)); 
-# 创建复合索引
->CREATE INDEX indexName ON tableName(columnName1, columnName2, …);
-#可以使用上述方法可对表增加普通索引或UNIQUE索引，但是，不能创建PRIMARY KEY索引
-
-#使用ALTER TABLE命令去增加索引,可以用来创建普通索引、UNIQUE索引或PRIMARY KEY索引
->ALTER TABLE table_name ADD INDEX index_name (column_list);
-
-2、删除索引
->DROP INDEX [indexName] ON tableName; 
-#根据索引名删除普通索引、唯一索引、全文索引
->alter table 表名 drop KEY 索引名
-
-3、查看索引
->SHOW INDEX FROM tableName;
-```
-
-```java
->create table tableName(
-	a int,
-    ...
-    index indexName(columnName1, columnName2, …)
-);
-
->show create table tableName\G;
-CTEATE TABLE tableName(
-	a int(11) DEFAULT NULL,
-    ...
-    KEY indexName(columnName1, columnName2, …)
-)engine=InnoDB default charset=utf8;
-```
-
-### 建立索引注意点
-
-- 选择区分度高的列建立索引
-- 使用短索引，如果对长字符串列进行索引，应该指定一个前缀长度，这样能够节省大量索引空间
-- 不要过度索引。索引需要额外的磁盘空间，并降低写操作的性能。在修改表内容的时候，索引会进行更新甚至重构，索引列越多，这个时间就会越长。所以只保持需要的索引有利于查询即可。
-- 较频繁作为查询条件的字段才去创建索引，更新频繁字段不适合创建索引
-- 定义有外键的数据列一定要建立索引。
-
-### 索引查询效率
-
-通常，通过索引查询数据比全表扫描要快。但是我们也必须注意到它的代价。
-
-索引需要空间来存储，也需要定期维护， 每当有记录在表中增减或索引列被修改时，索引本身也会被修改。 这意味着每条记录的INSERT，DELETE，UPDATE将为此多付出4，5 次的磁盘I/O。 因为索引需要额外的存储空间和处理，那些不必要的索引反而会使查询反应时间变慢。使用索引查询不一定能提高查询性能，索引范围查询(INDEX RANGE SCAN)适用于两种情况:
-
-- 基于一个范围的检索，一般查询返回结果集小于表中记录数的30%
-- 基于非唯一性索引的检索
-
-### MySQL索引原理
-
-参考：[MYSQL官网8.0文档](https://dev.mysql.com/doc/refman/8.0/en/create-index.html)
-
-#### 哈希索引
-
-哈希索引基于哈希表实现，它根据给定的哈希函数 Hash(Key) 和处理冲突（不同索引列值有相同的哈希值）方法将每一个索引列值都映射到一个固定长度的地址，哈希索引只存储哈希值和行指针。
-【结论】
-1）哈希索引只支持等值比较，包括=、in()、<=>，查询速度非常快。需求为单条记录查询的时候，可以选择哈希索引。
-2）无法利用索引完成排序操作，不能支持范围查询。
-
-![image-20210812071342](img_MySQL/image-20210812071342.png)
-
-#### 二叉查找树  
-
-二叉查找树，也称之为二叉搜索树、二叉排序树，它的每个节点最多有两个子节点，左子树上的节点值均小于它的根节点值，右子树上的节点值均大于它的根节点值，左右子树也分别是二叉排序树
-
-【结论】
-
-- 二叉查找树可以做范围查询。
-- 但是从小到大顺序插入时，会形成一个链表，查询性能大大降低。
-
-![image-20210812071422258](img_MySQL/image-20210812071422258.png)
-
-#### 红黑树
-
-二叉查找树存在不平衡的问题，因此就有了自平衡二叉树，能够自动旋转和调整，让树始终处于平衡状态。红黑树是一种自平衡的二叉查找树。
-【结论】
-
-- 通过自平衡解决了二叉查找树有可能退化成线性链表的问题。但是极端情况下，红黑树有“右倾”趋势，并没有真正解决树的平衡问题。
-
-![image-20210812071511121](img_MySQL/image-20210812071511121.png)
-
-
-
-#### 平衡二叉树
-
-平衡二叉树，又称AVL树，指的是左子树上的所有节点的值都比根节点的值小，而右子树上的所有节点的值都比根节点的值大，且左子树与右子树的高度差最大为1。
-【结论】
-1）AVL树从根本上解决了红黑树的“右倾”问题，查找效率得到提升，无极端低效情况。
-2）二叉树子节点只有两个，大数据量情况下，层级较深，检索速度慢，查询需要更多I/O。  
-
-![image-20210812071613266](img_MySQL/image-20210812071613266.png)
-
-#### B-Tree
-
-B-Tree，即B树（不要读成B减树），它是一种多路搜索树（多叉树），可以在平衡二叉树的基础上降低树的高度，从而提升查找效率。
-
-树的度数指的是一个节点的子节点个数，以一颗最大度数（max-degree）为5(5阶)的b-tree为例，那这个B树每个节点最多存储4个key，5个指针，一旦节点存储的key数量到达5，就会裂变，中间元素**向上分裂**。
-
-![image-20241124094930371](img_MySQL1/image-20241124094930371.png)
-
-【结论】
-
-- B树通过多叉、一个节点可有多个值，有效地控制了树的高度，比平衡二叉树查询效率高。
-- B树中，键和值一起存放在内部节点和叶子节点
-
-#### B+Tree
-
-B+Tree是B树的变体，比B树有更广泛的应用。
-
-以一颗最大度数（max-degree）为4（4阶）的b+tree为例，中间元素向上分裂的过程中依然保留一份数据在叶子节点中。
-
-![image-20241124095457833](img_MySQL1/image-20241124095457833.png)
-
-- 非叶子节点仅仅起到索引数据作用，具体的数据都是在叶子节点存放的。
-- B+Tree 的叶子节点会形成一个单向链表，这里MySQL索引数据结构对经典的B+Tree进行了优化。在原B+Tree的基础上，增加一个指向相邻叶子节点的链表指针，就形成了带有顺序指针的B+Tree，提高区间访问的性能，利于排序。
-
-
-
-**InnoDB主键索引的B+tree高度和数据存储量**
-
-假设:
-B+tree的每个节点存放在页中，一页大小16k；计算最大数据存储量则每个非叶子节点存满了一页，叶子节点存储的数据也占满了一页；InnoDB的指针占用6个字节的空间，主键假设为bigint，占用字节数为8，假设一个节点记录了n个主键和n+1个指针；假设一行数据大小为1k，一页中可以存储16行这样的数据。
-
-- 高度为2：
-  `n * 8 + (n + 1) * 6 = 16*1024` , 算出n约为 1170
-  1171* 16 = 18736
-  也就是说，如果树的高度为2，则可以存储 18000 多条记录。
-- 高度为3：
-  `1171 * 1171 * 16 = 21939856`
-  也就是说，如果树的高度为3，则可以存储 2200w 左右的记录。
-
-
-
-#### B树和B+树比较
-
-- B树只适合随机检索，而B+树同时支持随机检索和顺序检索；
-- B+树空间利用率更高，可减少I/O次数，磁盘读写代价更低。一般来说，索引本身也很大，不可能全部存储在内存中，因此索引往往以索引文件的形式存储的磁盘上。这样的话，索引查找过程中就要产生磁盘I/O消耗。B+树的内部结点并没有指向关键字具体信息的指针，只是作为索引使用，其内部结点比B树小，盘块能容纳的结点中关键字数量更多，一次性读入内存中可以查找的关键字也就越多，相对的，IO读写次数也就降低了。而IO读写次数是影响索引检索效率的最大因素；
-- B+树的查询效率更加稳定。B树搜索有可能会在非叶子结点结束，越靠近根节点的记录查找时间越短，只要找到关键字即可确定记录的存在，其性能等价于在关键字全集内做一次二分查找。而在B+树中，顺序检索比较明显，随机检索时，任何关键字的查找都必须走一条从根节点到叶节点的路，所有关键字的查找路径长度相同，导致每一个关键字的查询效率相当。
-- B-树在提高了磁盘IO性能的同时并没有解决元素遍历的效率低下的问题。B+树的叶子节点使用指针顺序连接在一起，只要遍历叶子节点就可以实现整棵树的遍历。而且在数据库中基于范围的查询是非常频繁的，而B树不支持这样的操作。
-- 增删文件（节点）时，效率更高。因为B+树的叶子节点包含所有关键字，并以有序的链表结构存储，这样可很好提高增删效率。
-
-索引列的值就是key
-
-参考：[数据结构在线模拟工具](https://www.cs.usfca.edu/~galles/visualization/Algorithms.html)
-
-### MyISAM与InnoDB索引结构  
-
-```java
-//对两种引擎的表分别进行插入操作
-insert into t_myisam(id, a, b) values(5, 2, 7);
-insert into t_myisam(id, a, b) values(8, 11, 5);
-insert into t_myisam(id, a, b) values(4, 9, 3);
-insert into t_myisam(id, a, b) values(2, 5, 1);
-insert into t_myisam(id, a, b) values(6, 0, 2);
-insert into t_myisam(id, a, b) values(1, 4, 4);
-insert into t_myisam(id, a, b) values(7, 3, 8);
-insert into t_myisam(id, a, b) values(3, 6, 9);
-//使用select * from table发现MyISAM中的数据会按照插入的顺序排序，InnoDB会按照主键顺序排序。
-```
-
-
-
-#### MyISAM的索引结构
-
-MyISAM存储引擎使用B+Tree作为索引结构，叶子节点的data域存放的是数据记录的地址。因此索引检索会按照B+Tree的检索算法检索索引，如果指定的Key存在，则取出其data域的值（地址），然后根据地址读取相应的数据记录。
-
-在MyISAM中，主索引和辅助索引（Secondary key）在结构上没有任何区别，只是主索引要求key是唯一的，而辅助索引的key可以重复。
-
-![image-20210812073355495](img_MySQL/image-20210812073355495.png)
-
-#### InnoDB的索引结构
-
-InnoDB存储引擎也使用B+Tree作为索引结构，根据索引的存储形式，又可以分为以下两种：
-
-| 分类                       | 含义                                                       | 特点                 |
-| -------------------------- | ---------------------------------------------------------- | -------------------- |
-| 聚集索引 (Clustered Index) | 将数据存储与索引放到了一块，索引结构的叶子节点保存了行数据 | 必须有，而且只有一个 |
-| 二级索引 (Secondary Index) | 将数据与索引分开存储，索引结构的叶子节点关联的是对应的主键 | 可以存在多个         |
-
-**聚集索引选取规则:**
-
-- 如果存在主键，主键索引就是聚集索引。
-- 如果不存在主键，将使用第一个唯一（UNIQUE）索引作为聚集索引。
-- 如果表没有主键，或没有合适的唯一索引，则InnoDB会自动生成一个rowid作为隐藏的聚集索引。
-
-聚集索引和二级索引的具体结构如下：
-
-![image-20241124112511251](img_MySQL1/image-20241124112511251.png)
-
-回表查询： 如`select * from user where name = 'Arm'` ，这种先到二级索引中查找数据，找到主键值，然后再到聚集索引中根据主键值，获取数据的方式，就称之为回表查询。
-
-
-
-
-
-MyISAM索引文件和数据文件是分离的，索引文件仅保存数据记录的地址；InnoDB只有一个表数据文件，它本身就是主索引文件。  
-
-#### 聚簇索引和非聚簇索引
-
-- 聚簇索引：将数据存储与索引放到了一块，找到索引也就找到了数据，比如innodb的主键索引，在InnoDB中，只有主键索引是聚簇索引，如果没有主键，则挑选一个唯一键建立聚簇索引。如果没有唯一键，则隐式的生成一个键来建立聚簇索引。
-- 非聚簇索引：将数据和索引分开存储，索引结构的叶子节点指向了数据的对应行，比如myisam的索引和innodb的辅助索引
-
-当查询使用聚簇索引时，在对应的叶子节点，可以获取到整行数据，因此不用再次进行回表查询。使用非聚簇索引，如果查询语句所要求的字段是否全部命中了索引，也可以不用再进行回表查询，否则需要进行二次查询。换句话说，B+树在满足聚簇索引和覆盖索引的时候不需要回表查询数据。
-
-举个简单的例子，假设我们在员工表的年龄上建立了索引，那么当进行`select age from employee where age < 20`的查询时，在索引的叶子节点上，已经包含了age信息，不会再次进行回表查询。
-
-
-
-### 索引优化使用
-
-不要想着为每个字段建立索引，因为优先使用索引的优势就在于其体积小。
-
-#### 复合索引
-
-##### 前导列特性
-
-在MySQL中，如果创建了复合索引(name, salary, dept)，就相当于创建了(name, salary, dept)、(name, salary)和(name)三个索引，这被称为复合索引前导列特性，因此在创建复合索引时应该将最常用作查询条件的列放在最左边，依次递减。
-
-```mysql
-#未使用索引
->select * from employee where salary=8800;
->select * from employee where dept='部门A';
->select * from employee where salary=8800 and dept='部门A';
-#使用索引
->select * from employee where name='liufeng';
->select * from employee where name='liufeng' and salary=8800;
->select * from employee where name='liufeng' and salary=8800 and dept='部门A';
->select * from employee where name='liufeng' and dept='部门A';#这里的name也使用了索引
-```
-
-##### 最左前缀匹配原则
-
-- 最左前缀法则指的是查询时，联合索引的最左列（即是第一个字段）必须存在，否则索引全部失效。而且中间不能跳过某一列，否则该列后面的字段索引将失效。与我们编写SQL时，条件编写的先后顺序无关。
-- 联合索引中，出现范围查询(>、<、between、like)，范围查询右侧的列索引失效。比如a = 1 and b = 2 and c > 3 and d = 4 如果建立(a,b,c,d)顺序的索引，d是用不到索引的，如果建立(a,b,d,c)的索引则都可以用到，a,b,d的顺序可以任意调整。当范围查询使用>= 或 <= 时，所有的字段都是走索引的。
-- =和in可以乱序，比如a = 1 and b = 2 and c = 3 建立(a,b,c)索引可以任意顺序，mysql的查询优化器会帮你优化成索引可以识别的形式
-
-##### 覆盖索引
-
-覆盖索引中，select的数据列只从索引中就能得到，不用再扫描数据表，也就是只需扫描索引就可以得到查询结果。但是并非所有类型的索引都可以作为覆盖索引，覆盖索引必须要存储索引列的值。像哈希索引、空间索引、全文索引等并不会真正存储索引列的值。
-
-当一个查询使用了覆盖索引，在查询分析器EXPLAIN的Extra列可以看到`“Using index”` 。
-
-##### 复合索引的底层结构
-
-假定，对people表创建复合索引(last_name, first_name, birthday) ，索引的多个值会按照定义索引时字段的顺序进行排序。
-
-1. 复合索引先按照第一列 last_name 进行排序存储；当 last_name 相同时，则根据 first_name 进行排序；当 last_name 和 first_name 都相同时，则根据 birthday 进行排序。
-2. 从图不难看出，该索引结构对于全值匹配、匹配最左前缀、匹配列前缀、匹配范围值、精确匹配某一列并范围匹配另外一列等类型的查询都是有效的。  
-
-![image-20210812075212040](img_MySQL/image-20210812075212040.png)
-
-
-
-
-
-### 索引失效
-
-**B+Tree索引可以用于在表达式中对字段进行比较，如=、>、>=、<、<=和Between、IN。**
-
-- **索引列运算**：不要在索引列上进行运算操作， 索引将失效。
-
-  ```mysql
-  -- 索引失效
-  select * from tb_user where substring(phone,10,2) = '15'; 
-  
-  -- 找出92年及之前生的人
-  -- 索引失效
-  select * from people where year(birthday) <= 1992;
-  
-  -- 索引生效
-  select * from people where birthday <= DATE_FORMAT('1992-12-31','%Y-%M-%d');
-  ```
-
-- **隐式类型转换**：数据库存在隐式类型转换，索引将失效。
-
-  ```mysql
-  -- phone为字符串，会使用索引
-  select * from tb_user where phone = '18733334444';
-  
-  -- phone为字符串，索引未生效
-  select * from tb_user where phone = 17799990015;
-  
-  -- 对于int类型的值加了单引号，会走索引但不推荐
-  select * from tb_user where id= '5'
-  ```
-
-- **模糊查询**：如果仅仅是尾部模糊匹配，索引不会失效。如果是头部模糊匹配，索引失效。
-
-  ```mysql
-  -- 索引生效
-  select * from tb_user where profession like '软件%';
-  
-  -- 索引失效
-  select * from tb_user where profession like '%工程';
-  ```
-
-- **or连接条件**：当or连接的条件，左右两侧字段都有索引时，索引才会生效。有一侧没有索引就都不会被用到。
-
-  or 和 and 不一样，添加复合索引 (phone, age) 也不能解决问题 。给or的每个字段单独添加索引或者使用union或union all解决这个问题
-
-  ```mysql
-  -- phone有索引，age无索引，都不会走索引
-  select * from tb_user where phone = '17799990017' or age = 23;
-  
-  -- 会使用phone索引
-  select * from tb_user where phone = '17799990017' 
-  union 
-  select * from tb_user where age = 23;
-  ```
-
-- **数据分布影响**：MySQL 的查询优化器会根据统计信息决定是否使用索引。如果优化器认为全表扫描比使用索引更高效，它可能会选择不使用索引。
-
-  因为MySQL在查询时，会评估使用索引的效率与走全表扫描的效率，如果走全表扫描更快，则放弃索引，走全表扫描。 因为索引是用来索引少量数据的，如果通过索引查询返回大批量的数据，则还不如走全表扫描来的快，此时索引就会失效。
-
-  ```mysql
-  select * from tb_user where profession is null;
-  select * from tb_user where profession is not null;
-  
-  -- 当profession不为null时，第一个走索引，第二个全表扫描
-  -- 当profession为null时，第一个全表扫描，第二个走索引
-  ```
-
-  
-
-#### 前缀索引
-
-语法：`index(field(10))`，使用字段值的前10个字符建立索引，默认是使用字段的全部内容建立索引。
-
-前提：前缀的标识度高。比如密码就适合建立前缀索引，因为密码几乎各不相同。
-
-实操的难度：在于前缀截取的长度。
-
-我们可以利用`select count(*)/count(distinct left(password,prefixLen));`，通过从调整prefixLen的值（从1自增）查看不同前缀长度的一个平均匹配度，接近1时就可以了（表示一个密码的前prefixLen个字符几乎能确定唯一一条记录）
-
-
-#### 降序索引
-
-在MySQL 8.0之前，索引都是按升序创建的，虽然语法上支持DESC，但创建的仍然是升序索引。  
-
-```java
->CREATE INDEX indexName ON tableName(columnName1 asc, columnName2 desc, …);
-```
-
-如果某个查询需要对多个列进行排序（有降序、也有升序），并且排序条件与索引列不一致，或没有对排序列创建索引，数据库都会进行额外的外部排序filesort，此时就可以考虑使用降序索引进行优化。  
-
-```java
-//当不存在a desc,b asc这样的索引，数据库就会进行额外排序，使用explain中Extra：Using filesort
->select * from tableName order by a desc,b asc\G;
-
-//创建索引加快查询效率
->create table t1(
-	a int,
-	b int,
-	index a_desc_b_asc(a desc, b asc)
-);
-```
-
-#### join
-
-对`join`语句匹配关系（`on`）涉及的字段建立索引能够提高效率
-
-#### 排序和分组
-
-确保`GROUP BY`和`ORDER BY`只有一个表中的列，这样MySQL才有可能使用索引
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-### 全文索引  
-
-全文索引是搜索引擎的关键技术。
-
-#### 倒排索引  
-
-倒排索引通常也称之为反向索引，它是搜索引擎主要使用的索引方式。倒排索引是一种面向单词的索引机制，每个文档都可以用一系列单词来表示，可以很方便地通过单词找到对应的文档。  
-
-- 正向索引：文档-->单词
-- 倒排索引：单词-->文档
-
-```mysql
-#对以下文档内容建索引，得到的结果如下图。
-MySQL is the most popular relational database on the internet.
-I like MySQL very much.
-```
-
-![image-20210831072122404](img_MySQL/image-20210831072122404.png)
-
-#### 全文索引的使用  
-
-```mysql
-CREATE TABLE ft_en(
-    id INT UNSIGNED AUTO_INCREMENT NOT NULL PRIMARY KEY,
-    title VARCHAR(200),
-    body TEXT,
-    FULLTEXT (title,body)
-) ENGINE=InnoDB;
-
-
-INSERT INTO ft_en(title,body) VALUES
-('MySQL Tutorial','DBMS stands for DataBase ...'),
-('How To Use MySQL Well','After you went through a ...'),
-('Optimizing MySQL','In this tutorial we will show ...'),
-('1001 MySQL Tricks','1. Never run mysqld as root. 2. ...'),
-('MySQL vs. YourSQL','In the following database comparison ...'),
-('MySQL Security','When configured properly, MySQL ...');
-
-
-# 如果建表时未创建全文索引，也可以使用create fulltext index创建
-CREATE FULLTEXT INDEX ft_title_body ON ft_en(title,body);
-```
-
-##### 三种模式  
-
-MySQL支持三种模式的全文检索，自然语言模式、布尔模式和查询扩展模式。  
-
-- 自然语言模式  
-
-```mysql
-# 将搜索字符串解释为自然人类语言，除双引号外，没有特殊的运算符
-# 未指定查询模式或指定为 IN NATURAL LANGUAGE MODE，都表示自然语言搜索
-SELECT * FROM ft_en WHERE MATCH (title, body) AGAINST ('database');
-```
-
-```mysql
-# score越大表示相关度越高
-select *, MATCH (title, body) AGAINST ('database') as score from ft_en;
-```
-
-![image-20210831074441897](img_MySQL/image-20210831074441897.png)
-
-- 布尔模式  
-
-```mysql
-#使用特殊规则解释搜索字符串。该字符串包含要搜索的单词，还可以包含指定要求的运算符
-#查询模式 IN BOOLEAN MODE 表示布尔搜索，+database -dbms表示有database没有dbms字样
-SELECT * FROM ft_en WHERE MATCH (title, body) AGAINST ('+database -dbms' IN BOOLEAN MODE);
-```
-
-- 查询扩展模式  
-
-```mysql
-#是对自然语言搜索的修改。搜索字符串用于执行自然语言搜索，将搜索返回的最相关行中的单词添加到搜索字符串中，然后再次执行搜索
-#IN NATURAL LANGUAGE MODE WITH QUERY EXPANSION 或 WITH QUERY EXPANSION
-SELECT * FROM ft_en WHERE MATCH (title, body) AGAINST ('database' WITH QUERY EXPANSION);
-```
-
-
-
-**全文索引相关参数设置：**
-
-```mysql
-show variables like 'innodb_ft%';
-```
-
-![image-20210912090755734](img_MySQL/image-20210912090755734.png)
-
-#### 忽略的单词
-
-在使用MySQL全文索引时，会发现有些单词检索不出结果，如for、how、in等，如：
-
-```mysql
-#查询结果为空
-select * from ft_en where match(title,body) against('for');
-```
-
-主要原因有两个：
-
-- InnoDB存储引擎默认只对长度>=3的单词建索引。查看参数设置： `SHOW VARIABLES LIKE 'innodb_ft%';`
-
-- 使用了停用词。查看停用词表： `select * from information_schema.INNODB_FT_DEFAULT_STOPWORD;  `
-
-#### 查看分词结果
-
-```mysql
-SET GLOBAL innodb_ft_aux_table="liufeng/ft_en";
-SELECT * FROM INFORMATION_SCHEMA.INNODB_FT_INDEX_CACHE;
-```
-
-![image-20210912090929871](img_MySQL/image-20210912090929871.png)
-
-#### ngram全文解析器
-
-MySQL内置的全文解析器使用空格确定单词的开始和结束，当涉及汉语、日语或韩文时，这明显不适用。为了解决这个问题，MySQL提供了ngarm全文解析器，支持MyISAM和InnoDB存储引擎。
-
-ngram即n元分词，ngram解析器将文本序列标记为连续的n字符序列，例如，对于“我爱中国”：  
-
-- n=1： '我', '爱', '中', '国'
-- n=2： '我爱', '爱中', '中国'
-- n=3： '我爱中', '爱中国'
-- n=4： '我爱中国'  
-
-默认ngram令牌大小为2，可以通过修改ngram_token_size来配置ngram令牌大小。  
-
-```mysql
-#在启动参数中设置
-mysqld --ngram_token_size=2
-#在配置文件中设置
-[mysqld]
-ngram_token_size=2
-```
-
-##### 使用ngram解析器创建全文索引  
-
-```mysql
-CREATE TABLE ft_zh(
-    id INT UNSIGNED AUTO_INCREMENT NOT NULL PRIMARY KEY,
-    title VARCHAR(200),
-    body TEXT,
-    FULLTEXT (title,body) WITH PARSER ngram
-) ENGINE=InnoDB CHARACTER SET utf8mb4;
-
-INSERT INTO ft_zh(title,body) VALUES ('MySQL基础入门', '主要讲解MySQL的基本使用。');
-INSERT INTO ft_zh(title,body) VALUES ('MySQL高级进阶', '主要讲解查询优化、高可用等相关知识。');
-
-#如果建表时未创建全文索引
-CREATE FULLTEXT INDEX idx_ft_zh ON ft_zh(title, body) WITH PARSER ngram; 
-
-#查看分词结果
-SET GLOBAL innodb_ft_aux_table="liufeng/ft_zh";
-SELECT * FROM INFORMATION_SCHEMA.INNODB_FT_INDEX_CACHE ORDER BY doc_id, position;
-
-#查询数据
-SELECT * FROM ft_zh WHERE MATCH (title, body) AGAINST('入门和进阶');
-```
-
-#### Sphinx  
-
-Sphinx是一个免费、开源的全文搜索引擎，它的设计就着眼于与数据库的完美结合，有着类似于DBMS的特性，查询速度非常快，支持分布式检索，并且扩展性好。它可以高效利用内存和磁盘I/O，缓解大型操作的瓶颈，可以提供比数据库本身更专业的搜索功能。  
-
-Sphinx可以在多个方面完善基于MySQL的应用程序，能弥补MySQL性能的不足，还提供了MySQL没有的功能，例如：
-
-- Sphinx是快速、高效、可扩展的全文检索。
-- Shinx的索引和检索的速度要明显快于MySQL，查询1GB的数据也只需要10~100ms。
-- Sphinx可以对多个源表的混合数据创建索引，不限于单个表上的字段。
-- Sphinx可以将多个索引的搜索结果进行动态整合。
-- 除了能对文本列索引外，还支持其他数据类型，如整型、浮点型、时间戳等。
-- 支持布尔、短语、相似词搜索。
-- 支持关键词高亮显示。
-- 支持生成文档摘要。
-- … …  
-
-**使用Sphinx的两种方式：**  
-
-在实际应用中，可以通过两种方式整合Sphinx和MySQL。一种是松耦合方式，Sphinx对MySQL的查询结果进行索引，应用程序使用API进行检索；另一种是将Sphinx作为MySQL的插件。  
-
-![image-20210910074024798](img_MySQL/image-20210910074024798.png)
-
-**中文分词算法：**  
-
-- 基于词典  
-
-  典型的机械分词，与词典进行比较，词典越大，分词的准确率越高。
-
-  - 正向最大匹配
-  - 逆向最大匹配
-  - 双向最大匹配  
-
-- 基于统计  
-
-  上下文中相邻的字同时出现的次数越多，就越可能构成一个词。
-
-  - N元模型
-  - 隐马尔科夫模型 HMM  
-
-- 基于规则（语义）  
-
-  通过模拟人对句子的理解，达到识别词的效果，基本思想是语义分析，句法分析，利用句法信息和语义信息对文本进行分词。目前还不成熟  
-
-
-
-### 百万级别或以上的数据如何删除
-
-关于索引：由于索引需要额外的维护成本，因为索引文件是单独存在的文件,所以当我们对数据的增加,修改,删除,都会产生额外的对索引文件的操作,这些操作需要消耗额外的IO,会降低增/改/删的执行效率。所以，在我们删除数据库百万级别数据的时候，查询MySQL官方手册得知删除数据的速度和创建的索引数量是成反比的。
-
-1. 所以我们想要删除百万数据的时候可以先删除索引（此时大概耗时三分多钟）
-2. 然后删除其中无用数据（此过程需要不到两分钟）
-3. 删除完成后重新创建索引(此时数据较少了)创建索引也非常快，约十分钟左右。
-4. 与之前的直接删除绝对是要快速很多，更别说万一删除中断,一切删除会回滚。那更是坑了
-
 
 
 ## 视图
@@ -1659,4 +1005,471 @@ mysqlbinlog "C:\ProgramData\MySQL\MySQL Server 8.0\Data\WQ-20160826MDKU-bin.0000
 ```
 
 
+
+## MySQL的锁
+
+当数据库有**并发事务**的时候，可能会产生数据的不一致，这时候需要一些机制来保证访问的次序，锁机制就是这样的一个机制。不同的存储引擎支持不同的锁机制，按照**锁的粒度来划分**，可以分为表锁、行锁和页锁。  
+
+|      | 描述                                                         | MyISAM | InnoDB | BDB  |
+| ---- | ------------------------------------------------------------ | ------ | ------ | ---- |
+| 表锁 | 开销小，加锁快；不会出现死锁；锁定力度大，发生锁冲突概率高，并发度最低 | √      | √      | √    |
+| 行锁 | 开销大，加锁慢；会出现死锁；锁定粒度小，发生锁冲突的概率低，并发度高 |        | √      |      |
+| 页锁 | 开销和加锁速度介于表锁和行锁之间；会出现死锁；锁定粒度介于表锁和行锁之间， 并发度一般，介于表锁和行锁之间 |        |        | √    |
+
+### MyISAM的锁  
+
+MyISAM存储引擎**只支持表锁**。在执行查询操作（select）前， 会自动给涉及的所有表加读锁；在执行更新操作（insert、update、delete等）前， 会自动给涉及的所有表加写锁 。
+
+MyISAM表的读操作，不会阻塞其他用户对相同表的读操作，但会阻塞对相同表的写操作；MyISAM表的写操作，会阻塞其他用户对相同表的读操作、写操作；MyISAM表的读、写操作之间，以及写操作之间是串行的。  
+
+```mysql
+# 给表加读锁，此时其他会话可以对表进行读操作，写操作会阻塞等待
+lock tables bk_myisam read;
+# 解锁
+unlock tables;
+```
+
+### InnoDB的锁  
+
+InnoDB存储引擎既支持行锁，也支持表锁，但默认情况下是采用行锁。InnoDB的锁，与索引、事务的隔离级别有关。
+
+- InnoDB的行锁是通过**锁定索引项**来实现的，而不是锁定物理行记录。所以当查询字段不是索引键那么InnoDB将完成表锁，并发将无从谈起。当查询字段是唯一索引时使用记录锁，不是唯一索引使用临键锁。
+
+- 事务隔离级别与锁的关系
+  - 在Read Uncommitted级别下，读取数据不需要加共享锁，这样就不会跟被修改的数据上的排他锁冲突
+  - 在Read Committed级别下，读操作需要加共享锁，但是在语句执行完以后释放共享锁；(单个语句执行期间不允许修改)
+  - 在Repeatable Read级别下，读操作需要加共享锁，但是在事务提交之前并不释放共享锁，也就是必须等待事务执行完毕以后才释放共享锁。(整个事务执行期间不允许修改)
+  - SERIALIZABLE 是限制性最强的隔离级别，因为该级别锁定整个范围的键，并一直持有锁，直到事务完成。
+
+InnoDB的锁类型有很多种。
+
+| 锁     | 描述                                                         |
+| ------ | ------------------------------------------------------------ |
+| 共享锁 | `Share Locks`，即S锁，读锁。当一个事务对某行上读锁时，允许其他事务对该行进行读操作，但不允许写。 |
+| 排他锁 | `Exclusive Locks`，即X锁，写锁。当一个事务对某行数据上排他锁，其他事务就不能再对该行上任何锁。 |
+| 意向锁 | `Intention Locks`，包括意向共享锁和意向排他锁，是表级锁，InnoDB自动添加，无需要人工干预 |
+| 记录锁 | `Record Locks`，锁定索引记录，可以防止其他事务更新或删除行。 |
+| 自增锁 | `Auto-inc Locks`，针对自动增长的主键。                       |
+| 间隙锁 | `Gap Locks`，锁定索引记录之间的间隙。                        |
+| 临键锁 | `Next-key Locks`，记录锁与间隙锁的组合。                     |
+
+
+
+**从锁的类别上来讲，有共享锁和排他锁。**
+
+#### 共享锁
+
+共享锁（Share Locks）也称之为S锁、读锁。当一个事务对某行记录上了共享锁，允许其他事务对该记录进行读操作，但不允许写操作 。
+
+```mysql
+#共享锁加锁方式
+SELECT ... LOCK IN SHARE MODE
+```
+
+```mysql
+#事务A
+begin;
+select * from user where id=1 lock in share mode;	#加共享锁，其他事务此时可读不可写
+commit;												#事务提交自动释放锁
+
+#事务B
+begin;
+select * from user where id=1 lock in share mode;	#允许(事务A未提交)
+update user set age=20 where id=1;					#不允许(事务A未提交),事务A提交之后操作就会继续执行，事务B中加的共享锁对本事务无影响
+commit;
+```
+
+#### 排他锁
+
+排他锁（Exclusive Locks）也称之为X锁、写锁。当一个事务对某行记录上了排他锁，其他事务即不能对该行记录进行读操作，也不能进行写操作。**InnoDB会自动对增删改操作加排他锁**。
+
+```mysql
+#手动加排他锁的方式
+SELECT ... FOR UPDATE
+```
+
+```mysql
+#事务A
+select * from user where id=1 for update;
+
+#事务B
+select * from user where id=1 lock in share mode;	#不允许
+update user set age=20 where id=1;					#不允许
+```
+
+#### 自增锁
+
+在实际应用中，都推荐使用自增id作为数据表的主键，而不建议使用业务id，更不建议使用字符串作为主键 。 
+
+- InnoDB底层的数据结构是B+Tree ，索引本身是有序的，再加上MySQL底层是以页为单位来存储数据的，一页写满继续写下一页。如果使用非自增id，为了保证索引的有序性，每次插入都需要将数据移动到合适的位置，可能会造成页分裂，影响插入性能。
+
+- 相对而言，字符串作为主键占用的空间大，而且字符串的比较更慢  
+
+自增锁（Auto-inc Locks）是当向含有AUTO_INCREMENT列的表中插入数据时需要获取的一种特殊的**表级锁**。在最简单的情况下，如果一个事务正在向表中插入值，则任何其他事务必须等待对该表执行自己的插入操作，以便第一个事务插入的行的值是连续的。  
+
+特殊的表级锁：insert出现在事务中，**自增锁是在insert之后立即释放**，而不是等事务提交才释放。
+
+**参数：**
+
+InnoDB还提供了参数 `innodb_autoinc_lock_mode` 用于设置自增锁模式，它可以对插入操作实现性能与并发的平衡。  
+
+![image-20210912225101814](img_MySQL1/image-20210912225101814.png)
+
+取值说明：
+
+- 0：traditional，传统锁模式，语句级锁，保证值分配的可预见性、连续性、可重复性，保证主从复制的一致性。(insert之后释放)
+- 1： consecutive，连续锁模式，**锁在语句得到值后就释放**，并发插入性能优于传统模式，MySQL 5.x默认模式。
+- 2：interleaved，交错锁模式，最快最具扩展性的模式，基于binlog的复制与恢复不安全，MySQL 8.0默认模式 。不能保证自增的连续性。 
+
+```mysql
+#查看自增参数
+show variables like '%auto_increment%';
+
+auto_increment_increment	1	#初始值
+auto_increment_offset		1	#每次增加的步长
+```
+
+#### 行级锁
+
+行级锁能够有效减少锁冲突。**按照锁定范围的不同，MySQL支持3种行级锁**：记录锁、间隙锁和临键锁。
+
+| 锁     | 描述                                                         |
+| ------ | ------------------------------------------------------------ |
+| 记录锁 | Record Locks，锁定某行记录                                   |
+| 间隙锁 | Gap Locks，锁定一个范围，不仅仅是记录本身                    |
+| 临键锁 | Next-key Locks(Record+Gap)，锁定记录本身和左右两边相邻的范围 |
+
+- innodb对于行的查询使用临键锁，当查询的索引含有唯一属性时，将临键锁降级为记录锁。临键锁解决幻读问题。
+- 间隙锁设计的目的是为了阻止多个事务将记录插入到同一范围内，而这会导致幻读问题的产生。两种方式显式关闭间隙锁：（除了外键约束和唯一性检查外，其余情况仅使用记录锁） A. 将事务隔离级别设置为`Read Committed` B. 将参数`innodb_locks_unsafe_for_binlog`设置为1
+
+##### 记录锁
+
+记录锁是通过主键或唯一索引对某行记录进行加锁，它锁住该行的索引，有时也称之为行锁。
+
+![image-20210912231213708](img_MySQL1/image-20210912231213708.png)
+
+##### 间隙锁
+
+间隙锁锁住的是一个范围区间，而不仅仅是这个区间的记录。
+
+![image-20210912231426354](img_MySQL1/image-20210912231426354.png)
+
+##### 临键锁
+
+临键锁是记录锁和间隙锁的组合，除了锁定记录本身之外，还会锁定左右两边相邻的区间范围。
+
+如下num是普通索引，会出现临键锁：
+
+![image-20210912231941079](img_MySQL1/image-20210912231941079.png)
+
+#### 死锁
+
+死锁(DeadLock)是指两个或两个以上的事务在执行过程中，因争夺资源而造成相互等待的现象，若无外力作用，它们都将无法进行下去，一直处于等待状态。
+
+两个事务A、B因争夺资源而相互等待，A等待B释放id=2的锁，B等待A释放id=1的锁。
+
+![image-20210912232613506](img_MySQL1/image-20210912232613506.png)
+
+##### 死锁检测
+
+![image-20210912232712210](img_MySQL1/image-20210912232712210.png)
+
+##### 锁等待时间
+
+![image-20210912232747312](img_MySQL1/image-20210912232747312.png)
+
+##### 处理死锁的相关命令
+
+![image-20210912232837928](img_MySQL1/image-20210912232837928.png)
+
+##### 解决死锁的方法
+
+- 如果不同程序会并发存取多个表，尽量约定以相同的顺序访问表，可以大大降低死锁机会。
+
+- 在同一个事务中，尽可能做到一次锁定所需要的所有资源，减少死锁产生概率；
+
+- 对于非常容易产生死锁的业务部分，可以尝试使用升级锁定颗粒度，通过表级锁定来减少死锁产生的概率；
+
+- 如果业务处理不好可以用分布式事务锁或者使用乐观锁
+
+### 乐观锁和悲观锁
+
+数据库管理系统（DBMS）中的并发控制(锁)的任务是确保在多个事务同时存取数据库中同一数据时不破坏事务的隔离性和统一性以及数据库的统一性。乐观并发控制（乐观锁）和悲观并发控制（悲观锁）是并发控制主要采用的技术手段。
+
+- 悲观锁：假定会发生并发冲突，屏蔽一切可能违反数据完整性的操作。在查询完数据的时候就把事务锁起来，直到提交事务。实现方式：使用数据库中的锁机制。
+
+- 乐观锁：假设不会发生并发冲突，只在提交操作时检查是否违反数据完整性。在修改数据的时候把事务锁起来，通过version的方式来进行锁定。实现方式：乐观锁一般会使用版本号机制或CAS算法实现。
+
+#### 使用场景
+
+**乐观锁适用于多读场景**，即冲突真的很少发生的时候，这样可以省去了锁的开销，加大了系统的整个吞吐量。
+
+但如果是多写的情况，一般会经常产生冲突，这就会导致上层应用会不断的进行retry，这样反倒是降低了性能，所以**一般多写的场景下用悲观锁就比较合适。**
+
+## 存储过程
+
+存储过程（ Stored Procedure）是为了完成特定功能的**预编译SQL语句集**，经编译创建并保存在数据库中，用户可通过指定存储过程的名字并给定参数(需要时)来调用执行，类似于编程语言中的方法或函数。  
+
+**存储过程的优点：**
+
+- 存储过程是对SQL语句的封装，增强可复用性
+- 存储过程可以隐藏复杂的业务逻辑、商业逻辑
+- 存储过程支持接收参数，并返回运算结果
+
+**存储过程的缺点：**
+
+- 存储过程的可移植性较差，如果更换数据库，要重写存储过程
+- 存储过程难以调试和扩展
+- 无法使用Explain对存储过程进行分析
+- 《阿里巴巴Java开发手册》 中禁止使用存储过程  
+
+```java
+#存储过程定义：求两数之和
+#delimiter声明语句结束符
+delimiter //
+#in定义入参 out定义出参    
+create procedure my_sum(in a int, in b int, out result int)
+#存储过程begin开始与end结束
+begin
+	set result = a + b;
+end
+//
+delimiter ;
+
+#存储过程调用
+call my_sum(10, 20, @result);
+select @result;
+```
+
+```java
+#存储过程定义：计算1+2+...+n的和
+delimiter //
+create procedure my_n_sum(in n int, out result int)
+begin
+    declare i int default 1;
+    declare sum int default 0;
+    while i<=n do
+        set sum = sum + i;
+        set i = i + 1;
+    end while;
+    set result = sum;
+end;
+//
+delimiter ;
+```
+
+```java
+drop table if exists user_info;
+drop table if exists email_info;
+
+create table user_info(
+    id int not null auto_increment primary key,
+    name varchar(30),
+    email varchar(50)
+);
+
+insert into user_info(id, name, email) values(1, '柳峰', 'liufeng@qq.com');
+insert into user_info(id, name, email) values(2, '张三', 'zhangsan@qq.com');
+
+create table email_info(
+    id int not null auto_increment primary key,
+    email varchar(50),
+    content text,
+    send_time datetime
+);
+
+
+#存储过程示例：根据用户id和邮件内容content给用户发邮件
+delimiter //
+create procedure send_email(in user_id int, in content text)
+begin
+    /* 根据用户id查询邮箱email */
+    set @user_email=(select email from user_info where id=user_id);
+    /* 模拟发送邮件 */
+    insert into email_info(email, content, send_time) values(@user_email, content, now());
+end;
+//
+delimiter ;
+
+
+
+call send_email(1, '欢迎加入MySQL阵营！ ');
+```
+
+
+
+## 触发器
+
+触发器（ trigger）是用户定义在关系表上的一类由事件驱动的特殊的存储过程。用于监视某种情况并触发某种操作，它是与**表事件**相关的特殊的存储过程， 它的执行不是由程序调用，而是由事件来触发。 例如，当对某张表进行**insert、 delete、 update操作**时就会触发执行它。  
+
+```mysql
+#创建触发器语法
+CREATE TRIGGER trigger_name trigger_time trigger_event ON table_name FOR EACH ROW trigger_stmt
+```
+
+参数说明：
+
+- trigger_name：触发器名称
+- trigger_time：触发时间，取值有before、 after
+- trigger_event：触发事件，取值有insert、 update、 delete
+- table_name：触发器监控的表名
+- trigger_stmt：触发执行的语句，可以使用OLD、 NEW来引用变化前后的记录内容
+- NEW.columnName：获取INSERT触发事件中新插入的数据
+  OLD.columnName：获取UPDATE和DELETE触发事件中被更新、删除的数据  
+
+```mysql
+drop table if exists user_info;
+drop table if exists email_info;
+
+create table user_info(
+    id int not null auto_increment primary key,
+    name varchar(30),
+    email varchar(50)
+);
+
+insert into user_info(id, name, email) values(1, '柳峰', 'liufeng@qq.com');
+insert into user_info(id, name, email) values(2, '张三', 'zhangsan@qq.com');
+
+create table email_info(
+    id int not null auto_increment primary key,
+    email varchar(50),
+    content text,
+    send_time datetime
+);
+
+#当有新用户插入时，自动给用户发送邮件。
+delimiter //
+#触发时间AFTER  监控的表名user_info
+CREATE TRIGGER send_email_trigger AFTER INSERT ON user_info FOR EACH ROW
+BEGIN
+	#获取新插入的数据NEW.email
+	insert into email_info(email, content, send_time) values(NEW.email, '欢迎加入MySQL阵营！ ', now());
+END
+//
+delimiter ;
+```
+
+在MySQL数据库中有如下六种触发器：
+
+- Before Insert
+- After Insert
+- Before Update
+- After Update
+- Before Delete
+- After Delete
+
+## 存储引擎
+
+### 概念
+
+MySQL中的数据用各种不同的技术存储在文件(或者内存)中。这些技术中的每一种技术都使用不同的存储机制、索引技巧、锁定水平并且最终提供广泛的不同的功能和能力。这些不同的技术以及配套的相关功能在 MySQL中被称作存储引擎(也称作表类型)。
+
+在mysql客户端中，使用以下命令可以查看MySQL支持的引擎。
+
+`show engines;`
+
+### InnoDB
+
+- InnoDB是一个健壮的事务型存储引擎；
+- 支持行级锁定和外键约束；
+- 适合处理多重并发的更新请求；
+- 与其它存储引擎不同，InnoDB表能够自动从灾难中恢复；
+- 支持自动增加列AUTO_INCREMENT属性。
+- InnoDB将它的数据放在一个逻辑表空间(一个目录)中，表空间可以包含数个文件（一个数据库一个文件夹，一个表是一个`.frm`表定义文件和`.ibd`表数据文件）
+
+一般来说，如果需要事务支持，并且有较高的并发读取频率，InnoDB是不错的选择。
+
+### MyISAM
+
+- 拥有较高的插入、查询速度；
+- 不支持事务，也不支持外键；
+- 可以把数据文件和索引文件放在不同目录（InnoDB是放在一个目录里面的）；要指定数据文件和索引文件的路径，需要在创建表的时候通过`DATA DIRECTORY`和`INDEX DIRECTORY`语句指定，文件路径需要使用绝对路径。
+
+### MEMORY
+
+- 使用系统内存存储数据，虽然在内存中存储表数据确实会提供很高的性能，但当mysqld守护进程崩溃时，所有的Memory数据都会丢失；
+- 存储的数据使用的是长度不变的格式，不能使用BLOB和TEXT长度可变的数据类型，VARCHAR是一种长度可变的类型，但因为它在MySQL内部当做长度固定不变的CHAR类型，所以可以使用；
+- 可以在一个MEMORY表中有非唯一键值；
+- MEMORY支持AUTO_INCREMENT列和对可包含NULL值的列的索引；
+- 当不再需要MEMORY表的内容时，要释放被MEMORY表使用的内存，应该执行DELETE FROM或TRUNCATE TABLE，或者删除整个表（使用DROP TABLE）；
+- 支持散列索引和B树索引，如：
+
+```mysql
+#在username字段上使用了HASH散列索引
+create table users(
+    id smallint unsigned not null auto_increment,
+    username varchar(15) not null,
+    pwd varchar(15) not null,
+    index using hash (username),
+    primary key (id)
+)engine=memory;
+
+#在username字段上使用BTREE索引
+create table users(
+    id smallint unsigned not null auto_increment,
+    username varchar(15) not null,
+    pwd varchar(15) not null,
+    index using btree (username),
+    primary key (id)
+)engine=memory;
+```
+
+### ARCHIVE
+
+仅仅支持最基本的插入和查询两种功能。Archive支持高并发的插入操作，但是本身不是事务安全的。Archive非常适合存储归档数据，如记录日志信息可以使用Archive。
+
+![20170705172036010](img_MySQL1/20170705172036010.png)
+
+## 字符集
+
+**字符（Character）**是各种文字和符号的总称，包括各国家文字、标点符号、图形符号、数字等。
+**字符集（Character set）**是多个字符的集合，字符集种类较多，每个字符集包含的字符个数不同，常见的字符集有ASCII、GB2312、GBK、 GB18030、Unicode等。计算机要准确的处理各种字符集文字，就需要进行字符编码，以便计算机能够识别和存储各种文字。
+
+- **ASCII** 最简单的西文编码方案，主要用于显示现代英语和其他西欧语言。
+
+  使用1个字节表示，可表示128个字符。
+
+- **GB2312** 国家标准简体中文字符集，兼容ASCII。
+
+  使用2个字节表示，能表示7445个符号，包括6763个汉字，几乎覆盖所有高频率汉字。
+
+- **GBK** GB2312的扩展，加入对繁体字的支持，兼容GB2312。
+
+  使用2个字节表示，可表示21886个字符。
+
+- **GB18030** 解决了中文、日文、朝鲜语等的编码，兼容GBK。
+
+  采用变字节表示(1 ASCII，2，4字节)。可表示27484个文字。
+
+- **Unicode** Unicode是国际标准编码字符集，为世界650种语言进行统一编码，兼容ISO-8859-1。
+  Unicode字符集有多个编码方式，分别是UTF-8，UTF-16和UTF-32。
+
+```mysql
+#查看mysql数据库支持的字符集
+>show character set;
+```
+
+### 设置字符集
+
+```mysql
+1、数据库
+# 创建数据库时指定字符集,COLLATE为排序使用的字符集
+CREATE DATABASE databaseName CHARSET utf8 COLLATE utf8_general_ci;
+# 查看数据库的字符集
+SHOW CREATE DATABASE databaseName;
+2、表
+# 创建表时指定字符集
+CREATE TABLE tableName(…) DEFAULT CHARSET=utf8;
+# 查看数据库的字符集
+SHOW CREATE TABLE tableName;
+3、字段
+CREATE TABLE tableName(…, name varchar(50) not null CHARSET utf8, …);
+```
+
+```mysql
+#举例
+>create table t1(name varchar(30)) default charset=gb2312
+#gb2312不支持繁体字，这里会报错，需要换成gbk或者unicode编码等    
+>insert into t1 values('陶喆')    
+```
 
