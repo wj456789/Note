@@ -1232,6 +1232,12 @@ private static String hasRole(String role) {
 
 # 八、自动登陆
 
+JdbcTokenRepositoryImpl 会把token票据持久化到数据库 persistent_logins 表中
+
+
+
+
+
 ## 1. 准备数据库表
 
 创建persistent_logins表，用于持久化自动登陆的信息。
@@ -1319,30 +1325,25 @@ public class PermissionConfig extends WebSecurityConfigurerAdapter {
 - 前端页面添加自动登陆表单项
 
 ```html
-                <div class="checkbox">
-                    <label>
-                        <input type="checkbox" name="remember-me"> 记住我
-                    </label>
-                </div>
+<div class="checkbox">
+    <label>
+        <input type="checkbox" name="remember-me"> 记住我
+    </label>
+</div>
 ```
 
 ## 3.自动登陆底层实现逻辑
 
 > - 首先从前端传来的 cookie 中解析出 series 和 token；
->
-> - 根据 series 从数据库中查询出一个 PersistentRememberMeToken 实例；
->
+>- 根据 series 从数据库中查询出一个 PersistentRememberMeToken 实例；
 > - 如果查出来的 token 和前端传来的 token 不相同，说明账号可能被人盗用(别人用你的令牌登录之后，token 会变)。此时根据用户名移除相关的 token，相当于必须要重新输入用户名密码登录才能获取新的自动登录权限。
->
-> - 接下来校验 token 是否过期;
->
+>- 接下来校验 token 是否过期;
 > - 构造新的 PersistentRememberMeToken 对象，并且更新数据库中的 token(这就是我们文章开头说的，新的会话都会对应一个新的 token)；
->
-> - 将新的令牌重新添加到 cookie 中返回；
->
+>- 将新的令牌重新添加到 cookie 中返回；
 > - 根据用户名查询用户信息，再走一波登录流程。
 >
->
+
+对比票据 token ，之后更新数据库中票据，将新的令牌添加到 cookie 中返回
 
 # 九、用户注销
 
@@ -1416,6 +1417,12 @@ public class PermissionConfig extends WebSecurityConfigurerAdapter {
 > - 服务端收到请求后，验证客户端携带的Token，如果验证成功则返回数据。
 
 <img src="pic/jwt认证.png" alt="jwt认证" style="zoom:70%;" />
+
+
+
+JavaWeb的session-cookie方案，用户登录认证把用户信息存放在 服务器端的session中，并把sessionid返回客户端存放cookie，客户端再次访问比对sessionid实现认证，但是不适用于分布式，因为session只能存在一个服务端中
+
+
 
 ## 2.什么是JWT
 
@@ -1513,7 +1520,7 @@ eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ
 > - Payload（Base64编码后）
 > - Secret（盐，必须保密）
 >
-> 这个部分需要Base64加密后的header和base4加密后的payload使用.连接组成的字符串，然后通过header重声明的加密方式进行加盐Secret组合加密，然后就构成了JWT的第三部分——使用“qfjava”作为盐：
+> 这个部分**需要Base64加密后的header和base4加密后的payload使用.连接组成的字符串，再加盐Secret连接成新的字符串，然后通过header重声明的加密方式进行加密，然后就构成了JWT的第三部分**——使用“qfjava”作为盐：
 
 ```
 eZqdTo1mRMB-o7co1oAiTvNvumfCkt-1H-CdfNm78Cw
@@ -1525,7 +1532,7 @@ eZqdTo1mRMB-o7co1oAiTvNvumfCkt-1H-CdfNm78Cw
 eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.eZqdTo1mRMB-o7co1oAiTvNvumfCkt-1H-CdfNm78Cw
 ```
 
-![image-20210310163620788](/Users/zeleishi/Documents/工作/精品视频/springsecurity/pic/jwttoken.png)
+![image-20241216205410223](img_SpringSecurity/image-20241216205410223.png)
 
 
 

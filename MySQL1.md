@@ -621,6 +621,64 @@ create table child(
 
 参考：[外键约束](https://www.cnblogs.com/cjaaron/p/9216839.html)
 
+## MySQL 逻辑架构概览
+
+可以大致把 MySQL 的逻辑架构分成 Server 层和存储引擎层：
+
+1）大多数 MySQL 的核心服务功能都在 Server 层，包括连接、分析、优化、缓存以及所有的内置函数（例如，日期、时间、数学和加密函数），所有跨存储引擎的功能都在这一层实现：存储过程、触发器、视图等。
+
+值得一提的是，Server 最上面的服务也就是连接器，拥有管理 MySQL 连接、权限验证的功能。显然这并非 MySQL 所独有，大多数基于网络的客户端/服务器的工具或者服务都有类似的架构。
+
+2）第二层就是存储引擎（支持 InnoDB、MyISAM、Memory 等多个存储引擎）。**存储引擎负责 MySQL 中数据的存储和提取，且响应上层服务器的请求。**每个存储引擎自然是有它的优势和劣势，不同的存储引擎之间无法相互通信，所以我们需要根据不同的场景来选择合适的存储引擎。
+
+服务器通过 API 与存储引擎进行通信。这些接口屏蔽了不同存储引擎之间的差异，使得这些差异对上层的查询过程透明。存储引擎 API 包含几十个底层函数，用于执行诸如 “开始一个事务” 或者 “根据主键提取一行记录” 等操作。
+
+需要注意的是，在 MySQL 5.1 及之前的版本，MyISAM 是默认的存储引擎，而在 MySQL 5.5.5 后，InnoDB 成为了默认的存储引擎。
+
+**MySQL 的逻辑架构图：**
+
+![gdashj](img_MySQL1/gdashj.png)
+
+MySQL 最重要、最与众不同的特性就是它的**可插拔存储引擎架构**（pluggable storage engine architecture），这种架构的设计将查询处理及其他系统任务和数据的存储/提取分离开来。
+
+
+
+1. **连接器（Connector）**
+
+   连接器会做两个事情，一个是管理 MySQL 连接，一个是权限验证。比对用户名和密码建立连接，它还会验证该用户是否具有执行某个特定查询的权限，当修改了用户权限后，只有再新建的连接才会使用新的权限设置。
+
+2. **查询缓存（Query Cache）**
+
+   查询缓存存储了 SELECT 语句的文本以及响应给客户端的相应结果。这样，如果服务器稍后接收到相同的 SELECT 语句，服务器会先从查询缓存中检索结果，而不是再次解析和执行该语句。查询缓存在 session 之间共享，因此可以发送一个客户端生成的结果集以响应另一个客户端发出的相同查询。如果当前的查询恰好命中了查询缓存，那么**在返回查询结果之前 MySQL 会检查一次用户权限**。
+
+   为了保证缓存一致性，当表被修改时，查询缓存中的任何相关条目都会被 flushed，注意，这里的 flushed 翻译为**清空**而不是刷新，正是由于这个特性，**从 MySQL 5.7.20 开始，官方不再推荐使用查询缓存，并在 MySQL 8.0 中直接删除了查询缓存！**
+
+3. **解析器（Parser）**
+
+   如果没有命中或者没有开启查询缓存，MySQL 服务器接下来要做的就是**将一条 SQL 语句转换成一个执行计划**，再依照这个执行计划和存储引擎进行交互。这包括多个子阶段：解析 SQL、预处理、优化 SQL 执行计划。这个过程中任何错误（例如语法错误）都可能终止查询。
+
+   其中**解析 SQL 和预处理就是解析器做的事情，优化 SQL 执行计划就是优化器做的事情**。服务器端进行 SQL 解析、预处理，生成合法的解析树；
+
+4. **优化器（Optimizer）**
+
+   一条查询可以有很多种执行计划，最后都返回相同的结果，**优化器的作用就是找到这其中最好的执行计划**。
+
+5. **执行器**
+
+   在开始执行 SQL 语句之前，执行器会先判断一下当前用户对这个表有没有执行查询的权限，如果没有，就会返回没有权限的错误。
+
+   权限认证完成后，MySQL 就会根据执行计划给出的指令逐步执行。在根据执行计划逐步执行的过程中，有大量的操作需要通过调用存储引擎实现的接口来完成
+
+
+
+
+
+
+
+
+
+
+
 ## 表空间
 
 ### 概念
@@ -1472,4 +1530,219 @@ CREATE TABLE tableName(…, name varchar(50) not null CHARSET utf8, …);
 #gb2312不支持繁体字，这里会报错，需要换成gbk或者unicode编码等    
 >insert into t1 values('陶喆')    
 ```
+
+
+
+
+
+## 预处理
+
+从MySQL 4.1开始，就支持预处理语句（Prepared statement），这大大提高了客户端和服务器端数据传输的效率。当创建一个预定义SQL时，客户端向服务器发送一个SQL语句的原型；服务器端接收到这个SQL语句后，解析并存储这个SQL语句的**部分执行计划**，返回给客户端一个SQL语句处理句柄，以后每次执行这条SQL，客户端都指定使用这个句柄。
+
+- **高效执行重复SQL**  在服务器端只需要解析一次SQL，在服务器端某些优化器的工作只需要执行一次，它会缓存一部分执行计划
+- **减少网络开销** 对于重复执行的SQL，后续只需要将参数发送到服务器端，而不是整个SQL语句，因此网络开销会更小。
+- **更加安全** 使用预处理语句，无须在应用程序中处理转义，也大大减少了SQL注入和攻击的风险
+
+### 基本使用
+
+MySQL支持SQL接口的预处理，即不使用二进制传输协议也可以直接以SQL的方式使用预处理。预处理的语法如下。
+
+```mysql
+# 定义预处理语句
+PREPARE stmt_name FROM preparable_stmt;
+# 执行预处理语句
+EXECUTE stmt_name [USING @var_name [, @var_name] ...];
+# 删除(释放)定义
+{DEALLOCATE | DROP} PREPARE stmt_name;
+```
+
+```mysql
+>prepare pre_employee from 'select * from employee where name=?';
+>set @name1='张三'
+>execute pre_employee using @name1;    
+```
+
+## 查询缓存(过期)
+
+很多数据库产品都能够缓存查询的执行计划，对于相同类型的SQL就可以跳过SQL解析和执行计划分成阶段。MySQL在某种场景下也可以实现，但是MySQL还有另一种不同的缓存类型：**缓存完成的SELECT查询结果**，也就是查询缓存。
+MySQL将缓存存放在一个引用表中，类似于HashMap的数据结构，Key查询SQL语句，Value则是查询结果。当发起查询时，会使用SQL语句去缓存中查询，如果命中则立即返回缓存的结果集
+
+```java
+# 查询缓存参数，8.0中数值为no表示已弃用
+show variables like "%query_cache%";
+```
+
+- 可以使用 SQL_NO_CACHE 在 SELECT 中禁止缓存查询结果，例如：SELECT SQL_NO_CACHE ...
+- MySQL 8.0已删除查询缓存功能
+
+## SQL注入
+
+SQL注入（SQL Injection）是指应用程序对用户输入数据的合法性没有判断、没有过滤，攻击者可以在应用程序中通过表单提交特殊的字符串，该特殊字符串会改变SQL的运行结果，从而在管理员毫不知情的情况下实现非法操作，以此来实现欺骗数据库执行非授权的任意查询。
+
+**广泛性** 任何一个基于SQL语言的数据库都可能受到SQL注入攻击。很多开发人员都为了省事不对表单参数进行校验。
+
+**隐蔽性** SQL注入语句一般都嵌入在普通的HTTP请求中，很难与正常语句区分开，SQL注入也有很多变种。
+
+**操作简单** 互联网上有很多SQL注入工具，简单易懂，攻击过程简单，不需要太多专业知识
+
+**危害大** 攻击者通过SQL注入能够获取到更多数据，如管理员密码、整个系统的用户数据、他人的隐私数据、完整的数据库。
+
+```java
+#账号密码：adc/' or '1'='1，如下会查出所有数据
+select * from user where username='abc' and password='' or '1'='1';
+```
+
+## 文件编码
+
+在Windows中，MySQL 8.0的配置文件my.ini的编码为ANSI，但是修改配置文件后默认保存的编码为UTF-8，这会导致MySQL解析配置文件错误，无法启动。只需要将配置文件另存为ANSI编码即可。
+
+## 文档存储
+
+在关系数据库中，需要先定义表才能存储数据。文档存储更加灵活，不需要事先定义数据结构、数据约束等就可以直接存储数据。将MySQL用作文档存储时，集合是容器，集合包含可以添加、查找、更新和删除的JSON文档
+
+| 关系数据库 | MySQL文档存储 | 说明    |
+| ---------- | ------------- | ------- |
+| database   | database      | 数据库  |
+| table      | collection    | 表/集合 |
+| row        | document      | 行/文档 |
+
+
+
+表中
+
+| id   | name | age  |
+| ---- | ---- | ---- |
+| 1    | 张三 | 10   |
+
+文档中
+
+{
+    "id":1,
+    "name":"张三",
+    "age":"10"
+}
+
+```java
+#使用MySQL Shell连接数据库（支持文档存储）
+mysqlsh root@localhost:33060/mydb
+#查看当前数据库
+db
+#查看当前数据库有哪些集合
+db.getCollections()
+#创建集合
+db.createCollection("employee_doc")
+#删除集合
+db.dropCollection("employee_doc")
+#添加文档
+db.employee_doc.add({
+    "id":1,
+    "name":"张三",
+    "sex":"男",
+    "salary":5500,
+    "dept":"部门A"
+})
+#查询文档
+db.employee_doc.find("name='张三'")
+#删除文档
+db.employee_doc.remove("name='张三'")
+#删除所有文档
+db.employee_doc.remove("true")
+```
+
+
+
+## MySQL8.0的新特性
+
+| 新特性/改进                | 描述                                                         |
+| -------------------------- | ------------------------------------------------------------ |
+| 默认字符集变为utf8mb4      | 移动端有大量的表情符号需要存储，默认的字符集从 latin-1 转为 utf8mb4。 |
+| 系统表存储引擎全部为InnoDB | 不再采用MyISAM。                                             |
+| DDL原子化                  | 在MySQL 8.0之前，DDL操作是非原子型操作，在执行过程中遇到实例故障重启，可能导<br/>致DDL没有完成也没有回滚。 |
+| 持久化系统参数             | 可以用 SET PERSIST 来设置持久性的全局变量，即便服务器重启也会保持 |
+| 不可见索引                 | 可以将一些索引设置为不可见，这样 SQL 优化器就不会用到它，但是它会继续在后台保持更新。当有需要时，可以随时恢复可见。不可见的索引可以测试删除索引对查询性能的影响，而无需进行破坏性的更改 |
+| 全新的身份认证方式         | 身份认证方式由以前的mysql_native_password改为caching_sha2_password |
+| 通用表表达式               | 通用表表达式（CTE）是一个在语句级别定义的临时结果集。定义之后，可以在当前语句中多次引用该 CTE。CTE有两种用法，非递归的CTE和递归的CTE。 |
+| 窗口函数                   | 类似于聚合函数，可降低代码复杂性并帮助开发人员提高工作效率   |
+| JSON扩展                   | 从版本5.7.8开始，MySQL开始支持JSON数据类型。MySQL8.0新增了JSON_TABLE()函数，可以将JSON数据转换成表 |
+| GIS增强                    | GIS得到了增强，可支持地理和空间参考系统（SRS）。             |
+| 文档存储                   | 可以使用同一种解决方案处理 SQL 和 NoSQL，也可以将两种的优势结合起来 |
+
+### 问题
+
+#### 身份认证方式
+
+老版本的Navicat连接能正常连接MySQL 5.x，但是连接MySQL 8.0却报错，错误提示：
+
+```java
+Client does not support authentication protocol requested by server;consider upgrading MySQL client
+客户端不支持服务器请求的身份验证协议；请考虑升级MySQL客户端    
+```
+
+MySQL 5.x的身份认证方式为 mysql_native_password，也就是Navicat客户端支持的认证方式。但是MySQL 8.0升级了身份认证方式，默认为 caching_sha2_password。因此，在不升级Navicat版本的情况下，可以将MySQL 8.0的身份认证方式修改为 mysql_native_password。
+
+```java
+ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '123456';
+flush privileges;
+```
+
+#### 编码格式
+
+MySQL 8.0将utf8mb4作为默认字符集，mb4是most bytes 4的缩写，专门用于兼容四字节字符，如Emoji表情。MySQL中的utf8是utf8mb3的别名，utf8mb4兼容utf8。
+
+### 原子DDL
+
+MySQL 8.0 开始支持原子性的数据定义语言（DDL），也称为原子 DDL。一个原子 DDL 语句将相关的数据字典更新、存储引擎操作以及写入二进制日志组合成单一的原子事务。当事务正在处理时出现服务器故障，该事务可能被提交，相应的变更会保存到数据字典更新、存储引擎更改以及二进制日志中；也可能被整体回滚。目前，只有 InnoDB 存储引擎支持原子 DDL。
+
+支持原子DDL
+
+1. 数据库、表空间、表、索引的 CREATE、ALTER 以及 DROP 语句，以及 TRUNCATE TABLE 语句
+2. 存储过程、触发器、视图以及用户定义函数（UDF）的 CREATE 和 DROP 语句，以及适用的 ALTER 语句
+3. 用户和角色的 CREATE、ALTER、DROP 语句，以及 GRANT 和 REVOKE 语句
+
+不支持原子DDL
+
+1. 非 InnoDB 存储引擎上的表相关 DDL 语句
+2. INSTALL PLUGIN 和 UNINSTALL PLUGIN 语句
+3. INSTALL COMPONENT 和 UNINSTALL COMPONENT 语句
+4. CREATE SERVER、ALTER SERVER 以及 DROP SERVER 语句
+
+
+
+任何 DDL 语句，包括原子性或其他的 DDL，都会隐式地结束当前事务，就像在执行语句之前执行了COMMIT 操作一样。这就意味着 DDL 语句不能位于其他事务之中，不能位于事务控制语句（如START TRANSACTION … COMMIT）之中，也不能与同一个事务中的其他语句组合使用。
+
+```java
+#只创建一张表
+>create table test1(id int)
+#无test2表报错，回退test1表未删除    
+>drop table test1,test2;
+```
+
+## NoSQL
+
+NoSQL是Not Only SQL的简称，意思是“不仅仅是SQL”。
+
+NoSQL，指的是非关系型的数据库，它是对不同于传统的关系型数据库的数据库管理系统的统称。
+
+NoSQL用于超大规模数据的存储。
+
+- **键值存储**
+  - Tokyo Cabinet/Tyrant
+  - Berkeley DB
+  - MemcacheDB
+  - Redis
+
+- **列存储**
+  - Hbase
+  - Cassandra
+  - Hypertable
+
+- **文档存储**
+
+  - MongoDB
+
+  - CouchDB
+
+- **图形存储**
+  - Neo4J
+    - FlockDB
 
