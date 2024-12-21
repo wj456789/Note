@@ -1660,6 +1660,10 @@ claims.get("role")
 
 ![Spring Security + jwt 前后端分离的权限系统的时序图](pic/Spring Security + jwt 前后端分离的权限系统的时序图.png)
 
+第一次是登录成功返回token和权限信息
+
+第二次是访问接口，从redis获取权限信息，校验url是否有权限，有则返回数据
+
 ## 2.引入依赖
 
 ```xml
