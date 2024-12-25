@@ -1520,7 +1520,7 @@ eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ
 > - Payload（Base64编码后）
 > - Secret（盐，必须保密）
 >
-> 这个部分**需要Base64加密后的header和base4加密后的payload使用.连接组成的字符串，再加盐Secret连接成新的字符串，然后通过header重声明的加密方式进行加密，然后就构成了JWT的第三部分**——使用“qfjava”作为盐：
+> **第一段是Base64编码后的header，第二段是base64编码后的payload，第三段是Base64编码后的header、base64编码后的payload、盐Secret使用.连接，然后通过header重声明的加密方式进行加密的字符串**——使用“qfjava”作为盐：
 
 ```
 eZqdTo1mRMB-o7co1oAiTvNvumfCkt-1H-CdfNm78Cw
