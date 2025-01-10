@@ -108,7 +108,7 @@ public class SecurityController {
 
  
 
-## 2.过滤器加载过程
+## 2.过滤器加载过程源码
 
 > Springboot在整合Spring Security项目时会自动配置**DelegatingFilterProxy**过滤器，若非Springboot工程，则需要手动配置该过滤器。
 
@@ -329,6 +329,113 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 > 根据401和以上响应头信息，浏览器会弹出一个对话框，要求输入 用户名/密码，Basic认证会将其拼接成 “用户名:密码” 格式，中间是一个冒号，并利用Base64编码成加密字符串xxx；然后在请求头中附加 Authorization: Basic xxx 信息，发送给后台认证；后台需要利用Base64来进行解码xxx，得到用户名和密码，再校验 用户名:密码 信息。如果认证错误，浏览器会保持弹框；如果认证成功，浏览器会缓存有效的Base64编码，在之后的请求中，浏览器都会在请求头中添加该有效编码。
 >
 
+## 4.Http摘要认证
+
+- 概念
+
+> HTTP摘要认证和HTTP基本认证一样，也是在RFC2616中定义的一种认证方式，它的出现是为了弥补HTTP基本认证存在的安全隐患，但该认证方式也并不是很安全。**HTTP摘要认证会使用对通信双方来说都可知的口令进行校验，且最终以密文的形式来传输数据，所以相对于基本认证来说，稍微安全了一些**。
+>
+> **HTTP摘要认证与基本认证类似，基于简单的“挑战-回应”模型。**当我们发起一个未经认证的请求时，服务器会返回一个401回应，并给客户端返回与验证相关的参数，期待客户端依据这些参数继续做出回应，从而完成整个验证过程。
+
+- 摘要认证核心参数
+
+> 服务端给客户端返回的验证相关参数如下：
+
+```
+username: 用户名。
+
+password: 用户密码。
+
+realm: 认证域，由服务器返回。
+
+opaque: 透传字符串，客户端应原样返回。
+
+method: 请求的方法。
+
+nonce: 由服务器生成的随机字符串，包含过期时间(默认过期时间300s)和密钥。
+
+nc: 即nonce-count,指请求的次数，用于计数，防止重放攻击。qop被指定时，nc也必须被指定。
+
+cnonce: 客户端发给服务器的随机字符串，qop被指定时，cnonce也必须被指定。
+
+qop: 保护级别，客户端根据此参数指定摘要算法。若取值为 auth,则只进行身份验证；若取值为auth-int，则还需要校验内容完整性，默认的qop为auth。
+
+uri: 请求的uri。
+
+response: 客户端根据算法算出的摘要值，这个算法取决于qop。
+
+algorithm: 摘要算法，目前仅支持MD5。
+
+entity-body: 页面实体，非消息实体，仅在auth-int中支持。
+```
+
+> 通常服务器端返回的数据包括realm、opaque、nonce、qop等字段，如果客户端需要做出验证回应，就必须按照一定的算法得到一些新的数据并一起返回。**在以上各种参数中，对服务器而言，最重要的字段是nonce；对客户端而言，最重要的字段是response。**
+
+- 摘要认证的实现
+
+```java
+package com.qf.my.spring.security.demo.config;
+
+import com.qf.my.spring.security.demo.service.MyUserDetailService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.web.authentication.www.DigestAuthenticationEntryPoint;
+import org.springframework.security.web.authentication.www.DigestAuthenticationFilter;
+
+/**
+ * 摘要认证的配置
+ * @author Thor
+ * @公众号 Java架构栈
+ */
+@EnableWebSecurity
+public class DigestConfig extends WebSecurityConfigurerAdapter {
+
+    @Autowired
+    private DigestAuthenticationEntryPoint digestAuthenticationEntryPoint;
+
+    @Autowired
+    private MyUserDetailService userDetailService;
+
+    //配置认证入口端点，主要是设置认证参数信息
+    @Bean
+    public DigestAuthenticationEntryPoint digestAuthenticationEntryPoint(){
+        DigestAuthenticationEntryPoint point = new DigestAuthenticationEntryPoint();
+        point.setKey("security demo");
+        point.setRealmName("thor");
+        point.setNonceValiditySeconds(500);
+        return point;
+    }
+
+    public DigestAuthenticationFilter digestAuthenticationFilter(){
+        DigestAuthenticationFilter filter = new DigestAuthenticationFilter();
+        filter.setAuthenticationEntryPoint(digestAuthenticationEntryPoint);
+        filter.setUserDetailsService(userDetailService);
+        return filter;
+    }
+
+    @Override
+    protected void configure(HttpSecurity http) throws Exception {
+        http.authorizeRequests()
+                .antMatchers("/hello").hasAuthority("role")
+                .anyRequest().authenticated()
+                .and().csrf().disable()
+                //当未认证时访问某些资源,则由该认证入口类来处理.
+                .exceptionHandling()
+                .authenticationEntryPoint(digestAuthenticationEntryPoint)
+                .and()
+                //添加自定义过滤器到过滤器链中
+                .addFilter(digestAuthenticationFilter());
+
+    }
+}
+
+```
+
+
+
 # 五、Form表单认证
 
 在SpringBoot开发环境中，只要我们添加了Spring Security的依赖包，就会自动实现表单认证。可以通过WebSecurityConfigurerAdapter提供的configure方法看到默认的认证方式就是表单认证
@@ -546,111 +653,6 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 >
 > HttpSecurity用来构建包含一系列的过滤器链SecurityFilterChain，平常我们的配置就是围绕着这个SecurityFilterChain进行。
 
-## 5.Http摘要认证
-
-- 概念
-
-> HTTP摘要认证和HTTP基本认证一样，也是在RFC2616中定义的一种认证方式，它的出现是为了弥补HTTP基本认证存在的安全隐患，但该认证方式也并不是很安全。**HTTP摘要认证会使用对通信双方来说都可知的口令进行校验，且最终以密文的形式来传输数据，所以相对于基本认证来说，稍微安全了一些**。
->
-> **HTTP摘要认证与基本认证类似，基于简单的“挑战-回应”模型。**当我们发起一个未经认证的请求时，服务器会返回一个401回应，并给客户端返回与验证相关的参数，期待客户端依据这些参数继续做出回应，从而完成整个验证过程。
-
-- 摘要认证核心参数
-
-> 服务端给客户端返回的验证相关参数如下：
-
-```
-username: 用户名。
-
-password: 用户密码。
-
-realm: 认证域，由服务器返回。
-
-opaque: 透传字符串，客户端应原样返回。
-
-method: 请求的方法。
-
-nonce: 由服务器生成的随机字符串，包含过期时间(默认过期时间300s)和密钥。
-
-nc: 即nonce-count,指请求的次数，用于计数，防止重放攻击。qop被指定时，nc也必须被指定。
-
-cnonce: 客户端发给服务器的随机字符串，qop被指定时，cnonce也必须被指定。
-
-qop: 保护级别，客户端根据此参数指定摘要算法。若取值为 auth,则只进行身份验证；若取值为auth-int，则还需要校验内容完整性，默认的qop为auth。
-
-uri: 请求的uri。
-
-response: 客户端根据算法算出的摘要值，这个算法取决于qop。
-
-algorithm: 摘要算法，目前仅支持MD5。
-
-entity-body: 页面实体，非消息实体，仅在auth-int中支持。
-```
-
-> 通常服务器端返回的数据包括realm、opaque、nonce、qop等字段，如果客户端需要做出验证回应，就必须按照一定的算法得到一些新的数据并一起返回。**在以上各种参数中，对服务器而言，最重要的字段是nonce；对客户端而言，最重要的字段是response。**
-
-- 摘要认证的实现
-
-```java
-package com.qf.my.spring.security.demo.config;
-
-import com.qf.my.spring.security.demo.service.MyUserDetailService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
-import org.springframework.security.web.authentication.www.DigestAuthenticationEntryPoint;
-import org.springframework.security.web.authentication.www.DigestAuthenticationFilter;
-
-/**
- * 摘要认证的配置
- * @author Thor
- * @公众号 Java架构栈
- */
-@EnableWebSecurity
-public class DigestConfig extends WebSecurityConfigurerAdapter {
-
-    @Autowired
-    private DigestAuthenticationEntryPoint digestAuthenticationEntryPoint;
-
-    @Autowired
-    private MyUserDetailService userDetailService;
-
-    //配置认证入口端点，主要是设置认证参数信息
-    @Bean
-    public DigestAuthenticationEntryPoint digestAuthenticationEntryPoint(){
-        DigestAuthenticationEntryPoint point = new DigestAuthenticationEntryPoint();
-        point.setKey("security demo");
-        point.setRealmName("thor");
-        point.setNonceValiditySeconds(500);
-        return point;
-    }
-
-    public DigestAuthenticationFilter digestAuthenticationFilter(){
-        DigestAuthenticationFilter filter = new DigestAuthenticationFilter();
-        filter.setAuthenticationEntryPoint(digestAuthenticationEntryPoint);
-        filter.setUserDetailsService(userDetailService);
-        return filter;
-    }
-
-    @Override
-    protected void configure(HttpSecurity http) throws Exception {
-        http.authorizeRequests()
-                .antMatchers("/hello").hasAuthority("role")
-                .anyRequest().authenticated()
-                .and().csrf().disable()
-                //当未认证时访问某些资源,则由该认证入口类来处理.
-                .exceptionHandling()
-                .authenticationEntryPoint(digestAuthenticationEntryPoint)
-                .and()
-                //添加自定义过滤器到过滤器链中
-                .addFilter(digestAuthenticationFilter());
-
-    }
-}
-
-```
-
 
 
 # 六、自定义用户名和密码
@@ -832,7 +834,6 @@ public class MyUserDetailService implements UserDetailsService {
         return user;
     }
 }
-
 ```
 
 - 编写SecurityConfig配置类，指明对UserDetailsService实现类认证
@@ -1056,7 +1057,6 @@ public class MyUserDetailService implements UserDetailsService {
         return user;
     }
 }
-
 ```
 
 
@@ -1662,7 +1662,7 @@ claims.get("role")
 
 第一次是登录成功返回token和权限信息
 
-第二次是访问接口，从redis获取权限信息，校验url是否有权限，有则返回数据
+第二次是携带token访问接口，从redis获取权限信息，校验url是否有权限，有则返回数据
 
 ## 2.引入依赖
 
@@ -2005,5 +2005,73 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     }
 }
 
+```
+
+## 登录过滤器源码
+
+```java
+// 登录过滤器中认证流程
+Authentication authenticate = authenticationManager.authenticate(
+    new UsernamePasswordAuthenticationToken(user.getUsername(), user.getPassword()
+                                            , new ArrayList<>())
+);
+```
+
+```java
+public class ProviderManager implements AuthenticationManager, MessageSourceAware,InitializingBean {
+    ...
+    public Authentication authenticate(Authentication authentication) throws AuthenticationException {
+        ...
+		for (AuthenticationProvider provider : getProviders()) {
+			...
+            result = provider.authenticate(authentication);
+            ...
+		}
+        ...
+	}
+}
+```
+
+```java
+// 上述用户名密码校验、角色权限校验走的都是 AbstractUserDetailsAuthenticationProvider， 可以自定义其他 Provider 实现
+public abstract class AbstractUserDetailsAuthenticationProvider implements AuthenticationProvider, InitializingBean, MessageSourceAware {
+    public Authentication authenticate(Authentication authentication) throws AuthenticationException {
+        ...
+        UserDetails user = retrieveUser(username, (UsernamePasswordAuthenticationToken) authentication);    
+        ...
+        additionalAuthenticationChecks(user, (UsernamePasswordAuthenticationToken) authentication);
+        ...
+		return createSuccessAuthentication(principalToReturn, authentication, user);
+	}
+    
+    protected Authentication createSuccessAuthentication(Object principal,
+			Authentication authentication, UserDetails user) {
+		UsernamePasswordAuthenticationToken result = new UsernamePasswordAuthenticationToken(
+				principal, authentication.getCredentials(),
+				authoritiesMapper.mapAuthorities(user.getAuthorities()));
+		result.setDetails(authentication.getDetails());
+		return result;
+	}
+}
+```
+
+```java
+public class DaoAuthenticationProvider extends AbstractUserDetailsAuthenticationProvider {
+    ...
+    protected final UserDetails retrieveUser(String username, UsernamePasswordAuthenticationToken authentication) throws AuthenticationException {
+        ...
+		UserDetails loadedUser = this.getUserDetailsService().loadUserByUsername(username);
+		return loadedUser;
+	}
+    
+    protected void additionalAuthenticationChecks(UserDetails userDetails, UsernamePasswordAuthenticationToken authentication)
+			throws AuthenticationException {
+        ...
+		if (!passwordEncoder.matches(presentedPassword, userDetails.getPassword())) {
+			throw new BadCredentialsException(messages.getMessage("AbstractUserDetailsAuthenticationProvider.badCredentials",
+					"Bad credentials"));
+		}
+	}
+}
 ```
 
