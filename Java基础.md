@@ -1179,17 +1179,49 @@ public class OuterClass {
 
 
 
+## 泛型
 
+```
+List<? super AAA>和List<? extends AAA>都是泛型类型的声明，但是它们有着不同的含义。
 
+List<? super AAA>表示这个列表的元素类型是AAA的某个父类（包括AAA本身），也就是说，我们可以向这个列表中添加AAA的子类对象，但是不能添加AAA的父类对象，因为这可能会导致类型不匹配。
 
+List<? extends AAA>表示这个列表的元素类型是AAA的某个子类（包括AAA本身），也就是说，我们可以从这个列表中获取AAA的子类对象，但是不能向这个列表中添加任何元素，因为我们无法确定添加的元素类型是否符合列表的元素类型。
+```
 
+List<? super T>（下界） 适合用来存放数据。只能添加T类型或其子类类型；添加存放之后这些类型都会转换为T的任意超类类型；取出元素可以强转为T泛型，也可以直接使用Object接受；
 
+```java
+ArrayList<? super Number> superList = new ArrayList<>();
 
+Integer a = 10;
+superList.add(a);
 
+Number number = (Number) superList.get(0);
+Object object = superList.get(0);
+```
 
+List<? extends T>（上界） 适合用来读取数据。 假如使用T类型不同的子类去添加到list中时，各种子类无法相互转换从而导致编译失败，因此不能添加元素，但是可以接收初始化赋值；读取出来的数据必须使用T类型或其父类接受，因为不确定具体的类型；
 
+```java
+ArrayList<? extends Number> extendsList = new ArrayList<>();
 
+//extendsList.add(10); // 直接添加会报错
 
+ArrayList<Integer> list = new ArrayList<>();
+list.add(10);
+extendsList = list; // 虽然不能直接添加元素，但是可以使用这种方式初始化，相当于将一个容器的东西倒入另一个容器，这种情况只能使用Number的子类作为泛型的集合才能给extendsList赋值，但是使用Number的父类做泛型的集合进行赋值就会报错。
+
+// ArrayList<Object> objects = new ArrayList<>();
+// objects.add("123");
+// extendsList = objects; // Object是Number的父类，编译失败
+
+Number number1 = extendsList.get(0);
+Object object2 = extendsList.get(0);
+
+//ArrayList<? extends Number> list1 = new ArrayList<Integer>();
+//Integer number2 = list1.get(0); // 这样会报错，因为list1可能指的是List<Double>
+```
 
 
 

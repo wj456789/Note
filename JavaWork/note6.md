@@ -837,16 +837,6 @@ appId=502004&busiSerial=2bcb6d92fb8f4284bb08517beb1f51fe&nonce=TWEFRLU19IYAP8HKV
 
 
 
-## 泛型
-
-```
-List<? super AAA>和List<? extends AAA>都是泛型类型的声明，但是它们有着不同的含义。
-
-List<? super AAA>表示这个列表的元素类型是AAA的某个父类（包括AAA本身），也就是说，我们可以向这个列表中添加AAA的子类对象，但是不能添加AAA的父类对象，因为这可能会导致类型不匹配。
-
-List<? extends AAA>表示这个列表的元素类型是AAA的某个子类（包括AAA本身），也就是说，我们可以从这个列表中获取AAA的子类对象，但是不能向这个列表中添加任何元素，因为我们无法确定添加的元素类型是否符合列表的元素类型。
-```
-
 
 
 
